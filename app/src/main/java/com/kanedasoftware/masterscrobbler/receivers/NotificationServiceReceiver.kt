@@ -7,6 +7,7 @@ import android.media.AudioManager
 import android.os.Handler
 import android.preference.PreferenceManager
 import android.widget.Toast
+import com.kanedasoftware.masterscrobbler.model.ScrobbleInfo
 import com.kanedasoftware.masterscrobbler.model.TrackInfo
 import com.kanedasoftware.masterscrobbler.model.UpdateNowPlayingInfo
 import com.kanedasoftware.masterscrobbler.utils.Constants
@@ -62,7 +63,20 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                                     val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                                     if (audioManager.isMusicActive) {
                                         if (preferences.getLong("postTime", 0) == postTime) {
-                                            Utils.logDebug("SCROBBLE: ".plus(validatedArtist).plus(" - ").plus(validatedTrack))
+                                            val timestamp = (postTime / 1000).toString()
+                                            val paramsScrobble = mutableMapOf("track" to validatedTrack, "artist" to validatedArtist, "sk" to sessionKey, "timestamp" to timestamp)
+                                            val sigScrobble = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
+                                            LastFmInitializer().lastFmService().scrobble(Constants.API_KEY, validatedTrack, validatedArtist, sigScrobble, sessionKey, timestamp).enqueue(object : Callback<ScrobbleInfo> {
+                                                override fun onResponse(call: Call<ScrobbleInfo>, response: Response<ScrobbleInfo>) {
+                                                    val scrobble = response.body()?.scrobbles?.scrobble
+                                                    Utils.logDebug("Scrobble Corrected: ".plus(scrobble?.artist?.text).plus(" - ").plus(scrobble?.track?.text))
+                                                }
+
+                                                override fun onFailure(call: Call<ScrobbleInfo>, t: Throwable) {
+                                                    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                                                }
+                                            })
+
                                         } else {
                                             Utils.logDebug("A notificação ativa não é a mesma notificação, não será feito o scrobble")
                                         }

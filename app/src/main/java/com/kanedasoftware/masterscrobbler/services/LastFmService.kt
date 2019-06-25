@@ -1,5 +1,6 @@
 package com.kanedasoftware.masterscrobbler.services
 
+import com.kanedasoftware.masterscrobbler.model.ScrobbleInfo
 import com.kanedasoftware.masterscrobbler.model.TrackInfo
 import com.kanedasoftware.masterscrobbler.model.UpdateNowPlayingInfo
 import retrofit2.Call
@@ -15,4 +16,8 @@ interface LastFmService {
     @POST("?method=track.updateNowPlaying&format=json")
     fun updateNowPlaying(@Query("api_key") apiKey: String, @Query("track") track: String, @Query("artist") artist: String,
                          @Query("api_sig") sig: String, @Query("sk") sessionKey: String):Call<UpdateNowPlayingInfo>
+
+    @POST("?method=track.scrobble&format=json")
+    fun scrobble(@Query("api_key") apiKey: String, @Query("track") track: String, @Query("artist") artist: String,
+                         @Query("api_sig") sig: String, @Query("sk") sessionKey: String, @Query("timestamp") timestamp: String):Call<ScrobbleInfo>
 }
