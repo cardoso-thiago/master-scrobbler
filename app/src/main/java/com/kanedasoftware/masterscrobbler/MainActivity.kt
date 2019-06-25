@@ -34,6 +34,10 @@ class MainActivity : AppCompatActivity() {
 
         verifyNotificationAccess()
 
+
+        val params1 = mutableMapOf("track" to "Amazing", "artist" to "Greyhounds", "sk" to "PiKWy7f0_Wh1n_MAbmtzqQxpZSjNImh4", "timestamp" to "1561502670")
+        val sig1 = Utils.getSig(params1, Constants.API_TRACK_SCROBBLE)
+
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
         var sessionKey = preferences.getString("sessionKey", "")
 
