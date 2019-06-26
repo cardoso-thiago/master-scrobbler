@@ -8,6 +8,7 @@ import android.media.AudioManager
 import android.os.Handler
 import android.preference.PreferenceManager
 import android.widget.Toast
+import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
 import com.kanedasoftware.masterscrobbler.model.FullTrackInfo
 import com.kanedasoftware.masterscrobbler.model.ScrobbleInfo
 import com.kanedasoftware.masterscrobbler.model.TrackInfo
@@ -21,49 +22,84 @@ import retrofit2.Response
 
 class NotificationServiceReceiver : BroadcastReceiver() {
 
+    private var scrobbleBean = ScrobbleBean()
+    private var context: Context? = null
+    private var preferences: SharedPreferences? = null
+
     override fun onReceive(context: Context?, intent: Intent?) {
         Utils.logDebug("onReceive")
         val extras = intent?.extras
-        val artist = extras?.getString("artist")
-        val track = extras?.getString("track")
-        val postTime = extras?.getLong("postTime")
-        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+        if (extras != null) {
+            this.scrobbleBean.artist = extras.getString("artist", "")
+            this.scrobbleBean.track = extras.getString("track", "")
+            this.scrobbleBean.postTime = extras.getLong("postTime", 0)
 
-        //TODO verificar isBlank, isEmpty ou != null (pesquisar diferenças)
-        //Se o artista e a música não forem nulos
-        if (track != null && artist != null) {
-            Utils.logDebug("Artista e músicas OK")
-            //Valida se a música e o artista existem no Last.FM fazendo uma busca através da API
-            validateTrackAndArtist(track, artist, context, preferences, postTime)
+            this.context = context
+            this.preferences = PreferenceManager.getDefaultSharedPreferences(context)
+
+            if (!scrobbleBean.artist.isBlank() && !scrobbleBean.track.isBlank()) {
+                Utils.logDebug("Artista e músicas OK")
+                validateTrackAndArtist(scrobbleBean)
+            }
         }
     }
 
-    private fun validateTrackAndArtist(track: String, artist: String, context: Context?, preferences: SharedPreferences, postTime: Long?) {
+    private fun validateTrackAndArtist(scrobbleBean: ScrobbleBean) {
         Utils.logDebug("Validate track")
-        LastFmInitializer().lastFmService().validateTrackAndArtist(Constants.API_KEY, track, artist).enqueue(object : Callback<TrackInfo> {
+        LastFmInitializer().lastFmService().validateTrackAndArtist(Constants.API_KEY, scrobbleBean.track, scrobbleBean.artist).enqueue(object : Callback<TrackInfo> {
             override fun onResponse(call: Call<TrackInfo>, response: Response<TrackInfo>) {
                 Utils.logDebug("Validate track OK")
-                val trackInfo = response.body()
-                //Obtém a lista com os resultados
-                val trackList = trackInfo?.results?.trackmatches?.track
-                //Pega o tamanho da lista
+                val trackList = response.body()?.results?.trackmatches?.track
                 val listSize = trackList?.size
-                //Se a lista for diferente de null
                 if (listSize != null && listSize > 0) {
-                    //Pega o primeiro item da busca, pois na chamada foi limitado para retornar só um resultado no máximo
-                    val validatedArtist = trackList[0].artist
-                    val validatedTrack = trackList[0].name
                     val mbid = trackList[0].mbid
 
-                    //TODO isNullOrBlank já verifica se é nulo, mudar pra todos
-                    if(mbid.isNullOrBlank()){
-                       Utils.logDebug("MBID não encontrado, assume que a música não existe, vai tentar validar só pelo nome da música")
-                        validateOnlyByTrack(validatedTrack, context, preferences, postTime)
+                    var validatedScrobbleBean = ScrobbleBean()
+                    validatedScrobbleBean.artist = trackList[0].artist
+                    validatedScrobbleBean.track = trackList[0].name
+                    validatedScrobbleBean.postTime = scrobbleBean.postTime
+                    validatedScrobbleBean.mbid = mbid
+
+                    if (mbid.isBlank()) {
+                        Utils.logDebug("MBID não encontrado, assume que a música não existe, vai tentar validar só pelo nome da música")
+                        validateOnlyByTrack(scrobbleBean)
                     } else {
-                        getFullTrackInfo(mbid, context, validatedArtist, validatedTrack, preferences, postTime)
+                        getFullTrackInfo(validatedScrobbleBean)
                     }
                 } else {
-                    Toast.makeText(context, "Não foi possível encontrar a música " + artist + " - " + track + " no Last.FM", Toast.LENGTH_LONG).show()
+                    Utils.logDebug("Não foi possível encontrar a música " + scrobbleBean.artist + " - " + scrobbleBean.track + " no Last.FM")
+                }
+            }
+
+            override fun onFailure(call: Call<TrackInfo>, t: Throwable) {
+                //TODO implementar tratamento de erro
+                Utils.logDebug(t.localizedMessage)
+            }
+        })
+    }
+
+    private fun validateOnlyByTrack(scrobbleBean: ScrobbleBean) {
+        LastFmInitializer().lastFmService().validateTrack(Constants.API_KEY, scrobbleBean.track).enqueue(object : Callback<TrackInfo> {
+            override fun onResponse(call: Call<TrackInfo>, response: Response<TrackInfo>) {
+                val trackList = response.body()?.results?.trackmatches?.track
+                val listSize = trackList?.size
+
+                if (listSize != null && listSize > 0) {
+                    val mbid = trackList[0].mbid
+
+                    var validatedScrobbleBean = ScrobbleBean()
+                    validatedScrobbleBean.artist = trackList[0].artist
+                    validatedScrobbleBean.track = trackList[0].name
+                    validatedScrobbleBean.postTime = scrobbleBean.postTime
+                    validatedScrobbleBean.mbid = mbid
+
+                    if (mbid.isBlank()) {
+                        Utils.logDebug("MBID não encontrado, assume que a música não existe, não será feito o updateNowPlaying")
+                    } else {
+                        getFullTrackInfo(validatedScrobbleBean)
+                    }
+                } else {
+                    Toast.makeText(context, "Não foi possível encontrar a música " + scrobbleBean.track + " no Last.FM", Toast.LENGTH_LONG).show()
                 }
             }
 
@@ -71,112 +107,75 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 //TODO implementar tratamento de erro
                 Toast.makeText(context, t.localizedMessage, Toast.LENGTH_LONG).show()
             }
-
         })
     }
 
-    private fun validateOnlyByTrack(track: String, context: Context?, preferences: SharedPreferences, postTime: Long?) {
-        Utils.logDebug("Validate track")
-        LastFmInitializer().lastFmService().validateTrack(Constants.API_KEY, track).enqueue(object : Callback<TrackInfo> {
-            override fun onResponse(call: Call<TrackInfo>, response: Response<TrackInfo>) {
-                Utils.logDebug("Validate track OK")
-                val trackInfo = response.body()
-                //Obtém a lista com os resultados
-                val trackList = trackInfo?.results?.trackmatches?.track
-                //Pega o tamanho da lista
-                val listSize = trackList?.size
-                //Se a lista for diferente de null
-                if (listSize != null && listSize > 0) {
-                    //Pega o primeiro item da busca, pois na chamada foi limitado para retornar só um resultado no máximo
-                    val validatedArtist = trackList[0].artist
-                    val validatedTrack = trackList[0].name
-                    val mbid = trackList[0].mbid
-
-                    //TODO isNullOrBlank já verifica se é nulo, mudar pra todos
-                    if(mbid.isNullOrBlank()){
-                        Utils.logDebug("MBID não encontrado, assume que a música não existe, não será feito o scrobble")
-                    } else {
-                        getFullTrackInfo(mbid, context, validatedArtist, validatedTrack, preferences, postTime)
-                    }
-                } else {
-                    Toast.makeText(context, "Não foi possível encontrar a música " + track + " no Last.FM", Toast.LENGTH_LONG).show()
-                }
-            }
-
-            override fun onFailure(call: Call<TrackInfo>, t: Throwable) {
-                //TODO implementar tratamento de erro
-                Toast.makeText(context, t.localizedMessage, Toast.LENGTH_LONG).show()
-            }
-
-        })
-    }
-
-    private fun getFullTrackInfo(mbid: String, context: Context?, validatedArtist: String, validatedTrack: String, preferences: SharedPreferences, postTime: Long?) {
-        LastFmInitializer().lastFmService().fullTrackInfo(Constants.API_KEY, mbid).enqueue(object : Callback<FullTrackInfo> {
+    private fun getFullTrackInfo(scrobbleBean: ScrobbleBean) {
+        LastFmInitializer().lastFmService().fullTrackInfo(Constants.API_KEY, scrobbleBean.mbid).enqueue(object : Callback<FullTrackInfo> {
             override fun onResponse(call: Call<FullTrackInfo>, response: Response<FullTrackInfo>) {
-                //TODO remover o Toast
-                Toast.makeText(context, validatedArtist + " - " + validatedTrack, Toast.LENGTH_LONG).show()
-
-                val trackDuration = response.body()?.track?.duration
-
-                //Obtém a chave da sessão do usuário
-                val sessionKey = PreferenceManager.getDefaultSharedPreferences(context).getString("sessionKey", "")
-                //Cria os parâmetros para o update do NowPlaying
-                val params = mutableMapOf("track" to validatedTrack, "artist" to validatedArtist, "sk" to sessionKey)
-                //Obtém a assinatura para a API
-                val sig = Utils.getSig(params, Constants.API_UPDATE_NOW_PLAYING)
-
-                //Atualiza a música que está tocando
-                LastFmInitializer().lastFmService().updateNowPlaying(Constants.API_KEY, validatedTrack, validatedArtist, sig, sessionKey).enqueue(object : Callback<UpdateNowPlayingInfo> {
-
-                    override fun onResponse(call: Call<UpdateNowPlayingInfo>, response: Response<UpdateNowPlayingInfo>) {
-                        Utils.logDebug("Atualizou faixa tocando agora: ".plus(validatedArtist).plus(" - ").plus(validatedTrack))
-
-                        val handler = Handler()
-                        val runnable = Runnable {
-                            val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                            if (audioManager.isMusicActive) {
-                                if (preferences.getLong("postTime", 0) == postTime) {
-                                    val timestamp = (postTime / 1000).toString()
-                                    val paramsScrobble = mutableMapOf("track" to validatedTrack, "artist" to validatedArtist, "sk" to sessionKey, "timestamp" to timestamp)
-                                    val sigScrobble = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
-                                    LastFmInitializer().lastFmService().scrobble(Constants.API_KEY, validatedTrack, validatedArtist, sigScrobble, sessionKey, timestamp).enqueue(object : Callback<ScrobbleInfo> {
-                                        override fun onResponse(call: Call<ScrobbleInfo>, response: Response<ScrobbleInfo>) {
-                                            val scrobble = response.body()?.scrobbles?.scrobble
-                                            Utils.logDebug("Scrobble Corrected: ".plus(scrobble?.artist?.text).plus(" - ").plus(scrobble?.track?.text))
-                                        }
-
-                                        override fun onFailure(call: Call<ScrobbleInfo>, t: Throwable) {
-                                            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-                                        }
-                                    })
-
-                                } else {
-                                    Utils.logDebug("A notificação ativa não é a mesma notificação, não será feito o scrobble")
-                                }
-                            } else {
-                                Utils.logDebug("Música não ativa, não será feito o scrobble")
-                            }
-                        }
-
-                        Utils.logDebug("Duration: ".plus(trackDuration))
-                        if (trackDuration != null && !trackDuration.isBlank()) {
-                            val longDuration = trackDuration?.toLong()
-                            handler.postDelayed(runnable, longDuration / 2)
-                        } else {
-                            handler.postDelayed(runnable, 30000)
-                        }
-                    }
-
-                    override fun onFailure(call: Call<UpdateNowPlayingInfo>, t: Throwable) {
-                        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-                    }
-                })
+                scrobbleBean.trackDuration = response.body()?.track?.duration.toString()
+                updateNowPlaying(scrobbleBean)
             }
 
             override fun onFailure(call: Call<FullTrackInfo>, t: Throwable) {
                 TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
             }
         })
+    }
+
+    private fun updateNowPlaying(scrobbleBean: ScrobbleBean) {
+        val sessionKey = PreferenceManager.getDefaultSharedPreferences(context).getString("sessionKey", "")
+        val params = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey)
+        val sig = Utils.getSig(params, Constants.API_UPDATE_NOW_PLAYING)
+
+        LastFmInitializer().lastFmService().updateNowPlaying(Constants.API_KEY, scrobbleBean.track, scrobbleBean.artist, sig, sessionKey).enqueue(object : Callback<UpdateNowPlayingInfo> {
+            override fun onResponse(call: Call<UpdateNowPlayingInfo>, response: Response<UpdateNowPlayingInfo>) {
+                Utils.logDebug("Atualizou faixa tocando agora: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
+                scrobble(scrobbleBean)
+            }
+            override fun onFailure(call: Call<UpdateNowPlayingInfo>, t: Throwable) {
+                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            }
+        })
+    }
+
+    private fun scrobble(scrobbleBean:ScrobbleBean) {
+        val sessionKey = PreferenceManager.getDefaultSharedPreferences(context).getString("sessionKey", "")
+        val handler = Handler()
+        val runnable = Runnable {
+            val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            if (audioManager.isMusicActive) {
+                if (preferences?.getLong("postTime", 0) == scrobbleBean.postTime) {
+                    val timestamp = (scrobbleBean.postTime?.div(1000)).toString()
+                    val paramsScrobble = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey, "timestamp" to timestamp)
+                    val sigScrobble = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
+                    LastFmInitializer().lastFmService().scrobble(Constants.API_KEY, scrobbleBean.track, scrobbleBean.artist, sigScrobble, sessionKey, timestamp)
+                            .enqueue(object : Callback<ScrobbleInfo> {
+                        override fun onResponse(call: Call<ScrobbleInfo>, response: Response<ScrobbleInfo>) {
+                            val scrobble = response.body()?.scrobbles?.scrobble
+                            //TODO pegar informação corrigida da maneira certa pra logar
+                            Utils.logDebug("Scrobble Corrected: ".plus(scrobble?.artist?.text).plus(" - ").plus(scrobble?.track?.text))
+                        }
+
+                        override fun onFailure(call: Call<ScrobbleInfo>, t: Throwable) {
+                            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                        }
+                    })
+
+                } else {
+                    Utils.logDebug("A notificação ativa não é a mesma notificação, não será feito o updateNowPlaying")
+                }
+            } else {
+                Utils.logDebug("Música não ativa, não será feito o updateNowPlaying")
+            }
+        }
+
+        Utils.logDebug("Duration: ".plus(scrobbleBean.trackDuration))
+        if (scrobbleBean.trackDuration.isBlank()) {
+            handler.postDelayed(runnable, 30000)
+        } else {
+            val longDuration = scrobbleBean.trackDuration?.toLong()
+            handler.postDelayed(runnable, longDuration / 2)
+        }
     }
 }
