@@ -22,6 +22,7 @@ import retrofit2.Response
 class NotificationServiceReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
+        Utils.logDebug("onReceive")
         val extras = intent?.extras
         val artist = extras?.getString("artist")
         val track = extras?.getString("track")
@@ -31,29 +32,74 @@ class NotificationServiceReceiver : BroadcastReceiver() {
         //TODO verificar isBlank, isEmpty ou != null (pesquisar diferenças)
         //Se o artista e a música não forem nulos
         if (track != null && artist != null) {
+            Utils.logDebug("Artista e músicas OK")
             //Valida se a música e o artista existem no Last.FM fazendo uma busca através da API
-            validateTrack(track, artist, context, preferences, postTime)
+            validateTrackAndArtist(track, artist, context, preferences, postTime)
         }
     }
 
-    private fun validateTrack(track: String, artist: String, context: Context?, preferences: SharedPreferences, postTime: Long?) {
-        LastFmInitializer().lastFmService().validateTrack(Constants.API_KEY, track, artist).enqueue(object : Callback<TrackInfo> {
+    private fun validateTrackAndArtist(track: String, artist: String, context: Context?, preferences: SharedPreferences, postTime: Long?) {
+        Utils.logDebug("Validate track")
+        LastFmInitializer().lastFmService().validateTrackAndArtist(Constants.API_KEY, track, artist).enqueue(object : Callback<TrackInfo> {
             override fun onResponse(call: Call<TrackInfo>, response: Response<TrackInfo>) {
+                Utils.logDebug("Validate track OK")
                 val trackInfo = response.body()
                 //Obtém a lista com os resultados
                 val trackList = trackInfo?.results?.trackmatches?.track
                 //Pega o tamanho da lista
                 val listSize = trackList?.size
-                //Se a lista for diferente de null e o tamanho maior que 0, assume que a música eciste
+                //Se a lista for diferente de null
                 if (listSize != null && listSize > 0) {
                     //Pega o primeiro item da busca, pois na chamada foi limitado para retornar só um resultado no máximo
                     val validatedArtist = trackList[0].artist
                     val validatedTrack = trackList[0].name
                     val mbid = trackList[0].mbid
 
-                    getFullTrackInfo(mbid, context, validatedArtist, validatedTrack, preferences, postTime)
+                    //TODO isNullOrBlank já verifica se é nulo, mudar pra todos
+                    if(mbid.isNullOrBlank()){
+                       Utils.logDebug("MBID não encontrado, assume que a música não existe, vai tentar validar só pelo nome da música")
+                        validateOnlyByTrack(validatedTrack, context, preferences, postTime)
+                    } else {
+                        getFullTrackInfo(mbid, context, validatedArtist, validatedTrack, preferences, postTime)
+                    }
                 } else {
                     Toast.makeText(context, "Não foi possível encontrar a música " + artist + " - " + track + " no Last.FM", Toast.LENGTH_LONG).show()
+                }
+            }
+
+            override fun onFailure(call: Call<TrackInfo>, t: Throwable) {
+                //TODO implementar tratamento de erro
+                Toast.makeText(context, t.localizedMessage, Toast.LENGTH_LONG).show()
+            }
+
+        })
+    }
+
+    private fun validateOnlyByTrack(track: String, context: Context?, preferences: SharedPreferences, postTime: Long?) {
+        Utils.logDebug("Validate track")
+        LastFmInitializer().lastFmService().validateTrack(Constants.API_KEY, track).enqueue(object : Callback<TrackInfo> {
+            override fun onResponse(call: Call<TrackInfo>, response: Response<TrackInfo>) {
+                Utils.logDebug("Validate track OK")
+                val trackInfo = response.body()
+                //Obtém a lista com os resultados
+                val trackList = trackInfo?.results?.trackmatches?.track
+                //Pega o tamanho da lista
+                val listSize = trackList?.size
+                //Se a lista for diferente de null
+                if (listSize != null && listSize > 0) {
+                    //Pega o primeiro item da busca, pois na chamada foi limitado para retornar só um resultado no máximo
+                    val validatedArtist = trackList[0].artist
+                    val validatedTrack = trackList[0].name
+                    val mbid = trackList[0].mbid
+
+                    //TODO isNullOrBlank já verifica se é nulo, mudar pra todos
+                    if(mbid.isNullOrBlank()){
+                        Utils.logDebug("MBID não encontrado, assume que a música não existe, não será feito o scrobble")
+                    } else {
+                        getFullTrackInfo(mbid, context, validatedArtist, validatedTrack, preferences, postTime)
+                    }
+                } else {
+                    Toast.makeText(context, "Não foi possível encontrar a música " + track + " no Last.FM", Toast.LENGTH_LONG).show()
                 }
             }
 
