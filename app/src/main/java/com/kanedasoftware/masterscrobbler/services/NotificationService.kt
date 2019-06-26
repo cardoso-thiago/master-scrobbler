@@ -13,7 +13,8 @@ class NotificationService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         //TODO pegar todos os apps de midia das configurações e verificar aqui pra interceptar apenas essas notificações
         //Obtém apenas as informações dos apps selecionados pelo usuário nas notificações
-        if (sbn?.packageName.equals("com.google.android.music")) {
+        //if (sbn?.packageName.equals("com.google.android.music")) {
+        if (sbn?.packageName.equals("com.google.android.apps.youtube.music")) {
             val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(baseContext)
 
             val intent = Intent("com.kanedasoftware.masterscrobbler.NOTIFICATION_LISTENER")
