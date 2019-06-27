@@ -2,6 +2,7 @@ package com.kanedasoftware.masterscrobbler
 
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.support.design.widget.Snackbar
@@ -12,6 +13,7 @@ import android.view.Menu
 import android.view.MenuItem
 import com.kanedasoftware.masterscrobbler.model.LoginInfo
 import com.kanedasoftware.masterscrobbler.receivers.NotificationServiceReceiver
+import com.kanedasoftware.masterscrobbler.services.ForegroundService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.LastFmInitializer
@@ -34,9 +36,12 @@ class MainActivity : AppCompatActivity() {
 
         verifyNotificationAccess()
 
-
-        val params1 = mutableMapOf("track" to "Amazing", "artist" to "Greyhounds", "sk" to "PiKWy7f0_Wh1n_MAbmtzqQxpZSjNImh4", "timestamp" to "1561502670")
-        val sig1 = Utils.getSig(params1, Constants.API_TRACK_SCROBBLE)
+        val i = Intent(applicationContext, ForegroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            applicationContext?.startForegroundService(i)
+        } else {
+            applicationContext?.startService(i)
+        }
 
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
         var sessionKey = preferences.getString("sessionKey", "")
@@ -51,7 +56,7 @@ class MainActivity : AppCompatActivity() {
 
             LastFmInitializer().lastFmSecureService()
                     .getMobileSession("Fennec@147", "brownstein666", Constants.API_KEY,
-                            sig,"auth.getMobileSession").enqueue(object : Callback<LoginInfo> {
+                            sig, "auth.getMobileSession").enqueue(object : Callback<LoginInfo> {
                         override fun onResponse(call: Call<LoginInfo>, response: Response<LoginInfo>) {
                             sessionKey = response.body()?.session?.key.toString()
                             //TODO remover esse log

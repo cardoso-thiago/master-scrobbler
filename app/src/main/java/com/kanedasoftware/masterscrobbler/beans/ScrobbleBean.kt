@@ -1,9 +1,7 @@
 package com.kanedasoftware.masterscrobbler.beans
 
-class ScrobbleBean {
-    var artist = ""
-    var track = ""
-    var postTime = 0L
+class ScrobbleBean(var artist: String, var track: String, var postTime: Long) {
     var mbid = ""
-    var trackDuration = ""
+    var trackDuration = 0L
+
 }

@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:allowBackup="true"
@@ -32,6 +34,21 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <service android:enabled="true"
+            android:name="com.kanedasoftware.masterscrobbler.services.ForegroundService"
+            android:label="@string/app_name">
+        </service>
+
+        <receiver android:enabled="true"
+            android:name="com.kanedasoftware.masterscrobbler.receivers.BootUpReceiver"
+            android:label="@string/app_name"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </receiver>
 
         <receiver android:name="com.kanedasoftware.masterscrobbler.receivers.NotificationServiceReceiver"/>
     </application>
