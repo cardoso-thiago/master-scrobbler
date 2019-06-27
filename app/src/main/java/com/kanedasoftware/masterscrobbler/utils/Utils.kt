@@ -1,5 +1,9 @@
 package com.kanedasoftware.masterscrobbler.utils
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.util.logging.Logger
@@ -24,6 +28,14 @@ class Utils {
 
         fun logDebug(message:String){
             Logger.getLogger(Constants.LOG_TAG).info(message)
+        }
+
+        fun createNotificationChannel(context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val notificationChannel = NotificationChannel("masterScrobblerNotificationService", "Master Scrobbler", NotificationManager.IMPORTANCE_DEFAULT)
+                val notificationService = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                notificationService.createNotificationChannel(notificationChannel)
+            }
         }
     }
 }
