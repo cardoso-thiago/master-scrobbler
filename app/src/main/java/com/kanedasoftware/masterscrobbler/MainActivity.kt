@@ -13,7 +13,7 @@ import android.view.Menu
 import android.view.MenuItem
 import com.kanedasoftware.masterscrobbler.model.LoginInfo
 import com.kanedasoftware.masterscrobbler.receivers.NotificationServiceReceiver
-import com.kanedasoftware.masterscrobbler.services.ForegroundService
+import com.kanedasoftware.masterscrobbler.services.NotificationService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.LastFmInitializer
@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity() {
 
         verifyNotificationAccess()
 
-        val i = Intent(applicationContext, ForegroundService::class.java)
+        val i = Intent(applicationContext, NotificationService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             applicationContext?.startForegroundService(i)
         } else {
@@ -71,9 +71,6 @@ class MainActivity : AppCompatActivity() {
 
                     })
         }
-
-        val filter = IntentFilter("com.kanedasoftware.masterscrobbler.NOTIFICATION_LISTENER")
-        registerReceiver(NotificationServiceReceiver(), filter)
     }
 
     override fun onRestart() {

@@ -8,7 +8,6 @@ import android.media.AudioManager
 import android.os.Handler
 import android.preference.PreferenceManager
 import android.widget.Toast
-import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
 import com.kanedasoftware.masterscrobbler.model.FullTrackInfo
 import com.kanedasoftware.masterscrobbler.model.ScrobbleInfo
@@ -56,10 +55,10 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 val listSize = trackList?.size
                 if (listSize != null && listSize > 0) {
                     val mbid = trackList[0].mbid
+                    val image = trackList[0].image[0].text
 
-
-                    if (mbid.isBlank()) {
-                        Utils.logDebug("MBID não encontrado, assume que a música não existe, vai tentar validar só pelo nome da música")
+                    if (mbid.isBlank() && image.isBlank()) {
+                        Utils.logDebug("MBID e imagem não existente, assume que a música não existe, vai tentar validar só pelo nome da música")
                         validateOnlyByTrack(scrobbleBean)
                     } else {
                         //Atualiza o artista e música com os valores validados no Last.FM e insere o MBID
@@ -88,9 +87,10 @@ class NotificationServiceReceiver : BroadcastReceiver() {
 
                 if (listSize != null && listSize > 0) {
                     val mbid = trackList[0].mbid
+                    val image = trackList[0].image[0].text
 
-                    if (mbid.isBlank()) {
-                        Utils.logDebug("MBID não encontrado, assume que a música não existe, não será feito o scrobble")
+                    if (mbid.isBlank() && image.isBlank()) {
+                        Utils.logDebug("MBID e imagem não encontrados, assume que a música não existe, não será feito o scrobble")
                     } else {
                         //Atualiza o artista e música com os valores validados no Last.FM e insere o MBID
                         scrobbleBean.artist = trackList[0].artist
@@ -114,9 +114,9 @@ class NotificationServiceReceiver : BroadcastReceiver() {
         LastFmInitializer().lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).enqueue(object : Callback<FullTrackInfo> {
             override fun onResponse(call: Call<FullTrackInfo>, response: Response<FullTrackInfo>) {
                 //Atualiza a duração da música
-                val duration = response.body()?.track?.duration?.toLong()
-                if (duration != null) {
-                    scrobbleBean.trackDuration = duration
+                val duration = response.body()?.track?.duration
+                if (!duration.isNullOrBlank()) {
+                    scrobbleBean.trackDuration = duration?.toLong()!!
                 } else {
                     scrobbleBean.trackDuration = 30000
                 }
@@ -176,10 +176,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
         LastFmInitializer().lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey, timestamp)
                 .enqueue(object : Callback<ScrobbleInfo> {
                     override fun onResponse(call: Call<ScrobbleInfo>, response: Response<ScrobbleInfo>) {
-                        Utils.logDebug("2.0 getFeed > Full json res wrapped in gson => ".plus(Gson().toJson(response)))
-                        val scrobble = response.body()?.scrobbles?.scrobble
-                        //TODO pegar informação corrigida da maneira certa pra logar
-                        Utils.logDebug("Scrobble Corrected: ".plus(scrobble?.artist?.text).plus(" - ").plus(scrobble?.track?.text))
+                        Utils.logDebug("Scrobble Corrected: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
                     }
 
                     override fun onFailure(call: Call<ScrobbleInfo>, t: Throwable) {
