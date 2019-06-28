@@ -1,5 +1,6 @@
 package com.kanedasoftware.masterscrobbler.receivers
 
+import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -27,7 +28,6 @@ class NotificationServiceReceiver : BroadcastReceiver() {
     private var preferences: SharedPreferences? = null
 
     override fun onReceive(context: Context?, intent: Intent?) {
-        Utils.logDebug("onReceive")
         val extras = intent?.extras
         if (extras != null) {
             val scrobbleBean = ScrobbleBean(
@@ -39,18 +39,15 @@ class NotificationServiceReceiver : BroadcastReceiver() {
             this.preferences = PreferenceManager.getDefaultSharedPreferences(context)
 
             if (!scrobbleBean.artist.isBlank() && !scrobbleBean.track.isBlank()) {
-                Utils.logDebug("Artista e músicas OK")
                 validateTrackAndArtist(scrobbleBean)
             }
         }
     }
 
     private fun validateTrackAndArtist(scrobbleBean: ScrobbleBean) {
-        Utils.logDebug("Validate track")
         LastFmInitializer().lastFmService().validateTrackAndArtist(scrobbleBean.artist, scrobbleBean.track,
                 Constants.API_KEY).enqueue(object : Callback<TrackInfo> {
             override fun onResponse(call: Call<TrackInfo>, response: Response<TrackInfo>) {
-                Utils.logDebug("Validate track OK")
                 val trackList = response.body()?.results?.trackmatches?.track
                 val listSize = trackList?.size
                 if (listSize != null && listSize > 0) {
@@ -74,6 +71,9 @@ class NotificationServiceReceiver : BroadcastReceiver() {
 
             override fun onFailure(call: Call<TrackInfo>, t: Throwable) {
                 //TODO implementar tratamento de erro
+                if (preferences!!.getBoolean("debug", false)) {
+                    updateNotification("Erro Validate", t.localizedMessage)
+                }
                 Utils.logDebug(t.localizedMessage)
             }
         })
@@ -90,6 +90,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                     val image = trackList[0].image[0].text
 
                     if (mbid.isBlank() && image.isBlank()) {
+                        updateNotification("Music Not Found MBID", trackList[0].artist.plus(" - ").plus(trackList[0].name))
                         Utils.logDebug("MBID e imagem não encontrados, assume que a música não existe, não será feito o scrobble")
                     } else {
                         //Atualiza o artista e música com os valores validados no Last.FM e insere o MBID
@@ -99,12 +100,16 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                         getFullTrackInfo(scrobbleBean)
                     }
                 } else {
+                    updateNotification("Music Not Found", scrobbleBean.artist.plus(" - ").plus(scrobbleBean.track))
                     Toast.makeText(context, "Não foi possível encontrar a música " + scrobbleBean.track + " no Last.FM", Toast.LENGTH_LONG).show()
                 }
             }
 
             override fun onFailure(call: Call<TrackInfo>, t: Throwable) {
                 //TODO implementar tratamento de erro
+                if (preferences!!.getBoolean("debug", false)) {
+                    updateNotification("Erro - Validate by Track", t.localizedMessage)
+                }
                 Toast.makeText(context, t.localizedMessage, Toast.LENGTH_LONG).show()
             }
         })
@@ -118,14 +123,17 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 if (!duration.isNullOrBlank()) {
                     scrobbleBean.trackDuration = duration?.toLong()!!
                 } else {
-                    scrobbleBean.trackDuration = 30000
+                    scrobbleBean.trackDuration = 60000
                 }
                 Utils.logDebug("Duração: ".plus(TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.trackDuration)))
                 updateNowPlaying(scrobbleBean)
             }
 
             override fun onFailure(call: Call<FullTrackInfo>, t: Throwable) {
-                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                //TODO implementar tratamento de erro
+                if (preferences!!.getBoolean("debug", false)) {
+                    updateNotification("Erro Full Track Info", t.localizedMessage)
+                }
             }
         })
     }
@@ -143,7 +151,10 @@ class NotificationServiceReceiver : BroadcastReceiver() {
             }
 
             override fun onFailure(call: Call<UpdateNowPlayingInfo>, t: Throwable) {
-                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                //TODO implementar tratamento de erro
+                if (preferences!!.getBoolean("debug", false)) {
+                    updateNotification("Update Now Playing", t.localizedMessage)
+                }
             }
         })
     }
@@ -162,9 +173,15 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 Utils.logDebug("Música não ativa, não será feito o validateScrobble")
             }
         }
+        updateNotification("Scrobbling", scrobbleBean.artist.plus(" - ").plus(scrobbleBean.track))
+
         //Assume metade do tempo da execução da música para executar o validateScrobble.
         // Se o Last.fm não retornar a informação da duração, faz o validateScrobble em 30 segundos.
-        handler.postDelayed(runnable, scrobbleBean.trackDuration / 2)
+        if (scrobbleBean.trackDuration <= 30000) {
+            Utils.logDebug("Música muito curta, não será realizado o scrobble")
+        } else {
+            handler.postDelayed(runnable, scrobbleBean.trackDuration / 2)
+        }
     }
 
     private fun scrobble(scrobbleBean: ScrobbleBean) {
@@ -177,11 +194,23 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 .enqueue(object : Callback<ScrobbleInfo> {
                     override fun onResponse(call: Call<ScrobbleInfo>, response: Response<ScrobbleInfo>) {
                         Utils.logDebug("Scrobble Corrected: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
+                        updateNotification("Scrobelled", scrobbleBean.artist.plus(" - ").plus(scrobbleBean.track))
                     }
 
                     override fun onFailure(call: Call<ScrobbleInfo>, t: Throwable) {
-                        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                        //TODO implementar tratamento de erro
+                        if (preferences!!.getBoolean("debug", false)) {
+                            updateNotification("Erro Scrobble", t.localizedMessage)
+                        }
                     }
                 })
+    }
+
+    private fun updateNotification(title: String, text: String) {
+        val notification = context?.let {
+            Utils.buildNotification(it, title, text)
+        }
+        val notificationManager = context?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(Constants.NOTIFICATION_ID, notification)
     }
 }
