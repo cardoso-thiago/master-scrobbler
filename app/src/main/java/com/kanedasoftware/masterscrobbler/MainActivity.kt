@@ -44,6 +44,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+
+        //Ativar modo debug de notificação
+        preferences.edit().putBoolean("debug", true).apply()
+
         var sessionKey = preferences.getString("sessionKey", "")
 
         //TODO voltar para valiação isBlank depois de tratar o invalid session key
@@ -62,7 +66,6 @@ class MainActivity : AppCompatActivity() {
                             //TODO remover esse log
                             Utils.logDebug(sessionKey)
                             preferences.edit().putString("sessionKey", sessionKey).apply()
-
                         }
 
                         override fun onFailure(call: Call<LoginInfo>, t: Throwable) {

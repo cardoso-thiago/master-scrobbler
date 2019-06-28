@@ -10,10 +10,13 @@ import android.os.Build
 import android.preference.PreferenceManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import android.support.v4.app.NotificationCompat
-import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.receivers.NotificationServiceReceiver
+import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
+import android.app.NotificationManager
+import android.app.NotificationChannel
+import android.content.Context
+import android.graphics.Color
 
 
 class NotificationService : NotificationListenerService() {
@@ -38,14 +41,14 @@ class NotificationService : NotificationListenerService() {
             val track = sbn?.notification?.extras?.getString(Notification.EXTRA_TITLE)
             var postTime = sbn?.postTime
 
-            if(postTime == null) {
+            if (postTime == null) {
                 postTime = 0L
             }
 
             //Se a notificação tiver o mesmo título, mesmo texto e foi recebida menos de 3 segundos depois da anterior, ignora a nova notificação
-            if(!(defaultSharedPreferences.getString("artist", "") == artist &&
-                    defaultSharedPreferences.getString("track", "") == track &&
-                    (postTime.minus(defaultSharedPreferences.getLong("postTime", 0)) < 3000))){
+            if (!(defaultSharedPreferences.getString("artist", "") == artist &&
+                            defaultSharedPreferences.getString("track", "") == track &&
+                            (postTime.minus(defaultSharedPreferences.getLong("postTime", 0)) < 3000))) {
                 intent.putExtra("artist", artist)
                 intent.putExtra("track", track)
                 intent.putExtra("postTime", postTime)
@@ -57,15 +60,22 @@ class NotificationService : NotificationListenerService() {
                 editor.apply()
 
                 sendBroadcast(intent)
-            } else {
-                //TODO remover depois
-                Utils.logDebug("Notificação ignorada, igual à notificação anterior")
             }
+        }
+    }
+
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        //TODO pegar todos os apps de midia das configurações e verificar aqui pra interceptar apenas essas notificações
+        //TODO 2 verificar possibilidade de só receber notificações de apps selecionados (IntentFilter?)
+        //Obtém apenas as informações dos apps selecionados pelo usuário nas notificações
+        if (sbn?.packageName.equals("com.google.android.music") || sbn?.packageName.equals("com.google.android.apps.youtube.music")) {
+            createNotification()
         }
     }
 
     override fun onCreate() {
         super.onCreate()
+        createNotificationChannel()
         createNotification()
         val filter = IntentFilter("com.kanedasoftware.masterscrobbler.NOTIFICATION_LISTENER")
         registerReceiver(NotificationServiceReceiver(), filter)
@@ -92,13 +102,25 @@ class NotificationService : NotificationListenerService() {
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
     }
 
-    private fun createNotification() {
-        val notification = NotificationCompat.Builder(this, "masterScrobblerNotificationService")
-                .setContentTitle("Master Scrobbbler")
-                .setContentText("Foreground Service")
-                .setSmallIcon(R.drawable.navigation_empty_icon)
-                .build()
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationChannel = NotificationChannel(
+                    Constants.NOTIFICATION_CHANNEL,
+                    "Master Scrobbler",
+                    NotificationManager.IMPORTANCE_LOW
+            )
+            notificationChannel.description = "Foreground Service"
+            notificationChannel.setSound(null, null)
+            notificationChannel.enableLights(true)
+            notificationChannel.lightColor = Color.WHITE
+            notificationChannel.enableVibration(false)
+            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(notificationChannel)
+        }
+    }
 
-        startForeground(1, notification)
+    private fun createNotification() {
+        val notification = Utils.buildNotification(applicationContext,"Master Scrobbler", "Service Running")
+        startForeground(Constants.NOTIFICATION_ID, notification)
     }
 }
