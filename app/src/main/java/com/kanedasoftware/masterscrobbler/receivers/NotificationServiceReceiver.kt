@@ -5,8 +5,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.media.AudioManager
-import android.os.Handler
 import android.preference.PreferenceManager
 import android.widget.Toast
 import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
@@ -26,10 +24,14 @@ class NotificationServiceReceiver : BroadcastReceiver() {
 
     private var context: Context? = null
     private var preferences: SharedPreferences? = null
+    private var toScrobble: ScrobbleBean? = null
 
     override fun onReceive(context: Context?, intent: Intent?) {
         val extras = intent?.extras
         if (extras != null) {
+
+            toScrobble?.let { validateScrobble(it, extras.getLong("playtime", 0)) }
+
             val scrobbleBean = ScrobbleBean(
                     extras.getString("artist", ""),
                     extras.getString("track", ""),
@@ -43,6 +45,8 @@ class NotificationServiceReceiver : BroadcastReceiver() {
             if (!scrobbleBean.artist.isBlank() && !scrobbleBean.track.isBlank()) {
                 validateTrackAndArtist(scrobbleBean)
             }
+        } else {
+            toScrobble = null
         }
     }
 
@@ -118,7 +122,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
     }
 
     private fun getFullTrackInfo(scrobbleBean: ScrobbleBean) {
-        if(scrobbleBean.duration == 0L) {
+        if (scrobbleBean.duration == 0L) {
             LastFmInitializer().lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).enqueue(object : Callback<FullTrackInfo> {
                 override fun onResponse(call: Call<FullTrackInfo>, response: Response<FullTrackInfo>) {
                     //Atualiza a duração da música
@@ -147,7 +151,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
     }
 
     private fun updateNowPlaying(scrobbleBean: ScrobbleBean) {
-        Utils.logInfo("Duração em minutos: ".plus(TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.duration)))
+        Utils.logInfo("Duração ${scrobbleBean.duration} em segundos: ${TimeUnit.MILLISECONDS.toSeconds(scrobbleBean.duration)} e em minutos: ${TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.duration)}")
 
         val sessionKey = PreferenceManager.getDefaultSharedPreferences(context).getString("sessionKey", "")
         val params = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey)
@@ -157,7 +161,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 Constants.API_KEY, sig, sessionKey!!).enqueue(object : Callback<UpdateNowPlayingInfo> {
             override fun onResponse(call: Call<UpdateNowPlayingInfo>, response: Response<UpdateNowPlayingInfo>) {
                 Utils.logInfo("Atualizou faixa tocando agora: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
-                validateScrobble(scrobbleBean)
+                toScrobble = scrobbleBean
             }
 
             override fun onFailure(call: Call<UpdateNowPlayingInfo>, t: Throwable) {
@@ -169,28 +173,16 @@ class NotificationServiceReceiver : BroadcastReceiver() {
         })
     }
 
-    private fun validateScrobble(scrobbleBean: ScrobbleBean) {
-        val handler = Handler()
-        val runnable = Runnable {
-            val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            if (audioManager.isMusicActive) {
-                if (preferences?.getLong("postTime", 0) == scrobbleBean.postTime) {
-                    scrobble(scrobbleBean)
-                } else {
-                    Utils.logInfo("A notificação ativa não é a mesma notificação, não será realizado o scrobble: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
-                }
-            } else {
-                Utils.logInfo("Música não ativa, não será realizado o scrobble: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
-            }
-        }
+    private fun validateScrobble(scrobbleBean: ScrobbleBean, playtime: Long) {
         updateNotification("Scrobbling", scrobbleBean.artist.plus(" - ").plus(scrobbleBean.track))
-
-        //Assume metade do tempo da execução da música para executar o validateScrobble.
-        // Se o Last.fm não retornar a informação da duração, faz o validateScrobble em 30 segundos.
         if (scrobbleBean.duration <= 30000) {
             Utils.logInfo("Música muito curta, não será realizado o scrobble: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
         } else {
-            handler.postDelayed(runnable, scrobbleBean.duration / 2)
+            if (playtime > (scrobbleBean.duration / 2)) {
+                scrobble(scrobbleBean)
+            } else {
+                Utils.logInfo("Tempo de execução da música muito curto, não será feito o scrobble")
+            }
         }
     }
 
@@ -199,6 +191,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
         val timestamp = (scrobbleBean.postTime.div(1000)).toString()
         val paramsScrobble = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey!!, "timestamp" to timestamp)
         val sig = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
+        toScrobble = null
 
         LastFmInitializer().lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey, timestamp)
                 .enqueue(object : Callback<ScrobbleInfo> {

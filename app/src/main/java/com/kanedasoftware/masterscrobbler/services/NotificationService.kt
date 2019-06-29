@@ -14,16 +14,34 @@ import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.Build
+import android.os.CountDownTimer
 import android.service.notification.NotificationListenerService
 import com.kanedasoftware.masterscrobbler.receivers.NotificationServiceReceiver
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
+import java.util.concurrent.TimeUnit
+
 
 class NotificationService : NotificationListenerService(), MediaSessionManager.OnActiveSessionsChangedListener {
 
     private var mediaController: MediaController? = null
-
     private var mediaControllerCallback: MediaController.Callback? = null
+    private var playbackState = 0
+    private var metadataId = ""
+    private var playtime = 0L
+    private var lastMetadataUpdate = 0L
+
+    private var totalSeconds = 600L
+    private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
+        override fun onFinish() {
+            playtime = 0L
+        }
+
+        override fun onTick(millisUntilFinished: Long) {
+            playtime = totalSeconds * 1000 - millisUntilFinished
+        }
+    }
+
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && !intent.action.isNullOrBlank()) {
@@ -43,6 +61,8 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
         val mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
         val componentName = ComponentName(this, this.javaClass)
         mediaSessionManager.addOnActiveSessionsChangedListener(this, componentName)
+        //Ativa o listener para o caso de já ter uma sessão ativa
+        onActiveSessionsChanged(mediaSessionManager.getActiveSessions(componentName))
 
         val filter = IntentFilter("com.kanedasoftware.masterscrobbler.NOTIFICATION_LISTENER")
         registerReceiver(NotificationServiceReceiver(), filter)
@@ -95,47 +115,62 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
     private fun createCallback() {
         mediaControllerCallback = object : MediaController.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackState?) {
+                Utils.logInfo(state?.state.toString())
+                playbackState = state?.state!!
                 when (state?.state) {
                     PlaybackState.STATE_PLAYING -> {
                         Utils.logInfo("STATE_PLAYING")
                     }
-                    PlaybackState.STATE_STOPPED -> {
-                        Utils.logInfo("STATE_STOPPED")
-                    }
                     PlaybackState.STATE_PAUSED -> {
                         Utils.logInfo("STATE_PAUSED")
-                    }
-                    PlaybackState.STATE_SKIPPING_TO_NEXT -> {
-                        Utils.logInfo("STATE_SKIPPING_TO_NEXT")
-                    }
-                    PlaybackState.STATE_SKIPPING_TO_PREVIOUS -> {
-                        Utils.logInfo("STATE_SKIPPING_TO_PREVIOUS")
+                        timer.cancel()
                     }
                 }
             }
 
             override fun onMetadataChanged(metadata: MediaMetadata?) {
                 metadata?.let { mediaMetadata ->
-                    val intent = Intent("com.kanedasoftware.masterscrobbler.NOTIFICATION_LISTENER")
+
                     val artist = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
                     val track = mediaMetadata.getString(MediaMetadata.METADATA_KEY_TITLE)
                     val album = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM)
                     val duration = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
-                    val postTime = System.currentTimeMillis()
 
-                    intent.putExtra("artist", artist)
-                    intent.putExtra("track", track)
-                    intent.putExtra("album", album)
-                    intent.putExtra("postTime", postTime)
-                    intent.putExtra("duration", duration)
+                    var currentMetadataId = artist.plus(track)
+                    if (metadataId != currentMetadataId && !metadataId.isNullOrBlank()) {
+                        Utils.logInfo("Metadata changed de $metadataId para $currentMetadataId")
+                    }
 
-                    Utils.logInfo(artist)
-                    Utils.logInfo(track)
-                    Utils.logInfo(album)
-                    Utils.logInfo(postTime.toString())
-                    Utils.logInfo(duration.toString())
+                    //Se atualizou muito recentemente o metadata e for igual o anterior, ignora o tratamento
+                    if (currentMetadataId == metadataId && System.currentTimeMillis().minus(lastMetadataUpdate) < 3000) {
+                        Utils.logInfo("Mudança de metadata ignorada")
+                    } else {
+                        if (playbackState == PlaybackState.STATE_PLAYING ||
+                                (playbackState == PlaybackState.STATE_PAUSED && currentMetadataId != metadataId)) {
 
-                    sendBroadcast(intent)
+                            Utils.logInfo("Scrobble o que está pendente com o tempo de execuçao do play")
+                            val intent = Intent("com.kanedasoftware.masterscrobbler.NOTIFICATION_LISTENER")
+                            val postTime = System.currentTimeMillis()
+                            lastMetadataUpdate = postTime
+
+                            intent.putExtra("artist", artist)
+                            intent.putExtra("track", track)
+                            intent.putExtra("album", album)
+                            intent.putExtra("postTime", postTime)
+                            intent.putExtra("duration", duration)
+                            intent.putExtra("playtime", playtime)
+
+                            Utils.logInfo("Playtime: $playtime em segundos: ${TimeUnit.MILLISECONDS.toSeconds(playtime)} e em minutos: ${TimeUnit.MILLISECONDS.toMinutes(playtime)}")
+
+                            timer.onFinish()
+                            timer.start()
+
+                            metadataId = artist.plus(track)
+
+                            sendBroadcast(intent)
+                        }
+                    }
+
                 }
             }
         }
@@ -165,4 +200,6 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
             mediaController?.unregisterCallback(mediaControllerCallback)
         }
     }
+
+
 }
