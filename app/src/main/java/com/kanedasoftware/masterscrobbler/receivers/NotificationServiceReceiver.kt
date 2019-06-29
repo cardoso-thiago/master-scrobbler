@@ -33,7 +33,9 @@ class NotificationServiceReceiver : BroadcastReceiver() {
             val scrobbleBean = ScrobbleBean(
                     extras.getString("artist", ""),
                     extras.getString("track", ""),
-                    extras.getLong("postTime", 0))
+                    extras.getString("album", ""),
+                    extras.getLong("postTime", 0),
+                    extras.getLong("duration", 0))
 
             this.context = context
             this.preferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -55,7 +57,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                     val image = trackList[0].image[0].text
 
                     if (mbid.isBlank() && image.isBlank()) {
-                        Utils.logDebug("MBID e imagem não existente, assume que a música não existe, vai tentar validar só pelo nome da música")
+                        Utils.logInfo("MBID e imagem não existente, assume que a música não existe, vai tentar validar só pelo nome da música")
                         validateOnlyByTrack(scrobbleBean)
                     } else {
                         //Atualiza o artista e música com os valores validados no Last.FM e insere o MBID
@@ -65,7 +67,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                         getFullTrackInfo(scrobbleBean)
                     }
                 } else {
-                    Utils.logDebug("Não foi possível encontrar a música " + scrobbleBean.artist + " - " + scrobbleBean.track + " no Last.FM")
+                    Utils.logInfo("Não foi possível encontrar a música " + scrobbleBean.artist + " - " + scrobbleBean.track + " no Last.FM")
                 }
             }
 
@@ -74,7 +76,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 if (preferences!!.getBoolean("debug", false)) {
                     updateNotification("Erro Validate", t.localizedMessage)
                 }
-                Utils.logDebug(t.localizedMessage)
+                Utils.logInfo(t.localizedMessage)
             }
         })
     }
@@ -91,7 +93,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
 
                     if (mbid.isBlank() && image.isBlank()) {
                         updateNotification("Music Not Found MBID", trackList[0].artist.plus(" - ").plus(trackList[0].name))
-                        Utils.logDebug("MBID e imagem não encontrados, assume que a música não existe, não será feito o scrobble")
+                        Utils.logInfo("MBID e imagem não encontrados, assume que a música não existe, não será feito o scrobble")
                     } else {
                         //Atualiza o artista e música com os valores validados no Last.FM e insere o MBID
                         scrobbleBean.artist = trackList[0].artist
@@ -116,29 +118,37 @@ class NotificationServiceReceiver : BroadcastReceiver() {
     }
 
     private fun getFullTrackInfo(scrobbleBean: ScrobbleBean) {
-        LastFmInitializer().lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).enqueue(object : Callback<FullTrackInfo> {
-            override fun onResponse(call: Call<FullTrackInfo>, response: Response<FullTrackInfo>) {
-                //Atualiza a duração da música
-                val duration = response.body()?.track?.duration
-                if (!duration.isNullOrBlank()) {
-                    scrobbleBean.trackDuration = duration?.toLong()!!
-                } else {
-                    scrobbleBean.trackDuration = 60000
+        if(scrobbleBean.duration == 0L) {
+            LastFmInitializer().lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).enqueue(object : Callback<FullTrackInfo> {
+                override fun onResponse(call: Call<FullTrackInfo>, response: Response<FullTrackInfo>) {
+                    //Atualiza a duração da música
+                    val duration = response.body()?.track?.duration
+                    if (!duration.isNullOrBlank()) {
+                        Utils.logInfo("Encontrou a duração no Last.fm.")
+                        scrobbleBean.duration = duration?.toLong()!!
+                    } else {
+                        Utils.logInfo("Não encontrou a duração no Metadata nem no Last.fm, assume um minuto de música.")
+                        scrobbleBean.duration = 60000
+                    }
+                    updateNowPlaying(scrobbleBean)
                 }
-                Utils.logDebug("Duração: ".plus(TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.trackDuration)))
-                updateNowPlaying(scrobbleBean)
-            }
 
-            override fun onFailure(call: Call<FullTrackInfo>, t: Throwable) {
-                //TODO implementar tratamento de erro
-                if (preferences!!.getBoolean("debug", false)) {
-                    updateNotification("Erro Full Track Info", t.localizedMessage)
+                override fun onFailure(call: Call<FullTrackInfo>, t: Throwable) {
+                    //TODO implementar tratamento de erro
+                    if (preferences!!.getBoolean("debug", false)) {
+                        updateNotification("Erro Full Track Info", t.localizedMessage)
+                    }
                 }
-            }
-        })
+            })
+        } else {
+            Utils.logInfo("Encontrou a duração no metadata, não vai buscar no Last.fm")
+            updateNowPlaying(scrobbleBean)
+        }
     }
 
     private fun updateNowPlaying(scrobbleBean: ScrobbleBean) {
+        Utils.logInfo("Duração em minutos: ".plus(TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.duration)))
+
         val sessionKey = PreferenceManager.getDefaultSharedPreferences(context).getString("sessionKey", "")
         val params = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey)
         val sig = Utils.getSig(params, Constants.API_UPDATE_NOW_PLAYING)
@@ -146,7 +156,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
         LastFmInitializer().lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track,
                 Constants.API_KEY, sig, sessionKey!!).enqueue(object : Callback<UpdateNowPlayingInfo> {
             override fun onResponse(call: Call<UpdateNowPlayingInfo>, response: Response<UpdateNowPlayingInfo>) {
-                Utils.logDebug("Atualizou faixa tocando agora: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
+                Utils.logInfo("Atualizou faixa tocando agora: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
                 validateScrobble(scrobbleBean)
             }
 
@@ -167,20 +177,20 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 if (preferences?.getLong("postTime", 0) == scrobbleBean.postTime) {
                     scrobble(scrobbleBean)
                 } else {
-                    Utils.logDebug("A notificação ativa não é a mesma notificação, não será feito o validateScrobble")
+                    Utils.logInfo("A notificação ativa não é a mesma notificação, não será realizado o scrobble: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
                 }
             } else {
-                Utils.logDebug("Música não ativa, não será feito o validateScrobble")
+                Utils.logInfo("Música não ativa, não será realizado o scrobble: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
             }
         }
         updateNotification("Scrobbling", scrobbleBean.artist.plus(" - ").plus(scrobbleBean.track))
 
         //Assume metade do tempo da execução da música para executar o validateScrobble.
         // Se o Last.fm não retornar a informação da duração, faz o validateScrobble em 30 segundos.
-        if (scrobbleBean.trackDuration <= 30000) {
-            Utils.logDebug("Música muito curta, não será realizado o scrobble")
+        if (scrobbleBean.duration <= 30000) {
+            Utils.logInfo("Música muito curta, não será realizado o scrobble: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
         } else {
-            handler.postDelayed(runnable, scrobbleBean.trackDuration / 2)
+            handler.postDelayed(runnable, scrobbleBean.duration / 2)
         }
     }
 
@@ -193,7 +203,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
         LastFmInitializer().lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey, timestamp)
                 .enqueue(object : Callback<ScrobbleInfo> {
                     override fun onResponse(call: Call<ScrobbleInfo>, response: Response<ScrobbleInfo>) {
-                        Utils.logDebug("Scrobble Corrected: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
+                        Utils.logInfo("Scrobble Corrected: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
                         updateNotification("Scrobelled", scrobbleBean.artist.plus(" - ").plus(scrobbleBean.track))
                     }
 

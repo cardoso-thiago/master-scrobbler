@@ -1,7 +1,6 @@
 package com.kanedasoftware.masterscrobbler
 
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
@@ -12,7 +11,6 @@ import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import com.kanedasoftware.masterscrobbler.model.LoginInfo
-import com.kanedasoftware.masterscrobbler.receivers.NotificationServiceReceiver
 import com.kanedasoftware.masterscrobbler.services.NotificationService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
@@ -34,29 +32,30 @@ class MainActivity : AppCompatActivity() {
                     .setAction("Action", null).show()
         }
 
-        verifyNotificationAccess()
-
-        val i = Intent(applicationContext, NotificationService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            applicationContext?.startForegroundService(i)
+        if(!Utils.verifyNotificationAccess(this)){
+            Utils.changeNotificationAccess(this)
         } else {
-            applicationContext?.startService(i)
+            val i = Intent(applicationContext, NotificationService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                applicationContext?.startForegroundService(i)
+            } else {
+                applicationContext?.startService(i)
+            }
         }
 
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
-
         //Ativar modo debug de notificação
         preferences.edit().putBoolean("debug", true).apply()
 
         var sessionKey = preferences.getString("sessionKey", "")
 
         //TODO voltar para valiação isBlank depois de tratar o invalid session key
-        if (sessionKey.isBlank()) {
+        if (sessionKey.isNullOrBlank()) {
             //TODO pegar login e senha do usuário
             val params = mutableMapOf("password" to "Fennec@147", "username" to "brownstein666")
             val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
 
-            Utils.logDebug(sig)
+            Utils.logInfo(sig)
 
             LastFmInitializer().lastFmSecureService()
                     .getMobileSession("Fennec@147", "brownstein666", Constants.API_KEY,
@@ -64,21 +63,32 @@ class MainActivity : AppCompatActivity() {
                         override fun onResponse(call: Call<LoginInfo>, response: Response<LoginInfo>) {
                             sessionKey = response.body()?.session?.key.toString()
                             //TODO remover esse log
-                            Utils.logDebug(sessionKey)
+                            Utils.logInfo(sessionKey)
                             preferences.edit().putString("sessionKey", sessionKey).apply()
                         }
 
                         override fun onFailure(call: Call<LoginInfo>, t: Throwable) {
                             //TODO tratamento de erro
+                            Utils.logInfo("Erro ao obter o session key".plus(t.localizedMessage))
                         }
 
                     })
         }
+
     }
 
     override fun onRestart() {
         super.onRestart()
-        verifyNotificationAccess()
+        if(!Utils.verifyNotificationAccess(this)){
+            Utils.changeNotificationAccess(this)
+        } else {
+            val i = Intent(applicationContext, NotificationService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                applicationContext?.startForegroundService(i)
+            } else {
+                applicationContext?.startService(i)
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -95,21 +105,5 @@ class MainActivity : AppCompatActivity() {
             R.id.action_settings -> true
             else -> super.onOptionsItemSelected(item)
         }
-    }
-
-    private fun verifyNotificationAccess() {
-        if (!NotificationManagerCompat.getEnabledListenerPackages(this).contains("com.kanedasoftware.masterscrobbler"))
-        //TODO colocar os textos nos properties
-            AlertDialog.Builder(this)
-                    .setTitle("Acesso às Notificações")
-                    .setMessage("Para o aplicativo funcionar é necessário conceder acesso às notificações. Deseja abrir a configuração?")
-                    .setPositiveButton("Sim") { _, _ ->
-                        startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
-                    }
-                    .setNegativeButton("Sair") { _, _ ->
-                        android.os.Process.killProcess(android.os.Process.myPid())
-                        System.exit(1)
-                    }
-                    .show()
     }
 }
