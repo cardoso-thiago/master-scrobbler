@@ -1,89 +1,57 @@
 package com.kanedasoftware.masterscrobbler.services
 
-import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.media.MediaMetadata
+import android.media.session.MediaController
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.os.Build
-import android.preference.PreferenceManager
 import android.service.notification.NotificationListenerService
-import android.service.notification.StatusBarNotification
 import com.kanedasoftware.masterscrobbler.receivers.NotificationServiceReceiver
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
-import android.app.NotificationManager
-import android.app.NotificationChannel
-import android.content.Context
-import android.graphics.Color
 
+class NotificationService : NotificationListenerService(), MediaSessionManager.OnActiveSessionsChangedListener {
 
-class NotificationService : NotificationListenerService() {
+    private var mediaController: MediaController? = null
+
+    private var mediaControllerCallback: MediaController.Callback? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && !intent.action.isNullOrBlank()) {
-            Utils.logDebug("Tentando reconectar. Action: ".plus(intent.action))
+            Utils.logInfo("Tentando reconectar. Action: ".plus(intent.action))
             tryReconnectService()//switch on/off component and rebind
         }
         return Service.START_STICKY
     }
 
-    override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        //TODO pegar todos os apps de midia das configurações e verificar aqui pra interceptar apenas essas notificações
-        //TODO 2 verificar possibilidade de só receber notificações de apps selecionados (IntentFilter?)
-        //Obtém apenas as informações dos apps selecionados pelo usuário nas notificações
-        if (sbn?.packageName.equals("com.google.android.music") || sbn?.packageName.equals("com.google.android.apps.youtube.music")) {
-            val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(baseContext)
-
-            val intent = Intent("com.kanedasoftware.masterscrobbler.NOTIFICATION_LISTENER")
-            val artist = sbn?.notification?.extras?.getString(Notification.EXTRA_TEXT)
-            val track = sbn?.notification?.extras?.getString(Notification.EXTRA_TITLE)
-            var postTime = sbn?.postTime
-
-            if (postTime == null) {
-                postTime = 0L
-            }
-
-            //Se a notificação tiver o mesmo título, mesmo texto e foi recebida menos de 3 segundos depois da anterior, ignora a nova notificação
-            if (!(defaultSharedPreferences.getString("artist", "") == artist &&
-                            defaultSharedPreferences.getString("track", "") == track &&
-                            (postTime.minus(defaultSharedPreferences.getLong("postTime", 0)) < 3000))) {
-                intent.putExtra("artist", artist)
-                intent.putExtra("track", track)
-                intent.putExtra("postTime", postTime)
-
-                val editor = defaultSharedPreferences.edit()
-                editor.putString("artist", artist)
-                editor.putString("track", track)
-                editor.putLong("postTime", postTime)
-                editor.apply()
-
-                sendBroadcast(intent)
-            }
-        }
-    }
-
-    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        //TODO pegar todos os apps de midia das configurações e verificar aqui pra interceptar apenas essas notificações
-        //TODO 2 verificar possibilidade de só receber notificações de apps selecionados (IntentFilter?)
-        //Obtém apenas as informações dos apps selecionados pelo usuário nas notificações
-        if (sbn?.packageName.equals("com.google.android.music") || sbn?.packageName.equals("com.google.android.apps.youtube.music")) {
-            createNotification()
-        }
-    }
-
     override fun onCreate() {
         super.onCreate()
+
         createNotificationChannel()
         createNotification()
+        createCallback()
+
+        val mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
+        val componentName = ComponentName(this, this.javaClass)
+        mediaSessionManager.addOnActiveSessionsChangedListener(this, componentName)
+
         val filter = IntentFilter("com.kanedasoftware.masterscrobbler.NOTIFICATION_LISTENER")
         registerReceiver(NotificationServiceReceiver(), filter)
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         unregisterReceiver(NotificationServiceReceiver())
+        unregisterCallback(mediaController)
+        super.onDestroy()
     }
 
     private fun tryReconnectService() {
@@ -120,7 +88,81 @@ class NotificationService : NotificationListenerService() {
     }
 
     private fun createNotification() {
-        val notification = Utils.buildNotification(applicationContext,"Master Scrobbler", "Service Running")
+        val notification = Utils.buildNotification(applicationContext, "Master Scrobbler", "Service Running")
         startForeground(Constants.NOTIFICATION_ID, notification)
+    }
+
+    private fun createCallback() {
+        mediaControllerCallback = object : MediaController.Callback() {
+            override fun onPlaybackStateChanged(state: PlaybackState?) {
+                when (state?.state) {
+                    PlaybackState.STATE_PLAYING -> {
+                        Utils.logInfo("STATE_PLAYING")
+                    }
+                    PlaybackState.STATE_STOPPED -> {
+                        Utils.logInfo("STATE_STOPPED")
+                    }
+                    PlaybackState.STATE_PAUSED -> {
+                        Utils.logInfo("STATE_PAUSED")
+                    }
+                    PlaybackState.STATE_SKIPPING_TO_NEXT -> {
+                        Utils.logInfo("STATE_SKIPPING_TO_NEXT")
+                    }
+                    PlaybackState.STATE_SKIPPING_TO_PREVIOUS -> {
+                        Utils.logInfo("STATE_SKIPPING_TO_PREVIOUS")
+                    }
+                }
+            }
+
+            override fun onMetadataChanged(metadata: MediaMetadata?) {
+                metadata?.let { mediaMetadata ->
+                    val intent = Intent("com.kanedasoftware.masterscrobbler.NOTIFICATION_LISTENER")
+                    val artist = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
+                    val track = mediaMetadata.getString(MediaMetadata.METADATA_KEY_TITLE)
+                    val album = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM)
+                    val duration = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
+                    val postTime = System.currentTimeMillis()
+
+                    intent.putExtra("artist", artist)
+                    intent.putExtra("track", track)
+                    intent.putExtra("album", album)
+                    intent.putExtra("postTime", postTime)
+                    intent.putExtra("duration", duration)
+
+                    Utils.logInfo(artist)
+                    Utils.logInfo(track)
+                    Utils.logInfo(album)
+                    Utils.logInfo(postTime.toString())
+                    Utils.logInfo(duration.toString())
+
+                    sendBroadcast(intent)
+                }
+            }
+        }
+    }
+
+    override fun onActiveSessionsChanged(controllers: MutableList<MediaController>?) {
+        val activeMediaController = controllers?.firstOrNull()
+        //TODO pegar todos os apps de midia das configurações e verificar aqui pra interceptar apenas essas notificações
+        //TODO 2 verificar possibilidade de só receber notificações de apps selecionados (IntentFilter?)
+        if (activeMediaController?.packageName.equals("com.google.android.music") || activeMediaController?.packageName.equals("com.google.android.apps.youtube.music")) {
+            activeMediaController?.let { mediaController ->
+                registerCallback(mediaController)
+            }
+        }
+    }
+
+    private fun registerCallback(mediaController: MediaController) {
+        unregisterCallback(this.mediaController)
+        Utils.logInfo("Registering callback for ${mediaController.packageName}")
+        this.mediaController = mediaController
+        mediaController.registerCallback(mediaControllerCallback)
+    }
+
+    private fun unregisterCallback(mediaController: MediaController?) {
+        Utils.logInfo("Unregistering callback for ${mediaController?.packageName}")
+        mediaControllerCallback?.let { mediaControllerCallback ->
+            mediaController?.unregisterCallback(mediaControllerCallback)
+        }
     }
 }
