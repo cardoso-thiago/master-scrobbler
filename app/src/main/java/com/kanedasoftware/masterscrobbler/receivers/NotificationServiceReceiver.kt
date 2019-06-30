@@ -108,6 +108,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 } else {
                     updateNotification("Music Not Found", scrobbleBean.artist.plus(" - ").plus(scrobbleBean.track))
                     Toast.makeText(context, "Não foi possível encontrar a música " + scrobbleBean.track + " no Last.FM", Toast.LENGTH_LONG).show()
+                    toScrobble = null
                 }
             }
 
@@ -161,6 +162,7 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 Constants.API_KEY, sig, sessionKey!!).enqueue(object : Callback<UpdateNowPlayingInfo> {
             override fun onResponse(call: Call<UpdateNowPlayingInfo>, response: Response<UpdateNowPlayingInfo>) {
                 Utils.logInfo("Atualizou faixa tocando agora: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
+                updateNotification("Now Playing", "${scrobbleBean.artist} - ${scrobbleBean.track}")
                 toScrobble = scrobbleBean
             }
 
@@ -182,6 +184,8 @@ class NotificationServiceReceiver : BroadcastReceiver() {
                 scrobble(scrobbleBean)
             } else {
                 Utils.logInfo("Tempo de execução da música muito curto, não será feito o scrobble")
+                updateNotification("Scrobble not executed", scrobbleBean.artist.plus(" - ").plus(scrobbleBean.track))
+                toScrobble = null
             }
         }
     }
