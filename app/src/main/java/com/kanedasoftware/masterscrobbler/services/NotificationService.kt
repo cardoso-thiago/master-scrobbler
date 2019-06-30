@@ -177,6 +177,21 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
     }
 
     override fun onActiveSessionsChanged(controllers: MutableList<MediaController>?) {
+        Utils.logInfo("Active Sessions Changed")
+        if (controllers != null) {
+            //Se não tem controles ativos envia um broadcast para o receiver sem artista, para fazer scrobble de alguma possível música pendente
+            if(controllers.size == 0){
+                val intent = Intent("com.kanedasoftware.masterscrobbler.NOTIFICATION_LISTENER")
+                intent.putExtra("playtime", playtime)
+                Utils.logInfo("Playtime: $playtime em segundos: ${TimeUnit.MILLISECONDS.toSeconds(playtime)} e em minutos: ${TimeUnit.MILLISECONDS.toMinutes(playtime)}")
+                timer.onFinish()
+                sendBroadcast(intent)
+            }
+            for(controller in controllers){
+                Utils.logInfo(controller.packageName)
+            }
+        }
+
         val activeMediaController = controllers?.firstOrNull()
         //TODO pegar todos os apps de midia das configurações e verificar aqui pra interceptar apenas essas notificações
         //TODO 2 verificar possibilidade de só receber notificações de apps selecionados (IntentFilter?)
@@ -200,6 +215,4 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
             mediaController?.unregisterCallback(mediaControllerCallback)
         }
     }
-
-
 }
