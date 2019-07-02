@@ -312,6 +312,9 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
         if (scrobbleBean.duration <= 30000) {
             Utils.log("Música muito curta, não será realizado o scrobble: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
         } else {
+            Utils.log("Execução - Em milisegundos: ${scrobbleBean.playtime} - " +
+                    "Em segundos: ${TimeUnit.MILLISECONDS.toSeconds(scrobbleBean.playtime)} - " +
+                    "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.playtime)}")
             if (scrobbleBean.playtime > (scrobbleBean.duration / 2)) {
                 if (Utils.isConnected(applicationContext)) {
                     val sessionKey = preferences?.getString("sessionKey", "")
@@ -325,7 +328,7 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
                     ScrobbleDb.getInstance(applicationContext).scrobbleDao().add(scrobbleBean)
                 }
             } else {
-                Utils.log("Tempo de execução da música muito curto, não será feito o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}")
+                Utils.log("Tempo de execução não alcançou ao menos metade da música, não será feito o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}")
             }
         }
     }
