@@ -45,7 +45,5 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </receiver>
-
-        <receiver android:name="com.kanedasoftware.masterscrobbler.receivers.NotificationServiceReceiver"/>
     </application>
 </manifest>
