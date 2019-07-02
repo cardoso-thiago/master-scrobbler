@@ -32,9 +32,9 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
     private var mediaController: MediaController? = null
     private var mediaControllerCallback: MediaController.Callback? = null
     private var playbackState = 0
-    private var metadataId = ""
+    private var metadataArtist = ""
+    private var metadataTrack = ""
     private var playtime = 0L
-    private var lastMetadataUpdate = 0L
     private var preferences: SharedPreferences? = null
     private var toScrobble: ScrobbleBean? = null
 
@@ -126,13 +126,19 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
         mediaControllerCallback = object : MediaController.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackState?) {
                 playbackState = state?.state!!
-                when (state.state) {
-                    PlaybackState.STATE_PLAYING -> {
-                        Utils.logDebug("STATE_PLAYING")
-                    }
+                Utils.logDebug(playbackState.toString())
+                when (state?.state) {
                     PlaybackState.STATE_PAUSED -> {
-                        Utils.logDebug("STATE_PAUSED")
+                        //Pausa o timer
                         timer.cancel()
+                        Utils.logDebug("Pause playtime: $playtime")
+                    }
+                    PlaybackState.STATE_PLAYING -> {
+                        if(playtime > 0) {
+                            //Começa a contar o tempo de execução da música
+                            timer.start()
+                            Utils.logDebug("Play playtime: $playtime")
+                        }
                     }
                 }
             }
@@ -149,35 +155,20 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
             val track = mediaMetadata.getString(MediaMetadata.METADATA_KEY_TITLE)
             val duration = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
 
-            val currentMetadataId = artist.plus(track)
-            //Se atualizou muito recentemente o metadata e for igual o anterior, ignora o tratamento
-            val timeSinceLastValidation = System.currentTimeMillis().minus(lastMetadataUpdate)
-            if (currentMetadataId == metadataId && timeSinceLastValidation < 3000) {
-                Utils.logDebug("Mudança de metadata ignorada.")
-            } else {
-                if (playbackState == PlaybackState.STATE_PLAYING ||
-                        (playbackState == PlaybackState.STATE_PAUSED && currentMetadataId != metadataId)) {
+            if (playbackState == PlaybackState.STATE_PLAYING) {
+                if (metadataArtist != artist || metadataTrack != track) {
+                    Utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState")
+
+                    metadataArtist = artist
+                    metadataTrack = track
 
                     val postTime = System.currentTimeMillis()
-                    lastMetadataUpdate = postTime
-
-                    scrobblePendingAsync()
-
-                    //Para o timer para zerar o contador
-                    timer.onFinish()
-                    //Inicializa o timer de novo
-                    timer.start()
-
                     //Cria novo bean com validação com base na informação atual
                     val scrobbleBean = ScrobbleBean(artist, track, postTime, duration)
+                    //Se não estiver conectado já adiciona para realizar o scrobble
                     if (Utils.isConnected(applicationContext)) {
                         doAsync {
-                            //Coloca só o primeiro log na thread principal que reconhece os demais
-                            uiThread {
-                                Utils.log("Vai validar $artist - $track")
-                            }
-                            var scrobbleBean = allValidations(scrobbleBean)
-
+                            val scrobbleBean = allValidations(scrobbleBean)
                             if (scrobbleBean != null) {
                                 Utils.updateNotification(applicationContext, "Scrobbling", "${scrobbleBean.artist} - ${scrobbleBean.track}")
                                 Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble")
@@ -186,12 +177,20 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
                             }
                         }
                     } else {
-                        toScrobble = scrobbleBean
+                        cacheScrobble(scrobbleBean)
                     }
-
-                    //Atualiza o ID do metadata com a informação atual
-                    metadataId = artist.plus(track)
+                } else {
+                    Utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata")
                 }
+            } else {
+                Utils.logDebug("Vai finalizar a validação de $artist - $track - PlaybackState: $playbackState")
+                metadataArtist = ""
+                metadataTrack = ""
+
+                //Para de contar o tempo da música e zera o contador
+                timer.onFinish()
+
+                scrobblePendingAsync()
             }
         }
     }
@@ -202,8 +201,13 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
             //Se não tem controles ativos envia um broadcast para o receiver sem artista, para fazer scrobble de alguma possível música pendente
             if (controllers.size == 0) {
                 scrobblePendingAsync()
-                //Para o timer para zerar o contador
+
+                metadataArtist = ""
+                metadataTrack = ""
+
+                //Para de contar o tempo da música e zera o contador
                 timer.onFinish()
+
                 createNotification()
             }
             for (controller in controllers) {
@@ -227,6 +231,12 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
 
         //Atualiza o estado atual do playback
         playbackState = mediaController.playbackState.state
+        if(playbackState == PlaybackState.STATE_PLAYING){
+            //Começa a contar o tempo de execução da música
+            timer.onFinish()
+            timer.start()
+            Utils.logDebug("Play playtime: $playtime")
+        }
         handleMetadataChange(mediaController.metadata)
 
         this.mediaController = mediaController
@@ -234,6 +244,9 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
     }
 
     private fun unregisterCallback(mediaController: MediaController?) {
+        //Zera o contador por via das dúvidas
+        timer.onFinish()
+
         Utils.logDebug("Unregistering callback for ${mediaController?.packageName}")
         mediaControllerCallback?.let { mediaControllerCallback ->
             mediaController?.unregisterCallback(mediaControllerCallback)
@@ -258,7 +271,7 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
                         "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.duration)}")
             }
         }
-        if(scrobbleBean != null) {
+        if (scrobbleBean != null) {
             scrobbleBean.validated = true
         }
         return scrobbleBean
@@ -324,13 +337,17 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
                     LastFmInitializer().lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey, timestamp).execute()
                     Utils.log("Scrobbeled: ${scrobbleBean.artist} - ${scrobbleBean.track}")
                 } else {
-                    Utils.log("Caching scrobble")
-                    ScrobbleDb.getInstance(applicationContext).scrobbleDao().add(scrobbleBean)
+                    cacheScrobble(scrobbleBean)
                 }
             } else {
                 Utils.log("Tempo de execução não alcançou ao menos metade da música, não será feito o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}")
             }
         }
+    }
+
+    private fun cacheScrobble(scrobbleBean: ScrobbleBean) {
+        Utils.log("Caching scrobble")
+        ScrobbleDb.getInstance(applicationContext).scrobbleDao().add(scrobbleBean)
     }
 
     //TODO implementar pegando a lista da base de dados com o Room
@@ -344,7 +361,7 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
             } else {
                 doAsync {
                     val scrobbleBean = allValidations(scrobbleBean)
-                    if(scrobbleBean != null) {
+                    if (scrobbleBean != null) {
                         scrobble(scrobbleBean)
                     }
                 }
