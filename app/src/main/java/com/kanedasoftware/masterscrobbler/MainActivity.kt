@@ -5,20 +5,15 @@ import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.support.design.widget.Snackbar
-import android.support.v4.app.NotificationManagerCompat
-import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
-import com.kanedasoftware.masterscrobbler.model.LoginInfo
 import com.kanedasoftware.masterscrobbler.services.NotificationService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.LastFmInitializer
 import kotlinx.android.synthetic.main.activity_main.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import org.jetbrains.anko.doAsync
 
 class MainActivity : AppCompatActivity() {
 
@@ -32,7 +27,7 @@ class MainActivity : AppCompatActivity() {
                     .setAction("Action", null).show()
         }
 
-        if(!Utils.verifyNotificationAccess(this)){
+        if (!Utils.verifyNotificationAccess(this)) {
             Utils.changeNotificationAccess(this)
         } else {
             val i = Intent(applicationContext, NotificationService::class.java)
@@ -55,31 +50,17 @@ class MainActivity : AppCompatActivity() {
             val params = mutableMapOf("password" to "Fennec@147", "username" to "brownstein666")
             val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
 
-            Utils.logInfo(sig)
-
-            LastFmInitializer().lastFmSecureService()
-                    .getMobileSession("Fennec@147", "brownstein666", Constants.API_KEY,
-                            sig, "auth.getMobileSession").enqueue(object : Callback<LoginInfo> {
-                        override fun onResponse(call: Call<LoginInfo>, response: Response<LoginInfo>) {
-                            sessionKey = response.body()?.session?.key.toString()
-                            //TODO remover esse log
-                            Utils.logInfo(sessionKey)
-                            preferences.edit().putString("sessionKey", sessionKey).apply()
-                        }
-
-                        override fun onFailure(call: Call<LoginInfo>, t: Throwable) {
-                            //TODO tratamento de erro
-                            Utils.logInfo("Erro ao obter o session key".plus(t.localizedMessage))
-                        }
-
-                    })
+            doAsync {
+                var sessionKey = LastFmInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
+                        Constants.API_KEY, sig, "auth.getMobileSession").execute().body()?.session?.key.toString()
+                preferences.edit().putString("sessionKey", sessionKey).apply()
+            }
         }
-
     }
 
     override fun onRestart() {
         super.onRestart()
-        if(!Utils.verifyNotificationAccess(this)){
+        if (!Utils.verifyNotificationAccess(this)) {
             Utils.changeNotificationAccess(this)
         } else {
             val i = Intent(applicationContext, NotificationService::class.java)
