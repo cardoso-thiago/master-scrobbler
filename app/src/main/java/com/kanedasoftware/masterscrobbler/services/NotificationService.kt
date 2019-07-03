@@ -23,7 +23,6 @@ import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.LastFmInitializer
 import org.jetbrains.anko.doAsync
-import org.jetbrains.anko.uiThread
 import java.util.concurrent.TimeUnit
 
 
@@ -44,6 +43,7 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
             if (toScrobble != null) {
                 toScrobble?.playtime = playtime
             }
+            scrobblePendingAsync()
             playtime = 0L
         }
 
@@ -129,16 +129,8 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
                 Utils.logDebug(playbackState.toString())
                 when (state?.state) {
                     PlaybackState.STATE_PAUSED -> {
-                        //Pausa o timer
-                        timer.cancel()
-                        Utils.logDebug("Pause playtime: $playtime")
                     }
                     PlaybackState.STATE_PLAYING -> {
-                        if(playtime > 0) {
-                            //Começa a contar o tempo de execução da música
-                            timer.start()
-                            Utils.logDebug("Play playtime: $playtime")
-                        }
                     }
                 }
             }
@@ -156,7 +148,10 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
             val duration = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
 
             if (playbackState == PlaybackState.STATE_PLAYING) {
-                if (metadataArtist != artist || metadataTrack != track) {
+                if ((metadataArtist != artist || metadataTrack != track)) {
+                    timer.onFinish()
+                    timer.start()
+
                     Utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState")
 
                     metadataArtist = artist
@@ -177,20 +172,11 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
                             }
                         }
                     } else {
-                        cacheScrobble(scrobbleBean)
+                        toScrobble = scrobbleBean
                     }
                 } else {
                     Utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata")
                 }
-            } else {
-                Utils.logDebug("Vai finalizar a validação de $artist - $track - PlaybackState: $playbackState")
-                metadataArtist = ""
-                metadataTrack = ""
-
-                //Para de contar o tempo da música e zera o contador
-                timer.onFinish()
-
-                scrobblePendingAsync()
             }
         }
     }
@@ -231,7 +217,7 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
 
         //Atualiza o estado atual do playback
         playbackState = mediaController.playbackState.state
-        if(playbackState == PlaybackState.STATE_PLAYING){
+        if (playbackState == PlaybackState.STATE_PLAYING) {
             //Começa a contar o tempo de execução da música
             timer.onFinish()
             timer.start()
@@ -343,6 +329,7 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
                 Utils.log("Tempo de execução não alcançou ao menos metade da música, não será feito o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}")
             }
         }
+        toScrobble = null
     }
 
     private fun cacheScrobble(scrobbleBean: ScrobbleBean) {
