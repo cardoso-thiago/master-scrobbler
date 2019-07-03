@@ -19,17 +19,18 @@ import android.preference.PreferenceManager
 import android.service.notification.NotificationListenerService
 import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
 import com.kanedasoftware.masterscrobbler.db.ScrobbleDb
+import com.kanedasoftware.masterscrobbler.network.ConnectionLiveData
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.LastFmInitializer
 import org.jetbrains.anko.doAsync
 import java.util.concurrent.TimeUnit
 
-
 class NotificationService : NotificationListenerService(), MediaSessionManager.OnActiveSessionsChangedListener {
 
     private var mediaController: MediaController? = null
     private var mediaControllerCallback: MediaController.Callback? = null
+    private var connectionLiveData: ConnectionLiveData? = null
     private var playbackState = 0
     private var metadataArtist = ""
     private var metadataTrack = ""
@@ -38,15 +39,16 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
     private var playtime = 0L
     private var preferences: SharedPreferences? = null
     private var toScrobble: ScrobbleBean? = null
-    private var finalDuration = 0L
 
+    private var finalDuration = 0L
     private var totalSeconds = 600L
+
     private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
         override fun onFinish() {
             if (toScrobble != null) {
                 toScrobble?.playtime = playtime
             }
-            scrobblePendingAsync()
+            scrobblePendingAsync(playtimeHolder, finalDuration)
             playtime = 0L
             playtimeHolder = 0L
         }
@@ -72,6 +74,7 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
         super.onCreate()
         this.preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
 
+        observeConnection()
         createNotificationChannel()
         createNotification()
         createCallback()
@@ -203,14 +206,13 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
         if (controllers != null) {
             //Se não tem controles ativos envia um broadcast para o receiver sem artista, para fazer scrobble de alguma possível música pendente
             if (controllers.size == 0) {
-                scrobblePendingAsync()
-
                 metadataArtist = ""
                 metadataTrack = ""
 
-                //Para de contar o tempo da música e zera o contador
+                //Para de contar o tempo da música, zera o contador e faz algum possível scrobble pendente
                 timer.onFinish()
 
+                //Atualiza a notificação para o padrão do serviço
                 createNotification()
             }
             for (controller in controllers) {
@@ -313,11 +315,11 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
         LastFmInitializer().lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey!!).execute()
     }
 
-    private fun scrobblePendingAsync() {
+    private fun scrobblePendingAsync(playtimeHolder: Long, finalDuration: Long) {
         doAsync {
             toScrobble?.let {
-                it.duration = finalDuration
                 it.playtime = it.playtime + playtimeHolder
+                it.duration = finalDuration
                 scrobble(it)
             }
         }
@@ -351,6 +353,17 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
     private fun cacheScrobble(scrobbleBean: ScrobbleBean) {
         Utils.log("Caching scrobble")
         ScrobbleDb.getInstance(applicationContext).scrobbleDao().add(scrobbleBean)
+    }
+
+    private fun observeConnection() {
+        connectionLiveData = ConnectionLiveData(applicationContext)
+        connectionLiveData.let {
+            it?.observeForever { isConnected ->
+                isConnected?.let {
+                    Utils.log("Connected: $isConnected")
+                }
+            }
+        }
     }
 
     //TODO implementar pegando a lista da base de dados com o Room
