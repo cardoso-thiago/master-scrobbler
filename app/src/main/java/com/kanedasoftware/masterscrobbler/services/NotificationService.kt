@@ -33,9 +33,12 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
     private var playbackState = 0
     private var metadataArtist = ""
     private var metadataTrack = ""
+    private var playtimeHolder = 0L
+    private var paused = false
     private var playtime = 0L
     private var preferences: SharedPreferences? = null
     private var toScrobble: ScrobbleBean? = null
+    private var finalDuration = 0L
 
     private var totalSeconds = 600L
     private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
@@ -45,6 +48,7 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
             }
             scrobblePendingAsync()
             playtime = 0L
+            playtimeHolder = 0L
         }
 
         override fun onTick(millisUntilFinished: Long) {
@@ -127,10 +131,17 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
             override fun onPlaybackStateChanged(state: PlaybackState?) {
                 playbackState = state?.state!!
                 Utils.logDebug(playbackState.toString())
-                when (state?.state) {
+                when (state.state) {
                     PlaybackState.STATE_PAUSED -> {
+                        timer.cancel()
+                        paused = true
                     }
                     PlaybackState.STATE_PLAYING -> {
+                        if (paused) {
+                            playtimeHolder += playtime
+                            paused = false
+                            timer.start()
+                        }
                     }
                 }
             }
@@ -148,12 +159,12 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
             val duration = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
 
             if (playbackState == PlaybackState.STATE_PLAYING) {
-                if ((metadataArtist != artist || metadataTrack != track)) {
+                if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2))) {
                     timer.onFinish()
                     timer.start()
 
                     Utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState")
-
+                    finalDuration = duration
                     metadataArtist = artist
                     metadataTrack = track
 
@@ -175,7 +186,13 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
                         toScrobble = scrobbleBean
                     }
                 } else {
-                    Utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata")
+                    Utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata, mas será atualizada a duração da música.")
+                    if (finalDuration != duration) {
+                        finalDuration = duration
+                        Utils.log("Duração Atualizada - Em milisegundos: $duration - " +
+                                "Em segundos: ${TimeUnit.MILLISECONDS.toSeconds(duration)} - " +
+                                "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(duration)}")
+                    }
                 }
             }
         }
@@ -252,9 +269,6 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
                     Utils.log("Não possui a duração no metadata, vai tentar buscar no Last.fm")
                     scrobbleBean.duration = getFullTrackInfo(scrobbleBean)
                 }
-                Utils.log("Duração - Em milisegundos: ${scrobbleBean.duration} - " +
-                        "Em segundos: ${TimeUnit.MILLISECONDS.toSeconds(scrobbleBean.duration)} - " +
-                        "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.duration)}")
             }
         }
         if (scrobbleBean != null) {
@@ -302,6 +316,8 @@ class NotificationService : NotificationListenerService(), MediaSessionManager.O
     private fun scrobblePendingAsync() {
         doAsync {
             toScrobble?.let {
+                it.duration = finalDuration
+                it.playtime = it.playtime + playtimeHolder
                 scrobble(it)
             }
         }
