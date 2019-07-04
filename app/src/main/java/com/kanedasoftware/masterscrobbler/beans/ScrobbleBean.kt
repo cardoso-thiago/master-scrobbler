@@ -12,4 +12,5 @@ class ScrobbleBean(var artist: String, var track: String, var postTime: Long, va
     var image = ""
     var playtime: Long = 0
     var validated:Boolean = false
+    var validationError:Boolean = false
 }

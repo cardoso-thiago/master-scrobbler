@@ -11,11 +11,11 @@ import retrofit2.http.Query
 
 interface LastFmService {
 
-    @GET("?method=track.search&limit=1&format=json")
+    @GET("?method=track.search&format=json")
     fun validateTrackAndArtist(@Query("artist") artist: String, @Query("track") track: String,
                                @Query("api_key") apiKey: String): Call<TrackInfo>
 
-    @GET("?method=track.search&limit=1&format=json")
+    @GET("?method=track.search&format=json")
     fun validateTrack(@Query("track") track: String, @Query("api_key") apiKey: String): Call<TrackInfo>
 
     @GET("?method=track.getInfo&limit=1&format=json")
