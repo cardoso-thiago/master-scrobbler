@@ -421,18 +421,10 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
             } else {
                 doAsync {
                     Utils.log("Vai fazer a validação e em seguida o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}")
-                    val scrobbleValidationBean = allValidations(scrobbleBean)
-                    if (scrobbleValidationBean != null) {
-                        scrobble(scrobbleValidationBean)
-                    }
+                    scrobble(allValidations(scrobbleBean))
                 }
             }
             scrobbleDao.delete(scrobbleBean)
         }
-    }
-
-    private fun clearString(value: String): String {
-        val regex = Regex("[^A-Za-z0-9 ]")
-        return regex.replace(value, "").replace(" ", "").toLowerCase()
     }
 }
