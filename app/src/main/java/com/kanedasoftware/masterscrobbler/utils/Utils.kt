@@ -72,10 +72,8 @@ class Utils {
         }
 
         fun updateNotification(context: Context, title: String, text: String) {
-            val notification = context?.let {
-                buildNotification(it, title, text)
-            }
-            val notificationManager = context?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notification = buildNotification(context, title, text)
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.notify(Constants.NOTIFICATION_ID, notification)
         }
 
@@ -83,7 +81,7 @@ class Utils {
             return NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
                     .setContentTitle(title)
                     .setContentText(text)
-                    .setSmallIcon(R.drawable.navigation_empty_icon)
+                    .setSmallIcon(R.drawable.ic_stat_cassette)
                     .setVibrate(longArrayOf(0L))
                     .build()
         }

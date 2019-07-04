@@ -46,10 +46,5 @@ data class ScrobbleInfo(
                     val text: String = ""
             )
         }
-
-        data class Attr(
-                val accepted: Int = 0,
-                val ignored: Int = 0
-        )
     }
 }

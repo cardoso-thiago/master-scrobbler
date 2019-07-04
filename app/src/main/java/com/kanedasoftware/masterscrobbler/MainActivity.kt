@@ -50,16 +50,20 @@ class MainActivity : AppCompatActivity() {
             val params = mutableMapOf("password" to "Fennec@147", "username" to "brownstein666")
             val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
 
-            doAsync {
-                //TODO tratar erro visualmente para o usuário, verificar tratamentos para erros diversos
-                val response = LastFmInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
-                        Constants.API_KEY, sig, "auth.getMobileSession").execute()
-                if (!response.isSuccessful) {
-                    Utils.logDebug("Logando o erro da obtenção do session key para tentar capturar situações: ${response.code()}")
+            if(Utils.isConnected(this)){
+                doAsync {
+                    //TODO tratar erro visualmente para o usuário, verificar tratamentos para erros diversos
+                    val response = LastFmInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
+                            Constants.API_KEY, sig, "auth.getMobileSession").execute()
+                    if (!response.isSuccessful) {
+                        Utils.logDebug("Logando o erro da obtenção do session key para tentar capturar situações: ${response.code()}")
+                    }
+                    sessionKey = response.body()?.session?.key.toString()
+                    //TODO verificar melhor maneira de armazenar a sessionkey
+                    preferences.edit().putString("sessionKey", sessionKey).apply()
                 }
-                var sessionKey = response.body()?.session?.key.toString()
-                //TODO verificar melhor maneira de armazenar a sessionkey
-                preferences.edit().putString("sessionKey", sessionKey).apply()
+            } else {
+                Utils.logError("Conexão necessária para obter o id da sessão do usuário.")
             }
         }
     }
