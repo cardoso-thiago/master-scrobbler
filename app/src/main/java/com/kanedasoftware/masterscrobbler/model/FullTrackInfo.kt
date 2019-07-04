@@ -46,10 +46,6 @@ data class FullTrackInfo(
                 val url: String = "",
                 val image: List<Image> = listOf()
         ) {
-            data class Attr(
-                    val position: String = ""
-            )
-
             data class Image(
                     @SerializedName("#text")
                     val text: String = "",

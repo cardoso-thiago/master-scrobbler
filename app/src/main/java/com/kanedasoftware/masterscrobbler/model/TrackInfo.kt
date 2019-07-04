@@ -45,7 +45,6 @@ data class TrackInfo(
                 val startPage: String
         )
 
-        class Attr(
-        )
+        class Attr
     }
 }

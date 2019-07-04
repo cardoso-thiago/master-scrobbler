@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit
 class MediaService : NotificationListenerService(), MediaSessionManager.OnActiveSessionsChangedListener {
 
     private var mediaController: MediaController? = null
-    private var mediaControllerCallback: MediaController.Callback? = null
+    private lateinit var mediaControllerCallback: MediaController.Callback
     private var connectionLiveData: ConnectionLiveData? = null
     private var playbackState = 0
     private var metadataArtist = ""
@@ -221,51 +221,53 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
         }
     }
 
-    private fun registerCallback(mediaController: MediaController) {
+    private fun registerCallback(newMediaController: MediaController) {
         unregisterCallback(this.mediaController)
-        Utils.logDebug("Registering callback for ${mediaController.packageName}")
+        Utils.logDebug("Registering callback for ${newMediaController.packageName}")
 
-        //Atualiza o estado atual do playback
-        playbackState = mediaController.playbackState.state
-        if (playbackState == PlaybackState.STATE_PLAYING) {
-            resumeTimer()
+        if(newMediaController.playbackState != null){
+            //Atualiza o estado atual do playback
+            playbackState = newMediaController.playbackState!!.state
+            if (playbackState == PlaybackState.STATE_PLAYING) {
+                resumeTimer()
+            }
         }
-        handleMetadataChange(mediaController.metadata)
+        handleMetadataChange(newMediaController.metadata)
 
-        this.mediaController = mediaController
-        mediaController.registerCallback(this.mediaControllerCallback)
+        mediaController = newMediaController
+        newMediaController.registerCallback(mediaControllerCallback)
     }
 
     private fun unregisterCallback(mediaController: MediaController?) {
         Utils.logDebug("Unregistering callback for ${mediaController?.packageName}")
-        mediaControllerCallback?.let { mediaControllerCallback ->
+        mediaControllerCallback.let { mediaControllerCallback ->
             mediaController?.unregisterCallback(mediaControllerCallback)
         }
     }
 
     private fun allValidations(scrobbleBean: ScrobbleBean): ScrobbleBean? {
-        var scrobbleBean = validateTrack(scrobbleBean, false)
-        if (scrobbleBean != null) {
-            if (scrobbleBean.mbid.isBlank() && scrobbleBean.image.isBlank()) {
+        var scrobbleBeanValidationBean = validateTrack(scrobbleBean, false)
+        if (scrobbleBeanValidationBean != null) {
+            if (scrobbleBeanValidationBean.mbid.isBlank() && scrobbleBeanValidationBean.image.isBlank()) {
                 Utils.log("MBID e imagem não existente, assume que a música não existe, vai tentar validar só pelo nome da música")
-                scrobbleBean = validateTrack(scrobbleBean, true)
+                scrobbleBeanValidationBean = validateTrack(scrobbleBeanValidationBean, true)
             }
-            if (scrobbleBean != null) {
-                Utils.log("Música encontrada, valor validado: ${scrobbleBean.artist} - ${scrobbleBean.track}")
-                if (scrobbleBean.duration == 0L) {
+            if (scrobbleBeanValidationBean != null) {
+                Utils.log("Música encontrada, valor validado: ${scrobbleBeanValidationBean.artist} - ${scrobbleBeanValidationBean.track}")
+                if (scrobbleBeanValidationBean.duration == 0L) {
                     Utils.log("Não possui a duração no metadata, vai tentar buscar no Last.fm")
-                    scrobbleBean.duration = getFullTrackInfo(scrobbleBean)
+                    scrobbleBeanValidationBean.duration = getFullTrackInfo(scrobbleBeanValidationBean)
                 }
             }
         }
-        if (scrobbleBean != null) {
-            scrobbleBean.validated = true
+        if (scrobbleBeanValidationBean != null) {
+            scrobbleBeanValidationBean.validated = true
         }
-        return scrobbleBean
+        return scrobbleBeanValidationBean
     }
 
     private fun validateTrack(scrobbleBean: ScrobbleBean, onlyTrack: Boolean): ScrobbleBean? {
-        var response = if (onlyTrack) {
+        val response = if (onlyTrack) {
             LastFmInitializer().lastFmService().validateTrack(scrobbleBean.track, Constants.API_KEY).execute()
         } else {
             LastFmInitializer().lastFmService().validateTrackAndArtist(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY).execute()
@@ -290,9 +292,9 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
 
     private fun getFullTrackInfo(scrobbleBean: ScrobbleBean): Long {
         val response = LastFmInitializer().lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).execute()
-        if(response.isSuccessful) {
+        return if(response.isSuccessful) {
             val duration = response.body()?.track?.duration
-            return if (!duration.isNullOrBlank()) {
+            if (!duration.isNullOrBlank()) {
                 duration?.toLong()!!
             } else {
                 Utils.log("Não encontrou a duração no Metadata nem no Last.fm, assume um minuto de música.")
@@ -300,7 +302,7 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
             }
         } else {
             Utils.logError("Erro na obtenção das informações completas da música: ${response.code()}. Vai retornar um minuto de música.")
-            return 60000
+            60000
         }
     }
 
@@ -312,7 +314,7 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
     }
 
     private fun scrobblePendingAsync(playtimeHolder: Long, finalDuration: Long) {
-        var scrobbleBean = toScrobble
+        val scrobbleBean = toScrobble
         if (scrobbleBean != null) {
             scrobbleBean.playtime = scrobbleBean.playtime + playtimeHolder
             scrobbleBean.duration = finalDuration
@@ -398,13 +400,12 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
             } else {
                 doAsync {
                     Utils.log("Vai fazer a validação e em seguida o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}")
-                    val scrobbleBean = allValidations(scrobbleBean)
-                    if (scrobbleBean != null) {
-                        scrobble(scrobbleBean)
+                    val scrobbleValidationBean = allValidations(scrobbleBean)
+                    if (scrobbleValidationBean != null) {
+                        scrobble(scrobbleValidationBean)
                     }
                 }
             }
-            //TODO verificar se foi feito com sucesso ou não
             scrobbleDao.delete(scrobbleBean)
         }
     }
