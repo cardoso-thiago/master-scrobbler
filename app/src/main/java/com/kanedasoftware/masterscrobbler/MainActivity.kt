@@ -8,7 +8,7 @@ import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
-import com.kanedasoftware.masterscrobbler.services.NotificationService
+import com.kanedasoftware.masterscrobbler.services.MediaService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.LastFmInitializer
@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
         if (!Utils.verifyNotificationAccess(this)) {
             Utils.changeNotificationAccess(this)
         } else {
-            val i = Intent(applicationContext, NotificationService::class.java)
+            val i = Intent(applicationContext, MediaService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 applicationContext?.startForegroundService(i)
             } else {
@@ -51,8 +51,14 @@ class MainActivity : AppCompatActivity() {
             val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
 
             doAsync {
-                var sessionKey = LastFmInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
-                        Constants.API_KEY, sig, "auth.getMobileSession").execute().body()?.session?.key.toString()
+                //TODO tratar erro visualmente para o usuário, verificar tratamentos para erros diversos
+                val response = LastFmInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
+                        Constants.API_KEY, sig, "auth.getMobileSession").execute()
+                if (!response.isSuccessful) {
+                    Utils.logDebug("Logando o erro da obtenção do session key para tentar capturar situações: ${response.code()}")
+                }
+                var sessionKey = response.body()?.session?.key.toString()
+                //TODO verificar melhor maneira de armazenar a sessionkey
                 preferences.edit().putString("sessionKey", sessionKey).apply()
             }
         }
@@ -63,7 +69,7 @@ class MainActivity : AppCompatActivity() {
         if (!Utils.verifyNotificationAccess(this)) {
             Utils.changeNotificationAccess(this)
         } else {
-            val i = Intent(applicationContext, NotificationService::class.java)
+            val i = Intent(applicationContext, MediaService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 applicationContext?.startForegroundService(i)
             } else {

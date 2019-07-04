@@ -52,14 +52,7 @@ class Utils {
             log.error(message)
         }
 
-        fun buildNotification(context: Context, title: String, text: String): Notification? {
-            return NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
-                    .setContentTitle(title)
-                    .setContentText(text)
-                    .setSmallIcon(R.drawable.navigation_empty_icon)
-                    .setVibrate(longArrayOf(0L))
-                    .build()
-        }
+        fun verifyNotificationAccess(context: Context) = NotificationManagerCompat.getEnabledListenerPackages(context).contains("com.kanedasoftware.masterscrobbler")
 
         fun changeNotificationAccess(context: Context) {
             if (!verifyNotificationAccess(context)) {
@@ -78,20 +71,27 @@ class Utils {
             }
         }
 
-        fun verifyNotificationAccess(context: Context) = NotificationManagerCompat.getEnabledListenerPackages(context).contains("com.kanedasoftware.masterscrobbler")
-
-        fun isConnected(context: Context): Boolean {
-            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val activeNetwork = cm.activeNetworkInfo
-            return activeNetwork != null
-        }
-
         fun updateNotification(context: Context, title: String, text: String) {
             val notification = context?.let {
                 buildNotification(it, title, text)
             }
             val notificationManager = context?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.notify(Constants.NOTIFICATION_ID, notification)
+        }
+
+        fun buildNotification(context: Context, title: String, text: String): Notification? {
+            return NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
+                    .setContentTitle(title)
+                    .setContentText(text)
+                    .setSmallIcon(R.drawable.navigation_empty_icon)
+                    .setVibrate(longArrayOf(0L))
+                    .build()
+        }
+
+        fun isConnected(context: Context): Boolean {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val activeNetwork = cm.activeNetworkInfo
+            return activeNetwork != null
         }
     }
 }

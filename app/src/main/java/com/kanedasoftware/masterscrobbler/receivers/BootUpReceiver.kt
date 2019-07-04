@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import com.kanedasoftware.masterscrobbler.services.NotificationService
+import com.kanedasoftware.masterscrobbler.services.MediaService
 import com.kanedasoftware.masterscrobbler.utils.Utils
 
 class BootUpReceiver : BroadcastReceiver() {
@@ -16,7 +16,7 @@ class BootUpReceiver : BroadcastReceiver() {
         //Não inicia o serviço na iniialização se não tiver acesso às notificações
         if (!notificationAccessValidation) {
             if (intent?.action.equals(Intent.ACTION_BOOT_COMPLETED)) {
-                val i = Intent(context, NotificationService::class.java)
+                val i = Intent(context, MediaService::class.java)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context?.startForegroundService(i)
                 } else {
