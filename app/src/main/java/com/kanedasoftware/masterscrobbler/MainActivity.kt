@@ -56,14 +56,14 @@ class MainActivity : AppCompatActivity() {
                     val response = LastFmInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
                             Constants.API_KEY, sig, "auth.getMobileSession").execute()
                     if (!response.isSuccessful) {
-                        Utils.logDebug("Logando o erro da obtenção do session key para tentar capturar situações: ${response.code()}")
+                        Utils.logDebug("Logando o erro da obtenção do session key para tentar capturar situações: ${response.code()}", applicationContext)
                     }
                     sessionKey = response.body()?.session?.key.toString()
                     //TODO verificar melhor maneira de armazenar a sessionkey
                     preferences.edit().putString("sessionKey", sessionKey).apply()
                 }
             } else {
-                Utils.logError("Conexão necessária para obter o id da sessão do usuário.")
+                Utils.logError("Conexão necessária para obter o id da sessão do usuário.", applicationContext)
             }
         }
     }
@@ -93,7 +93,11 @@ class MainActivity : AppCompatActivity() {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
-            R.id.action_settings -> true
+            R.id.action_settings -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                startActivity(intent)
+                return true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }

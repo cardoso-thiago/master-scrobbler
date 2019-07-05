@@ -8,6 +8,7 @@ import android.net.ConnectivityManager
 import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationManagerCompat
 import android.support.v7.app.AlertDialog
+import android.support.v7.preference.PreferenceManager
 import com.kanedasoftware.masterscrobbler.R
 import org.jetbrains.anko.*
 import java.io.BufferedWriter
@@ -20,12 +21,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.HashMap
 
+const val KEY_PREF_DEBUG_MODE = "debug_mode"
 
 class Utils {
-
     companion object {
-
-        private const val DEBUG = true
 
         fun getSig(params: Map<String, String>, method: String): String {
             val hashmapParams = HashMap<String, String>(params)
@@ -41,36 +40,43 @@ class Utils {
             return String.format("%032x", BigInteger(1, MessageDigest.getInstance("MD5").digest(sigFormat.toByteArray(Charsets.UTF_8))))
         }
 
-        fun logDebug(message: String) {
+        fun logDebug(message: String, context: Context) {
             val log = AnkoLogger(Constants.LOG_TAG)
             log.debug(message)
-            if(DEBUG){
+            if (isDebugMode(context)) {
                 appendLog("[DEBUG] - $message")
             }
         }
 
-        fun log(message: String) {
+
+        fun log(message: String, context: Context) {
             val log = AnkoLogger(Constants.LOG_TAG)
             log.info(message)
-            if(DEBUG){
+            if (isDebugMode(context)) {
                 appendLog("[INFO] - $message")
             }
         }
 
-        fun logWarning(message: String) {
+        fun logWarning(message: String, context: Context) {
             val log = AnkoLogger(Constants.LOG_TAG)
             log.warn(message)
-            if(DEBUG){
+            if (isDebugMode(context)) {
                 appendLog("[WARN] - $message")
             }
         }
 
-        fun logError(message: String) {
+        fun logError(message: String, context: Context) {
             val log = AnkoLogger(Constants.LOG_TAG)
             log.error(message)
-            if(DEBUG){
+            if (isDebugMode(context)) {
                 appendLog("[ERROR] - $message")
             }
+        }
+
+        private fun isDebugMode(context: Context): Boolean {
+            val sharedPref = PreferenceManager
+                    .getDefaultSharedPreferences(context)
+            return sharedPref.getBoolean(KEY_PREF_DEBUG_MODE, false)
         }
 
         fun verifyNotificationAccess(context: Context) = NotificationManagerCompat.getEnabledListenerPackages(context).contains("com.kanedasoftware.masterscrobbler")
@@ -113,7 +119,7 @@ class Utils {
             return activeNetwork != null
         }
 
-        fun appendLog(text: String) {
+        private fun appendLog(text: String) {
             val logFile = File("sdcard/MasterScrobbler/MasterScrobbler.log")
             val sdf = SimpleDateFormat("dd/MM/yyyy hh:mm:ss", Locale.ENGLISH)
             val currentDate = sdf.format(Date())
