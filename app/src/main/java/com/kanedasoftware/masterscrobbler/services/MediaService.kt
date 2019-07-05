@@ -175,15 +175,17 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
                             } else {
                                 if (!scrobbleBean.validationError) {
                                     Utils.updateNotification(applicationContext, "Scrobbling", "${scrobbleBean.artist} - ${scrobbleBean.track}")
-                                    Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble")
+                                    Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble (toScrobble)")
                                     toScrobble = scrobbleValidationBean
                                     updateNowPlaying(scrobbleValidationBean)
                                 } else {
+                                    Utils.log("Erro de validação, vai armazenar a música  para o próximo scrobble (toScrobble)")
                                     toScrobble = scrobbleBean
                                 }
                             }
                         }
                     } else {
+                        Utils.log("Não está online, vai armazenar a música para o próximo scrobble (toScrobble)")
                         toScrobble = scrobbleBean
                     }
                 } else {
@@ -362,7 +364,10 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
     }
 
     private fun scrobblePendingAsync(playtimeHolder: Long, finalDuration: Long) {
+        Utils.log("ScrobblePendingAsync ${toScrobble?.artist} - ${toScrobble?.track}")
         val scrobbleBean = toScrobble
+        Utils.logDebug("Vai zerar o toScrobble")
+        toScrobble = null
         if (scrobbleBean != null) {
             scrobbleBean.playtime = scrobbleBean.playtime + playtimeHolder
             scrobbleBean.duration = finalDuration
