@@ -160,6 +160,9 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
                     metadataArtist = artist
                     metadataTrack = track
 
+                    //Valida qualquer música que estiver pendente
+                    validateAndScrobblePending()
+
                     val postTime = System.currentTimeMillis()
                     //Cria novo bean com validação com base na informação atual
                     val scrobbleBean = ScrobbleBean(artist, track, postTime, duration)
@@ -167,13 +170,17 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
                     if (isOnline) {
                         doAsync {
                             val scrobbleValidationBean = allValidations(scrobbleBean)
-                            if (!scrobbleBean.validationError) {
-                                Utils.updateNotification(applicationContext, "Scrobbling", "${scrobbleBean.artist} - ${scrobbleBean.track}")
-                                Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble")
-                                toScrobble = scrobbleValidationBean
-                                updateNowPlaying(scrobbleValidationBean)
+                            if (scrobbleValidationBean == null) {
+                                Utils.log("Não conseguiu validar a música, não será realizado o scrobble.")
                             } else {
-                                toScrobble = scrobbleBean
+                                if (!scrobbleBean.validationError) {
+                                    Utils.updateNotification(applicationContext, "Scrobbling", "${scrobbleBean.artist} - ${scrobbleBean.track}")
+                                    Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble")
+                                    toScrobble = scrobbleValidationBean
+                                    updateNowPlaying(scrobbleValidationBean)
+                                } else {
+                                    toScrobble = scrobbleBean
+                                }
                             }
                         }
                     } else {
@@ -245,70 +252,90 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
         }
     }
 
-    private fun allValidations(scrobbleBean: ScrobbleBean): ScrobbleBean {
-        var scrobbleBeanValidationBean = validateTrack(scrobbleBean, false)
-        if (!scrobbleBeanValidationBean.validated) {
-            scrobbleBeanValidationBean = validateTrack(scrobbleBean, true)
-            if (scrobbleBeanValidationBean.validated) {
-                if (scrobbleBeanValidationBean.duration == 0L) {
-                    Utils.log("Não possui a duração no metadata, vai tentar buscar no Last.fm")
-                    scrobbleBeanValidationBean.duration = getFullTrackInfo(scrobbleBeanValidationBean)
-                }
-            } else {
-                //Se nao encontrar nenhuma correspondência, faz o scrobble com os valores originais
-                Utils.logError("Não encontrou nenhuma correspondência para ${scrobbleBean.artist} - ${scrobbleBean.track}, vai usar os valores originais da notificação")
-                return scrobbleBean
+    private fun allValidations(scrobbleBean: ScrobbleBean): ScrobbleBean? {
+        val scrobbleBeanValidationBean = validateTrack(scrobbleBean)
+        if (scrobbleBeanValidationBean != null) {
+            if (scrobbleBeanValidationBean.duration == 0L) {
+                Utils.log("Não conseguiu obter a duração no metadata, vai tentar obter no Last.fm")
+                scrobbleBeanValidationBean.duration = getFullTrackInfo(scrobbleBeanValidationBean)
             }
         }
-        Utils.log("Música encontrada, valor validado: ${scrobbleBeanValidationBean.artist} - ${scrobbleBeanValidationBean.track}")
         return scrobbleBeanValidationBean
     }
 
-    private fun validateTrack(scrobbleBean: ScrobbleBean, onlyTrack: Boolean): ScrobbleBean {
-        val response = if (onlyTrack) {
-            LastFmInitializer().lastFmService().validateTrack(scrobbleBean.track, Constants.API_KEY).execute()
-        } else {
-            LastFmInitializer().lastFmService().validateTrackAndArtist(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY).execute()
-        }
-
-        if (response.isSuccessful) {
-            val trackList = response.body()?.results?.trackmatches?.track
-            val listSize = trackList?.size
-            if (listSize != null && listSize > 0) {
-                for (track in trackList) {
-                    if (onlyTrack) {
-                        if (!track.mbid.isBlank() || !track.image[0].text.isBlank()) {
-                            scrobbleBean.artist = track.artist
-                            scrobbleBean.track = track.name
-                            scrobbleBean.image = track.image[0].text
-                            scrobbleBean.mbid = track.mbid
-                            scrobbleBean.validated = true
-                            return scrobbleBean
-                        }
-                    } else {
-                        if (!track.mbid.isBlank() || !track.image[0].text.isBlank()) {
-                            scrobbleBean.artist = track.artist
-                            scrobbleBean.track = track.name
-                            scrobbleBean.image = track.image[0].text
-                            scrobbleBean.mbid = track.mbid
+    private fun validateTrack(scrobbleBean: ScrobbleBean): ScrobbleBean? {
+        val responseArtist = LastFmInitializer().lastFmService().validateArtist(scrobbleBean.artist, Constants.API_KEY).execute()
+        if (responseArtist.isSuccessful) {
+            val artistList = responseArtist.body()?.results?.artistmatches?.artist
+            if (artistList != null) {
+                for (artist in artistList) {
+                    if (!artist.mbid.isBlank() || !artist.image[0].text.isBlank()) {
+                        if (scrobbleBean.artist == artist.name) {
+                            Utils.log("Encontrou o artista ${scrobbleBean.artist} no Last.fm, assume que a música está correta.")
                             scrobbleBean.validated = true
                             return scrobbleBean
                         }
                     }
                 }
-            } else {
-                Utils.log("Não encontrou nenhum resultado na busca - Somente pela música: $onlyTrack")
-                scrobbleBean.validated = false
-                return scrobbleBean
             }
         } else {
-            Utils.logError("Erro na validação da música: ${response.code()}")
+            Utils.logError("Erro na validação da música: ${responseArtist.code()}")
             scrobbleBean.validated = false
             scrobbleBean.validationError = true
             return scrobbleBean
         }
-        scrobbleBean.validated = false
-        return scrobbleBean
+
+        val responseTrackArtist = LastFmInitializer().lastFmService().validateTrackAndArtist(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY).execute()
+        if (responseTrackArtist.isSuccessful) {
+            val artistTrackList = responseTrackArtist.body()?.results?.trackmatches?.track
+            if (artistTrackList != null) {
+                for (track in artistTrackList) {
+                    if (!track.mbid.isBlank() || !track.image[0].text.isBlank()) {
+                        if (track.artist != "[unknown]" && track.name != "[unknown]") {
+                            scrobbleBean.artist = track.artist
+                            scrobbleBean.track = track.name
+                            scrobbleBean.image = track.image[0].text
+                            scrobbleBean.mbid = track.mbid
+                            scrobbleBean.validated = true
+                            Utils.log("Música validada na busca padrão: ${scrobbleBean.artist} - ${scrobbleBean.track}")
+                            return scrobbleBean
+                        }
+                    }
+                }
+            } else {
+                Utils.logError("Erro na validação da música: ${responseTrackArtist.code()}")
+
+                scrobbleBean.validated = false
+                scrobbleBean.validationError = true
+                return scrobbleBean
+            }
+
+            val responseTrack = LastFmInitializer().lastFmService().validateTrack(scrobbleBean.track, Constants.API_KEY).execute()
+            if (responseTrack.isSuccessful) {
+                val trackList = responseTrack.body()?.results?.trackmatches?.track
+                if (trackList != null) {
+                    for (track in trackList) {
+                        if (!track.mbid.isBlank() || !track.image[0].text.isBlank()) {
+                            if (track.artist != "[unknown]" && track.name != "[unknown]") {
+                                scrobbleBean.artist = track.artist
+                                scrobbleBean.track = track.name
+                                scrobbleBean.image = track.image[0].text
+                                scrobbleBean.mbid = track.mbid
+                                scrobbleBean.validated = true
+                                Utils.log("Música validada na busca somente pelo nome: ${scrobbleBean.artist} - ${scrobbleBean.track}")
+                                return scrobbleBean
+                            }
+                        }
+                    }
+                } else {
+                    Utils.logError("Erro na validação da música: ${responseTrack.code()}")
+                    scrobbleBean.validated = false
+                    scrobbleBean.validationError = true
+                    return scrobbleBean
+                }
+            }
+        }
+        return null
     }
 
     private fun getFullTrackInfo(scrobbleBean: ScrobbleBean): Long {
@@ -421,7 +448,12 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
             } else {
                 doAsync {
                     Utils.log("Vai fazer a validação e em seguida o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}")
-                    scrobble(allValidations(scrobbleBean))
+                    val scrobbleValidationBean = allValidations(scrobbleBean)
+                    if (scrobbleValidationBean != null) {
+                        scrobble(scrobbleValidationBean)
+                    } else {
+                        Utils.log("Não foi possível validar a música, não será feito o scrobble.")
+                    }
                 }
             }
             scrobbleDao.delete(scrobbleBean)

@@ -1,15 +1,15 @@
 package com.kanedasoftware.masterscrobbler.services
 
-import com.kanedasoftware.masterscrobbler.model.FullTrackInfo
-import com.kanedasoftware.masterscrobbler.model.ScrobbleInfo
-import com.kanedasoftware.masterscrobbler.model.TrackInfo
-import com.kanedasoftware.masterscrobbler.model.UpdateNowPlayingInfo
+import com.kanedasoftware.masterscrobbler.model.*
 import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface LastFmService {
+
+    @GET("?method=artist.search&format=json")
+    fun validateArtist(@Query("artist") artist:String, @Query("api_key") apiKey: String): Call<ArtistInfo>
 
     @GET("?method=track.search&format=json")
     fun validateTrackAndArtist(@Query("artist") artist: String, @Query("track") track: String,
