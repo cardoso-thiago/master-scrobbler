@@ -5,4 +5,11 @@
         android:key="debug_mode"
         android:summary="Enable debug mode to save log to file"
         android:title="Debug Mode" />
+
+    <android.support.v14.preference.MultiSelectListPreference
+        android:dialogTitle="Apps to Scrobble"
+        android:key="apps_to_scrobble"
+        android:summary="Select the apps to scrobble"
+        android:title="Apps to Scrobble" />
+
 </android.support.v7.preference.PreferenceScreen>
