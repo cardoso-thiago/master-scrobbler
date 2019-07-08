@@ -1,4 +1,4 @@
-package com.kanedasoftware.masterscrobbler
+package com.kanedasoftware.masterscrobbler.main
 
 import android.content.Intent
 import android.os.Build
@@ -8,6 +8,7 @@ import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.services.MediaService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
