@@ -56,10 +56,16 @@ class MainActivity : AppCompatActivity() {
             if (response.isSuccessful) {
                 val profileUrl = response.body()?.user?.image?.last()?.text
                 val name = response.body()?.user?.name
+                val realName = response.body()?.user?.realname
+                val registered = response.body()?.user?.registered?.text
                 uiThread {
                     Picasso.get().load(profileUrl).transform(CircleTransform()).into(profile)
                     username.text = name
-                    info.text = "Thiago Cardoso • scrobbling since 11 Oct 2008"
+                    if(registered != null){
+                        info.text = "$realName • scrobbling since ${Utils.getDateTimeFromEpoch(registered)}"
+                    } else {
+                        info.text = realName
+                    }
                 }
             }
         }

@@ -119,9 +119,19 @@ class Utils {
             return activeNetwork != null
         }
 
+        fun getDateTimeFromEpoch(timestamp: Int): String? {
+            return try {
+                val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+                val netDate = Date(timestamp.toLong() * 1000L)
+                sdf.format(netDate)
+            } catch (e: Exception) {
+                e.toString()
+            }
+        }
+
         private fun appendLog(text: String) {
             val logFile = File("sdcard/MasterScrobbler/MasterScrobbler.log")
-            val sdf = SimpleDateFormat("dd/MM/yyyy hh:mm:ss", Locale.ENGLISH)
+            val sdf = SimpleDateFormat("dd/MM/yyyy hh:mm:ss", Locale.getDefault())
             val currentDate = sdf.format(Date())
             if (!logFile.exists()) {
                 try {
