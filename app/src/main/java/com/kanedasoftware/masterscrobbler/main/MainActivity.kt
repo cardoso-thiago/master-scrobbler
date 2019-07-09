@@ -8,13 +8,18 @@ import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.ImageView
+import android.widget.TextView
 import com.kanedasoftware.masterscrobbler.R
+import com.kanedasoftware.masterscrobbler.picasso.CircleTransform
 import com.kanedasoftware.masterscrobbler.services.MediaService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.LastFmInitializer
+import com.squareup.picasso.Picasso
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.uiThread
 
 class MainActivity : AppCompatActivity() {
 
@@ -39,6 +44,28 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        getSessionKey()
+
+        val profile = findViewById<ImageView>(R.id.profile)
+        val username = findViewById<TextView>(R.id.username)
+        val info = findViewById<TextView>(R.id.info)
+
+        doAsync {
+            //TODO pegar usuário logado
+            val response = LastFmInitializer().lastFmService().userInfo("brownstein666", Constants.API_KEY).execute()
+            if (response.isSuccessful) {
+                val profileUrl = response.body()?.user?.image?.last()?.text
+                val name = response.body()?.user?.name
+                uiThread {
+                    Picasso.get().load(profileUrl).transform(CircleTransform()).into(profile)
+                    username.text = name
+                    info.text = "Thiago Cardoso • scrobbling since 11 Oct 2008"
+                }
+            }
+        }
+    }
+
+    private fun getSessionKey() {
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
         var sessionKey = preferences.getString("sessionKey", "")
 
@@ -48,7 +75,7 @@ class MainActivity : AppCompatActivity() {
             val params = mutableMapOf("password" to "Fennec@147", "username" to "brownstein666")
             val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
 
-            if(Utils.isConnected(this)){
+            if (Utils.isConnected(this)) {
                 doAsync {
                     //TODO tratar erro visualmente para o usuário, verificar tratamentos para erros diversos
                     val response = LastFmInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",

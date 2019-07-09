@@ -9,7 +9,7 @@ import retrofit2.http.Query
 interface LastFmService {
 
     @GET("?method=artist.search&format=json")
-    fun validateArtist(@Query("artist") artist:String, @Query("api_key") apiKey: String): Call<ArtistInfo>
+    fun validateArtist(@Query("artist") artist: String, @Query("api_key") apiKey: String): Call<ArtistInfo>
 
     @GET("?method=track.search&format=json")
     fun validateTrackAndArtist(@Query("artist") artist: String, @Query("track") track: String,
@@ -31,4 +31,7 @@ interface LastFmService {
     fun scrobble(@Query("artist") artist: String, @Query("track") track: String,
                  @Query("api_key") apiKey: String, @Query("api_sig") sig: String,
                  @Query("sk") sessionKey: String, @Query("timestamp") timestamp: String): Call<ScrobbleInfo>
+
+    @GET("?method=user.getinfo&format=json")
+    fun userInfo(@Query("username") username: String, @Query("api_key") apiKey: String): Call<UserInfo>
 }
