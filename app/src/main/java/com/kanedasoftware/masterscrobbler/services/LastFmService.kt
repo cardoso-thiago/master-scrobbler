@@ -29,8 +29,9 @@ interface LastFmService {
 
     @POST("?method=track.scrobble&format=json")
     fun scrobble(@Query("artist") artist: String, @Query("track") track: String,
-                 @Query("api_key") apiKey: String, @Query("api_sig") sig: String,
-                 @Query("sk") sessionKey: String, @Query("timestamp") timestamp: String): Call<ScrobbleInfo>
+                 @Query("album") album: String, @Query("api_key") apiKey: String,
+                 @Query("api_sig") sig: String, @Query("sk") sessionKey: String,
+                 @Query("timestamp") timestamp: String): Call<ScrobbleInfo>
 
     @GET("?method=user.getinfo&format=json")
     fun userInfo(@Query("username") username: String, @Query("api_key") apiKey: String): Call<UserInfo>

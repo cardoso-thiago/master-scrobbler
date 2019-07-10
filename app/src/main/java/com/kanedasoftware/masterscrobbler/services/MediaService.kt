@@ -43,13 +43,14 @@ class MediaService : NotificationListenerService(),
     private var toScrobble: ScrobbleBean? = null
     private var isOnline = false
     private var finalDuration = 0L
+    private var finalAlbum = ""
     private var totalSeconds = 600L
 
     private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
         override fun onFinish() {
             Utils.logDebug("Finish timer. Duration: ${playtime + playtimeHolder}", applicationContext)
             //Faz scrobble do que estiver pendente
-            scrobblePendingAsync(playtime.plus(playtimeHolder), finalDuration)
+            scrobblePendingAsync(playtime.plus(playtimeHolder), finalDuration, finalAlbum)
             playtime = 0L
             playtimeHolder = 0L
         }
@@ -165,6 +166,7 @@ class MediaService : NotificationListenerService(),
             val artist = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
             val track = mediaMetadata.getString(MediaMetadata.METADATA_KEY_TITLE)
             val duration = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
+            val album = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM)
 
             if (playbackState == PlaybackState.STATE_PLAYING) {
                 if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2))) {
@@ -174,6 +176,7 @@ class MediaService : NotificationListenerService(),
 
                     Utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState", applicationContext)
                     finalDuration = duration
+                    finalAlbum = album
                     metadataArtist = artist
                     metadataTrack = track
 
@@ -206,12 +209,16 @@ class MediaService : NotificationListenerService(),
                         toScrobble = scrobbleBean
                     }
                 } else {
-                    Utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata, mas será atualizada a duração da música.", applicationContext)
+                    Utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata, mas será atualizada a duração da música e o álbum.", applicationContext)
                     if (finalDuration != duration) {
                         finalDuration = duration
                         Utils.log("Duração Atualizada - Em milisegundos: $duration - " +
                                 "Em segundos: ${TimeUnit.MILLISECONDS.toSeconds(duration)} - " +
                                 "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(duration)}", applicationContext)
+                    }
+                    if (finalAlbum != album) {
+                        Utils.log("Album atualizado de $finalAlbum para $album", applicationContext)
+                        finalAlbum = album
                     }
                 }
             }
@@ -396,7 +403,7 @@ class MediaService : NotificationListenerService(),
         LastFmInitializer().lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey!!).execute()
     }
 
-    private fun scrobblePendingAsync(playtimeHolder: Long, finalDuration: Long) {
+    private fun scrobblePendingAsync(playtimeHolder: Long, finalDuration: Long, finalAlbum: String) {
         Utils.log("ScrobblePendingAsync ${toScrobble?.artist} - ${toScrobble?.track}", applicationContext)
         val scrobbleBean = toScrobble
         Utils.logDebug("Vai zerar o toScrobble", applicationContext)
@@ -404,6 +411,7 @@ class MediaService : NotificationListenerService(),
         if (scrobbleBean != null) {
             scrobbleBean.playtime = scrobbleBean.playtime + playtimeHolder
             scrobbleBean.duration = finalDuration
+            scrobbleBean.album = finalAlbum
             doAsync {
                 scrobble(scrobbleBean)
             }
@@ -425,7 +433,9 @@ class MediaService : NotificationListenerService(),
                     val sig = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
                     //Tenta capturar qualquer exceção, caso a conexão caia durante o processo de scrobble e adiciona o scrobble pro cache.
                     try {
-                        val response = LastFmInitializer().lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey, timestamp).execute()
+                        val response = LastFmInitializer().lastFmService().
+                                scrobble(scrobbleBean.artist, scrobbleBean.track, scrobbleBean.album, Constants.API_KEY, sig, sessionKey, timestamp).
+                                execute()
                         if (response.isSuccessful) {
                             Utils.log("Scrobbeled: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
                         } else {
