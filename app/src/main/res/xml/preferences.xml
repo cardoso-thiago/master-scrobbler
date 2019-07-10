@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.v7.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <android.support.v7.preference.SwitchPreferenceCompat
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <SwitchPreferenceCompat
         android:defaultValue="false"
         android:key="debug_mode"
         android:summary="Enable debug mode to save log to file"
         android:title="Debug Mode" />
 
-    <android.support.v14.preference.MultiSelectListPreference
+    <MultiSelectListPreference
         android:dialogTitle="Apps to Scrobble"
         android:key="apps_to_scrobble"
         android:summary="Select the apps to scrobble"
         android:title="Apps to Scrobble" />
 
-</android.support.v7.preference.PreferenceScreen>
+</PreferenceScreen>

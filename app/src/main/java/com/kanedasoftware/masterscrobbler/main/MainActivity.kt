@@ -5,10 +5,14 @@ import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.support.design.widget.Snackbar
+import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.AdapterView
 import android.widget.ImageView
+import android.widget.Spinner
 import android.widget.TextView
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.picasso.CircleTransform
@@ -50,6 +54,33 @@ class MainActivity : AppCompatActivity() {
         val username = findViewById<TextView>(R.id.username)
         val info = findViewById<TextView>(R.id.info)
 
+        val artistsAlbunsSpinner = findViewById<Spinner>(R.id.top_artists_albuns)
+        artistsAlbunsSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                //Do nothing
+            }
+
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val textView = parent?.getChildAt(0) as TextView
+                textView.textSize = 22F
+                textView.setTextColor(ContextCompat.getColor(applicationContext, R.color.dark_gray))
+            }
+        }
+
+        val indicatorSpinner = findViewById<Spinner>(R.id.indicator)
+        indicatorSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                //Do nothing
+            }
+
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val textView = parent?.getChildAt(0) as TextView
+                textView.textSize = 15F
+                textView.setTextColor(ContextCompat.getColor(applicationContext, R.color.gray))
+            }
+
+        }
+
         doAsync {
             //TODO pegar usuário logado
             val response = LastFmInitializer().lastFmService().userInfo("brownstein666", Constants.API_KEY).execute()
@@ -61,7 +92,7 @@ class MainActivity : AppCompatActivity() {
                 uiThread {
                     Picasso.get().load(profileUrl).transform(CircleTransform()).into(profile)
                     username.text = name
-                    if(registered != null){
+                    if (registered != null) {
                         info.text = "$realName • scrobbling since ${Utils.getDateTimeFromEpoch(registered)}"
                     } else {
                         info.text = realName
