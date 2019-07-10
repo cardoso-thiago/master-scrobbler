@@ -10,6 +10,7 @@ class ScrobbleBean(var artist: String, var track: String, var postTime: Long, va
     var id: Long = 0
     var mbid = ""
     var image = ""
+    var album = ""
     var playtime: Long = 0
     var validated:Boolean = false
     var validationError:Boolean = false
