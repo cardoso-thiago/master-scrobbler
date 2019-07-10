@@ -429,7 +429,7 @@ class MediaService : NotificationListenerService(),
                 if (isOnline && scrobbleBean.validated) {
                     val sessionKey = preferences?.getString("sessionKey", "")
                     val timestamp = (scrobbleBean.postTime.div(1000)).toString()
-                    val paramsScrobble = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey!!, "timestamp" to timestamp)
+                    val paramsScrobble = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "album" to scrobbleBean.album, "sk" to sessionKey!!, "timestamp" to timestamp)
                     val sig = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
                     //Tenta capturar qualquer exceção, caso a conexão caia durante o processo de scrobble e adiciona o scrobble pro cache.
                     try {
