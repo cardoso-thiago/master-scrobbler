@@ -146,7 +146,7 @@ class MediaService : NotificationListenerService(),
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         Utils.log("Preference changed: $key", applicationContext)
-        if(key == "apps_to_scrobble"){
+        if (key == "apps_to_scrobble") {
             createMediaSessionManager()
         }
     }
@@ -240,7 +240,7 @@ class MediaService : NotificationListenerService(),
         val activeMediaController = controllers?.firstOrNull()
         val entries = preferences?.getStringSet("apps_to_scrobble", HashSet<String>())
         if (entries != null) {
-            if(entries.size > 0) {
+            if (entries.size > 0) {
                 if (entries.contains(activeMediaController?.packageName)) {
                     activeMediaController?.let { mediaController ->
                         registerCallback(mediaController)
@@ -279,14 +279,23 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun allValidations(scrobbleBean: ScrobbleBean): ScrobbleBean? {
-        val scrobbleBeanValidationBean = validateTrack(scrobbleBean)
-        if (scrobbleBeanValidationBean != null) {
-            if (scrobbleBeanValidationBean.duration == 0L) {
-                Utils.log("Não conseguiu obter a duração no metadata, vai tentar obter no Last.fm", applicationContext)
-                scrobbleBeanValidationBean.duration = getFullTrackInfo(scrobbleBeanValidationBean)
+        return if (isOnline) {
+            //Caso caia a conexão exatamente durante o processo de validação, tenta capturar a exceção e devolve o bean original
+            try {
+                val scrobbleBeanValidationBean = validateTrack(scrobbleBean)
+                if (scrobbleBeanValidationBean != null) {
+                    if (scrobbleBeanValidationBean.duration == 0L) {
+                        Utils.log("Não conseguiu obter a duração no metadata, vai tentar obter no Last.fm", applicationContext)
+                        scrobbleBeanValidationBean.duration = getFullTrackInfo(scrobbleBeanValidationBean)
+                    }
+                }
+                scrobbleBeanValidationBean
+            } catch (t: Throwable) {
+                scrobbleBean
             }
+        } else {
+            scrobbleBean
         }
-        return scrobbleBeanValidationBean
     }
 
     private fun validateTrack(scrobbleBean: ScrobbleBean): ScrobbleBean? {
@@ -414,11 +423,16 @@ class MediaService : NotificationListenerService(),
                     val timestamp = (scrobbleBean.postTime.div(1000)).toString()
                     val paramsScrobble = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey!!, "timestamp" to timestamp)
                     val sig = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
-                    val response = LastFmInitializer().lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey, timestamp).execute()
-                    if (response.isSuccessful) {
-                        Utils.log("Scrobbeled: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
-                    } else {
-                        Utils.logError("Erro ao fazer o scrobble, adiciona ao cache para tentar novamente depois: ${response.code()}", applicationContext)
+                    //Tenta capturar qualquer exceção, caso a conexão caia durante o processo de scrobble e adiciona o scrobble pro cache.
+                    try {
+                        val response = LastFmInitializer().lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey, timestamp).execute()
+                        if (response.isSuccessful) {
+                            Utils.log("Scrobbeled: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
+                        } else {
+                            Utils.logError("Erro ao fazer o scrobble, adiciona ao cache para tentar novamente depois: ${response.code()}", applicationContext)
+                            cacheScrobble(scrobbleBean)
+                        }
+                    } catch (t: Throwable) {
                         cacheScrobble(scrobbleBean)
                     }
                 } else {
@@ -470,27 +484,31 @@ class MediaService : NotificationListenerService(),
 
     private fun validateAndScrobblePending() {
         Utils.log("Scrobbling pending cache", applicationContext)
-        val scrobbleDao = ScrobbleDb.getInstance(applicationContext).scrobbleDao()
-        val scrobbles = scrobbleDao.getAll()
-        for (scrobbleBean in scrobbles) {
-            if (scrobbleBean.validated) {
-                Utils.log("Scrobble já validado, só registra no Last.FM: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
-                doAsync {
-                    scrobble(scrobbleBean)
-                }
-            } else {
-                doAsync {
-                    Utils.log("Vai fazer a validação e em seguida o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
-                    val scrobbleValidationBean = allValidations(scrobbleBean)
-                    if (scrobbleValidationBean != null) {
-                        Utils.log("Música validada ${scrobbleBean.artist} - ${scrobbleBean.track}. Vai encaminhar pro scrobble.", applicationContext)
-                        scrobble(scrobbleValidationBean)
-                    } else {
-                        Utils.log("Não foi possível validar a música, não será feito o scrobble.", applicationContext)
+        if (isOnline) {
+            val scrobbleDao = ScrobbleDb.getInstance(applicationContext).scrobbleDao()
+            val scrobbles = scrobbleDao.getAll()
+            for (scrobbleBean in scrobbles) {
+                if (scrobbleBean.validated) {
+                    Utils.log("Scrobble já validado, só registra no Last.FM: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
+                    doAsync {
+                        scrobble(scrobbleBean)
+                    }
+                } else {
+                    doAsync {
+                        Utils.log("Vai fazer a validação e em seguida o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
+                        val scrobbleValidationBean = allValidations(scrobbleBean)
+                        if (scrobbleValidationBean != null) {
+                            Utils.log("Música validada ${scrobbleBean.artist} - ${scrobbleBean.track}. Vai encaminhar pro scrobble.", applicationContext)
+                            scrobble(scrobbleValidationBean)
+                        } else {
+                            Utils.log("Não foi possível validar a música, não será feito o scrobble.", applicationContext)
+                        }
                     }
                 }
+                scrobbleDao.delete(scrobbleBean)
             }
-            scrobbleDao.delete(scrobbleBean)
+        } else {
+            Utils.log("Não vai sincronizar o cache, não está online", applicationContext)
         }
     }
 }
