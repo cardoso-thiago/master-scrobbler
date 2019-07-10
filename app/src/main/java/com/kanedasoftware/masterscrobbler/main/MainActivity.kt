@@ -61,9 +61,12 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val textView = parent?.getChildAt(0) as TextView
-                textView.textSize = 22F
-                textView.setTextColor(ContextCompat.getColor(applicationContext, R.color.dark_gray))
+                val text = parent?.getChildAt(0)
+                if(text != null) {
+                    val textView = text as TextView
+                    textView.textSize = 22F
+                    textView.setTextColor(ContextCompat.getColor(applicationContext, R.color.dark_gray))
+                }
             }
         }
 
@@ -74,11 +77,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val textView = parent?.getChildAt(0) as TextView
-                textView.textSize = 15F
-                textView.setTextColor(ContextCompat.getColor(applicationContext, R.color.gray))
+                val text = parent?.getChildAt(0)
+                if(text != null) {
+                    val textView = text as TextView
+                    textView.textSize = 15F
+                    textView.setTextColor(ContextCompat.getColor(applicationContext, R.color.gray))
+                }
             }
-
         }
 
         doAsync {

@@ -469,7 +469,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun validateAndScrobblePending() {
-        Utils.log("Scrobbling pending", applicationContext)
+        Utils.log("Scrobbling pending cache", applicationContext)
         val scrobbleDao = ScrobbleDb.getInstance(applicationContext).scrobbleDao()
         val scrobbles = scrobbleDao.getAll()
         for (scrobbleBean in scrobbles) {
@@ -483,6 +483,7 @@ class MediaService : NotificationListenerService(),
                     Utils.log("Vai fazer a validação e em seguida o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
                     val scrobbleValidationBean = allValidations(scrobbleBean)
                     if (scrobbleValidationBean != null) {
+                        Utils.log("Música validada ${scrobbleBean.artist} - ${scrobbleBean.track}. Vai encaminhar pro scrobble.", applicationContext)
                         scrobble(scrobbleValidationBean)
                     } else {
                         Utils.log("Não foi possível validar a música, não será feito o scrobble.", applicationContext)
