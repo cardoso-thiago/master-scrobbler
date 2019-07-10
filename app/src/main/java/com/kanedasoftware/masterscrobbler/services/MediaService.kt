@@ -26,7 +26,9 @@ import com.kanedasoftware.masterscrobbler.ws.LastFmInitializer
 import org.jetbrains.anko.doAsync
 import java.util.concurrent.TimeUnit
 
-class MediaService : NotificationListenerService(), MediaSessionManager.OnActiveSessionsChangedListener {
+class MediaService : NotificationListenerService(),
+        MediaSessionManager.OnActiveSessionsChangedListener,
+        SharedPreferences.OnSharedPreferenceChangeListener {
 
     private var mediaController: MediaController? = null
     private lateinit var mediaControllerCallback: MediaController.Callback
@@ -45,6 +47,7 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
 
     private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
         override fun onFinish() {
+            Utils.logDebug("Finish timer. Duration: ${playtime + playtimeHolder}", applicationContext)
             //Faz scrobble do que estiver pendente
             scrobblePendingAsync(playtime.plus(playtimeHolder), finalDuration)
             playtime = 0L
@@ -66,18 +69,15 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
 
     override fun onCreate() {
         super.onCreate()
-        this.preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        defaultSharedPreferences.registerOnSharedPreferenceChangeListener(this)
+        this.preferences = defaultSharedPreferences
 
         observeConnection()
         createNotificationChannel()
         createNotification()
         createCallback()
-
-        val mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
-        val componentName = ComponentName(this, this.javaClass)
-        mediaSessionManager.addOnActiveSessionsChangedListener(this, componentName)
-        //Ativa o listener para o caso de já ter uma sessão ativa
-        onActiveSessionsChanged(mediaSessionManager.getActiveSessions(componentName))
+        createMediaSessionManager()
     }
 
     override fun onDestroy() {
@@ -144,6 +144,22 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
         }
     }
 
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        Utils.log("Preference changed: $key", applicationContext)
+        if(key == "apps_to_scrobble"){
+            createMediaSessionManager()
+        }
+    }
+
+    private fun createMediaSessionManager() {
+        //Ativa o listener para o caso de já ter uma sessão ativa
+        val mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
+        val componentName = ComponentName(this, this.javaClass)
+        mediaSessionManager.removeOnActiveSessionsChangedListener(this)
+        mediaSessionManager.addOnActiveSessionsChangedListener(this, componentName)
+        onActiveSessionsChanged(mediaSessionManager.getActiveSessions(componentName))
+    }
+
     private fun handleMetadataChange(metadata: MediaMetadata?) {
         metadata?.let { mediaMetadata ->
             val artist = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
@@ -153,6 +169,7 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
             if (playbackState == PlaybackState.STATE_PLAYING) {
                 if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2))) {
                     timer.onFinish()
+                    Utils.log("Duração até o momento $playtimeHolder", applicationContext)
                     timer.start()
 
                     Utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState", applicationContext)
@@ -221,11 +238,18 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
         }
 
         val activeMediaController = controllers?.firstOrNull()
-        //TODO pegar todos os apps de midia das configurações e verificar aqui pra interceptar apenas essas notificações
-        //TODO 2 verificar possibilidade de só receber notificações de apps selecionados (IntentFilter?)
-        if (activeMediaController?.packageName.equals("com.google.android.music") || activeMediaController?.packageName.equals("com.google.android.apps.youtube.music")) {
-            activeMediaController?.let { mediaController ->
-                registerCallback(mediaController)
+        val entries = preferences?.getStringSet("apps_to_scrobble", HashSet<String>())
+        if (entries != null) {
+            if(entries.size > 0) {
+                if (entries.contains(activeMediaController?.packageName)) {
+                    activeMediaController?.let { mediaController ->
+                        registerCallback(mediaController)
+                    }
+                } else {
+                    Utils.log("Nenhum app ativo para scrobble.", applicationContext)
+                }
+            } else {
+                Utils.log("Nenhum app selecionado para scrobble.", applicationContext)
             }
         }
     }
@@ -412,14 +436,18 @@ class MediaService : NotificationListenerService(), MediaSessionManager.OnActive
     }
 
     private fun pauseTimer() {
+        Utils.logDebug("Pause timer. Duração até aqui: ${playtime + playtimeHolder}", applicationContext)
         timer.cancel()
         paused = true
     }
 
     private fun resumeTimer() {
+        Utils.logDebug("Resume timer", applicationContext)
         if (paused) {
+            Utils.logDebug("Resumed timer", applicationContext)
             playtimeHolder += playtime
             paused = false
+            Utils.log("Duração até o momento $playtimeHolder", applicationContext)
             timer.start()
         }
     }

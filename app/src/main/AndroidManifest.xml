@@ -17,16 +17,16 @@
         android:usesCleartextTraffic="true">
 
         <activity
-            android:name=".SettingsActivity"
+            android:name="com.kanedasoftware.masterscrobbler.main.SettingsActivity"
             android:label="Settings"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="com.kanedasoftware.masterscrobbler.main.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
+                android:value="com.kanedasoftware.masterscrobbler.main.MainActivity" />
         </activity>
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.kanedasoftware.masterscrobbler.main.MainActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>

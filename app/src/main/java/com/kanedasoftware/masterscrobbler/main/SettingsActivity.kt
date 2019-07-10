@@ -1,4 +1,4 @@
-package com.kanedasoftware.masterscrobbler
+package com.kanedasoftware.masterscrobbler.main
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
