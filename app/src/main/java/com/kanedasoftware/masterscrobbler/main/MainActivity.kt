@@ -10,10 +10,7 @@ import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.AdapterView
-import android.widget.ImageView
-import android.widget.Spinner
-import android.widget.TextView
+import android.widget.*
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.picasso.CircleTransform
 import com.kanedasoftware.masterscrobbler.services.MediaService
@@ -24,9 +21,9 @@ import com.squareup.picasso.Picasso
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
-import android.widget.GridView
 import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
-
+import com.kanedasoftware.masterscrobbler.enums.EnumArtistsAlbums
+import com.kanedasoftware.masterscrobbler.enums.EnumPeriod
 
 class MainActivity : AppCompatActivity() {
 
@@ -52,58 +49,67 @@ class MainActivity : AppCompatActivity() {
         }
 
         getSessionKey()
+        getUserInfo()
+        getTopAlbums(EnumPeriod.WEEK)
 
+        val artistsAlbumsSpinner = findViewById<Spinner>(R.id.top_artists_albuns)
+        val artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
+        artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+        artistsAlbumsSpinner.adapter = artistsAlbumsAdapter
+        artistsAlbumsSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                //Do nothing
+            }
+
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            }
+        }
+
+        val periodSpinner = findViewById<Spinner>(R.id.period)
+        val periodAdapter = ArrayAdapter<EnumPeriod>(this, R.layout.spinner_item_period, EnumPeriod.values())
+        periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+        periodSpinner.adapter = periodAdapter
+        periodSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                //Do nothing
+            }
+
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val period = parent?.getItemAtPosition(position) as EnumPeriod
+                getTopAlbums(period)
+            }
+        }
+    }
+
+    private fun getTopAlbums(period: EnumPeriod) {
+        doAsync {
+            //TODO pegar o usuário logado
+            //TODO tratar conexão ativa e/ou try/catch
+            val response = LastFmInitializer().lastFmService().topAlbums("brownstein666",
+                    period.id, Constants.API_KEY).execute()
+            if (response.isSuccessful) {
+                uiThread {
+                    val albums = response.body()?.topalbums?.album
+                    val gv = findViewById<GridView>(R.id.grid_view)
+                    val list = ArrayList<String>()
+                    if (albums != null) {
+                        for (album in albums) {
+                            list.add(album.image.last().text)
+                        }
+                    }
+                    gv.adapter = GridViewTopAdapter(applicationContext, list)
+                }
+            }
+        }
+    }
+
+    private fun getUserInfo() {
         val profile = findViewById<ImageView>(R.id.profile)
         val username = findViewById<TextView>(R.id.username)
         val info = findViewById<TextView>(R.id.info)
-
-        val artistsAlbunsSpinner = findViewById<Spinner>(R.id.top_artists_albuns)
-        artistsAlbunsSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                //Do nothing
-            }
-
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val text = parent?.getChildAt(0)
-                if(text != null) {
-                    val textView = text as TextView
-                    textView.textSize = 22F
-                    textView.setTextColor(ContextCompat.getColor(applicationContext, R.color.dark_gray))
-                }
-            }
-        }
-
-        val indicatorSpinner = findViewById<Spinner>(R.id.indicator)
-        indicatorSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                //Do nothing
-            }
-
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val text = parent?.getChildAt(0)
-                if(text != null) {
-                    val textView = text as TextView
-                    textView.textSize = 15F
-                    textView.setTextColor(ContextCompat.getColor(applicationContext, R.color.gray))
-                }
-            }
-        }
-
-        val gv = findViewById<GridView>(R.id.grid_view)
-        val list = ArrayList<String>()
-        list.add("https:\\/\\/lastfm-img2.akamaized.net\\/i\\/u\\/300x300\\/542cbcf35d994dc0cd114e6822348daa.png")
-        list.add("https:\\/\\/lastfm-img2.akamaized.net\\/i\\/u\\/300x300\\/cce2c543e73b4673909a74a5449c6d3a.jpg")
-        list.add("https:\\/\\/lastfm-img2.akamaized.net\\/i\\/u\\/300x300\\/509a00756d5997721dc13f1578339f04.png")
-        list.add("https:\\/\\/lastfm-img2.akamaized.net\\/i\\/u\\/300x300\\/799e7bfa1b1cd7cbe6fba68c236860e3.jpg")
-        list.add("https:\\/\\/lastfm-img2.akamaized.net\\/i\\/u\\/300x300\\/a68127c55ddd63a12217c13c8d73e6e4.jpg")
-        list.add("https:\\/\\/lastfm-img2.akamaized.net\\/i\\/u\\/300x300\\/3f80aa945206081e9eee9d6272871f28.jpg")
-        list.add("https:\\/\\/lastfm-img2.akamaized.net\\/i\\/u\\/300x300\\/f8bebd26fb3147afa62e82cfdc73a1df.png")
-        list.add("https:\\/\\/lastfm-img2.akamaized.net\\/i\\/u\\/300x300\\/c0efecef795f4b95bb8bb134da2ff998.jpg")
-        list.add("https:\\/\\/lastfm-img2.akamaized.net\\/i\\/u\\/300x300\\/db078edad3374039a3e63e8b3060cfe8.jpg")
-        gv.adapter = GridViewTopAdapter(this, list)
-
         doAsync {
             //TODO pegar usuário logado
+            //TODO tratar conexão ativa e/ou try/catch
             val response = LastFmInitializer().lastFmService().userInfo("brownstein666", Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val profileUrl = response.body()?.user?.image?.last()?.text

@@ -24,9 +24,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
+        android:textColor="@color/dark_gray"
         android:textSize="25sp"
         android:textStyle="bold"
-        android:textColor="@color/dark_gray"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/profile" />
 
@@ -35,8 +35,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:textSize="12sp"
         android:textColor="@color/gray"
+        android:textSize="12sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/username" />
 
@@ -44,34 +44,32 @@
         android:id="@+id/top_artists_albuns"
         android:layout_width="200dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
-        android:layout_marginStart="5dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/info"
-        android:entries="@array/artists_albuns_array"/>
+        app:layout_constraintTop_toBottomOf="@+id/info" />
 
     <Spinner
-        android:id="@+id/indicator"
+        android:id="@+id/period"
         android:layout_width="170dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="5dp"
+        android:layout_marginTop="20dp"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/info"
-        android:entries="@array/indicator_array" />
+        app:layout_constraintTop_toBottomOf="@+id/info" />
 
-    <GridView xmlns:android="http://schemas.android.com/apk/res/android"
+    <GridView
         android:id="@+id/grid_view"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:listSelector="@null"
         android:numColumns="3"
         android:scrollbarStyle="insideOverlay"
         android:scrollbars="none"
-        android:listSelector="@null"
-        app:layout_constraintTop_toBottomOf="@+id/top_artists_albuns"
-        android:layout_marginTop="10dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        />
+        app:layout_constraintEnd_toEndOf="@+id/top_artists_albuns"
+        app:layout_constraintStart_toEndOf="@+id/top_artists_albuns"
+        app:layout_constraintTop_toBottomOf="@+id/period" />
 
 </android.support.constraint.ConstraintLayout>
