@@ -1,18 +1,4 @@
 <resources>
     <string name="app_name">Master Scrobbler</string>
     <string name="action_settings">Settings</string>
-
-    <string-array name="artists_albuns_array">
-        <item>Top Artists</item>
-        <item>Top Albuns</item>
-    </string-array>
-
-    <string-array name="indicator_array">
-        <item>Last 7 days</item>
-        <item>Last 30 days</item>
-        <item>Last 90 days</item>
-        <item>Last 180 days</item>
-        <item>Last 365 days</item>
-        <item>All time</item>
-    </string-array>
 </resources>
