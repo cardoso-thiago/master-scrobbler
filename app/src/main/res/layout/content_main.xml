@@ -60,4 +60,18 @@
         app:layout_constraintTop_toBottomOf="@+id/info"
         android:entries="@array/indicator_array" />
 
+    <GridView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/grid_view"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:numColumns="3"
+        android:scrollbarStyle="insideOverlay"
+        android:scrollbars="none"
+        android:listSelector="@null"
+        app:layout_constraintTop_toBottomOf="@+id/top_artists_albuns"
+        android:layout_marginTop="10dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        />
+
 </android.support.constraint.ConstraintLayout>
