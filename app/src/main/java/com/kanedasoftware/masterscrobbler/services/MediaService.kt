@@ -22,7 +22,7 @@ import com.kanedasoftware.masterscrobbler.db.ScrobbleDb
 import com.kanedasoftware.masterscrobbler.network.ConnectionLiveData
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
-import com.kanedasoftware.masterscrobbler.ws.LastFmInitializer
+import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import org.jetbrains.anko.doAsync
 import java.util.concurrent.TimeUnit
 
@@ -306,7 +306,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun validateTrack(scrobbleBean: ScrobbleBean): ScrobbleBean? {
-        val responseArtist = LastFmInitializer().lastFmService().validateArtist(scrobbleBean.artist, Constants.API_KEY).execute()
+        val responseArtist = RetrofitInitializer().lastFmService().validateArtist(scrobbleBean.artist, Constants.API_KEY).execute()
         if (responseArtist.isSuccessful) {
             val artistList = responseArtist.body()?.results?.artistmatches?.artist
             if (artistList != null) {
@@ -327,7 +327,7 @@ class MediaService : NotificationListenerService(),
             return scrobbleBean
         }
 
-        val responseTrackArtist = LastFmInitializer().lastFmService().validateTrackAndArtist(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY).execute()
+        val responseTrackArtist = RetrofitInitializer().lastFmService().validateTrackAndArtist(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY).execute()
         if (responseTrackArtist.isSuccessful) {
             val artistTrackList = responseTrackArtist.body()?.results?.trackmatches?.track
             if (artistTrackList != null) {
@@ -352,7 +352,7 @@ class MediaService : NotificationListenerService(),
                 return scrobbleBean
             }
 
-            val responseTrack = LastFmInitializer().lastFmService().validateTrack(scrobbleBean.track, Constants.API_KEY).execute()
+            val responseTrack = RetrofitInitializer().lastFmService().validateTrack(scrobbleBean.track, Constants.API_KEY).execute()
             if (responseTrack.isSuccessful) {
                 val trackList = responseTrack.body()?.results?.trackmatches?.track
                 if (trackList != null) {
@@ -381,7 +381,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun getFullTrackInfo(scrobbleBean: ScrobbleBean): Long {
-        val response = LastFmInitializer().lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).execute()
+        val response = RetrofitInitializer().lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).execute()
         return if (response.isSuccessful) {
             val duration = response.body()?.track?.duration
             if (!duration.isNullOrBlank()) {
@@ -400,7 +400,7 @@ class MediaService : NotificationListenerService(),
         val sessionKey = preferences!!.getString("sessionKey", "")
         val params = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey)
         val sig = Utils.getSig(params, Constants.API_UPDATE_NOW_PLAYING)
-        LastFmInitializer().lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey!!).execute()
+        RetrofitInitializer().lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey!!).execute()
     }
 
     private fun scrobblePendingAsync(playtimeHolder: Long, finalDuration: Long, finalAlbum: String) {
@@ -433,7 +433,7 @@ class MediaService : NotificationListenerService(),
                     val sig = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
                     //Tenta capturar qualquer exceção, caso a conexão caia durante o processo de scrobble e adiciona o scrobble pro cache.
                     try {
-                        val response = LastFmInitializer().lastFmService().
+                        val response = RetrofitInitializer().lastFmService().
                                 scrobble(scrobbleBean.artist, scrobbleBean.track, scrobbleBean.album, Constants.API_KEY, sig, sessionKey, timestamp).
                                 execute()
                         if (response.isSuccessful) {

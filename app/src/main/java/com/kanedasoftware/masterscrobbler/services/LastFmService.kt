@@ -41,6 +41,6 @@ interface LastFmService {
                   @Query("api_key") apiKey: String): Call<TopAlbumsInfo>
 
     @GET("?method=user.getTopArtists&limit=9&format=json")
-    fun topArtists(@Query("username") username: String, @Query("period ") period: String,
+    fun topArtists(@Query("username") username: String, @Query("period") period: String,
                   @Query("api_key") apiKey: String): Call<TopArtistsInfo>
 }

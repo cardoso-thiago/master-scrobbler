@@ -5,25 +5,24 @@ import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.support.design.widget.Snackbar
-import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.*
 import com.kanedasoftware.masterscrobbler.R
+import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
+import com.kanedasoftware.masterscrobbler.enums.EnumArtistsAlbums
+import com.kanedasoftware.masterscrobbler.enums.EnumPeriod
 import com.kanedasoftware.masterscrobbler.picasso.CircleTransform
 import com.kanedasoftware.masterscrobbler.services.MediaService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
-import com.kanedasoftware.masterscrobbler.ws.LastFmInitializer
+import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import com.squareup.picasso.Picasso
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
-import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
-import com.kanedasoftware.masterscrobbler.enums.EnumArtistsAlbums
-import com.kanedasoftware.masterscrobbler.enums.EnumPeriod
 
 class MainActivity : AppCompatActivity() {
 
@@ -50,25 +49,28 @@ class MainActivity : AppCompatActivity() {
 
         getSessionKey()
         getUserInfo()
-        getTopAlbums(EnumPeriod.WEEK)
 
         val artistsAlbumsSpinner = findViewById<Spinner>(R.id.top_artists_albuns)
         val artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
         artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
         artistsAlbumsSpinner.adapter = artistsAlbumsAdapter
+
+        val periodSpinner = findViewById<Spinner>(R.id.period)
+        val periodAdapter = ArrayAdapter<EnumPeriod>(this, R.layout.spinner_item_period, EnumPeriod.values())
+        periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+        periodSpinner.adapter = periodAdapter
+
         artistsAlbumsSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {
                 //Do nothing
             }
 
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val artistImage = parent?.getItemAtPosition(position) as EnumArtistsAlbums
+                searchImages(artistImage, periodSpinner.selectedItem as EnumPeriod)
             }
         }
 
-        val periodSpinner = findViewById<Spinner>(R.id.period)
-        val periodAdapter = ArrayAdapter<EnumPeriod>(this, R.layout.spinner_item_period, EnumPeriod.values())
-        periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
-        periodSpinner.adapter = periodAdapter
         periodSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {
                 //Do nothing
@@ -76,7 +78,47 @@ class MainActivity : AppCompatActivity() {
 
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val period = parent?.getItemAtPosition(position) as EnumPeriod
-                getTopAlbums(period)
+                searchImages(artistsAlbumsSpinner.selectedItem as EnumArtistsAlbums, period)
+            }
+        }
+    }
+
+    private fun searchImages(artistAlbum: EnumArtistsAlbums, period: EnumPeriod) {
+        if (artistAlbum == EnumArtistsAlbums.ARTISTS) {
+            getTopArtists(period)
+        } else {
+            getTopAlbums(period)
+        }
+    }
+
+    private fun getTopArtists(period: EnumPeriod) {
+        doAsync {
+            //TODO pegar o usuário logado
+            //TODO tratar conexão ativa e/ou try/catch
+            Utils.log(RetrofitInitializer().lastFmService().topArtists("brownstein666", period.id, Constants.API_KEY).request().url().toString(), applicationContext)
+            val response = RetrofitInitializer().lastFmService().topArtists("brownstein666",
+                    period.id, Constants.API_KEY).execute()
+            if (response.isSuccessful) {
+                val artists = response.body()?.topartists?.artist
+                val list = ArrayList<String>()
+                if (artists != null) {
+                    for (artist in artists) {
+                        Utils.log(RetrofitInitializer().fanArtTvService().getArtistInfo(artist.mbid, Constants.FAN_ART_API_KEY).request().url().toString(), applicationContext)
+                        val responseFanArt = RetrofitInitializer().fanArtTvService().getArtistInfo(artist.mbid, Constants.FAN_ART_API_KEY).execute()
+                        val artistthumb = responseFanArt.body()?.artistthumb
+                        val artistbackground = responseFanArt?.body()?.artistbackground
+                        val hdmusiclogo = responseFanArt?.body()?.hdmusiclogo
+                        when {
+                            artistthumb != null && artistthumb.isNotEmpty() -> artistthumb?.last()?.url?.let { list.add(it) }
+                            artistbackground != null && artistbackground.isNotEmpty() -> artistbackground?.last()?.url?.let { list.add(it) }
+                            else -> hdmusiclogo?.last()?.url?.let { list.add(it) }
+                        }
+                    }
+                }
+                uiThread {
+                    val gv = findViewById<GridView>(R.id.grid_view)
+                    gv.adapter = GridViewTopAdapter(applicationContext, list)
+                }
             }
         }
     }
@@ -85,7 +127,7 @@ class MainActivity : AppCompatActivity() {
         doAsync {
             //TODO pegar o usuário logado
             //TODO tratar conexão ativa e/ou try/catch
-            val response = LastFmInitializer().lastFmService().topAlbums("brownstein666",
+            val response = RetrofitInitializer().lastFmService().topAlbums("brownstein666",
                     period.id, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 uiThread {
@@ -110,7 +152,7 @@ class MainActivity : AppCompatActivity() {
         doAsync {
             //TODO pegar usuário logado
             //TODO tratar conexão ativa e/ou try/catch
-            val response = LastFmInitializer().lastFmService().userInfo("brownstein666", Constants.API_KEY).execute()
+            val response = RetrofitInitializer().lastFmService().userInfo("brownstein666", Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val profileUrl = response.body()?.user?.image?.last()?.text
                 val name = response.body()?.user?.name
@@ -142,7 +184,7 @@ class MainActivity : AppCompatActivity() {
             if (Utils.isConnected(this)) {
                 doAsync {
                     //TODO tratar erro visualmente para o usuário, verificar tratamentos para erros diversos
-                    val response = LastFmInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
+                    val response = RetrofitInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
                             Constants.API_KEY, sig, "auth.getMobileSession").execute()
                     if (!response.isSuccessful) {
                         Utils.logDebug("Logando o erro da obtenção do session key para tentar capturar situações: ${response.code()}", applicationContext)
