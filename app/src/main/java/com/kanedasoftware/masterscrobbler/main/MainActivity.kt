@@ -36,7 +36,17 @@ class MainActivity : AppCompatActivity() {
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show()
         }
+        initService()
+        getSessionKey()
+        getUserInfo()
+        initSpinners()
+    }
+    override fun onRestart() {
+        super.onRestart()
+        initService()
+    }
 
+    private fun initService() {
         if (!Utils.verifyNotificationAccess(this)) {
             Utils.changeNotificationAccess(this)
         } else {
@@ -47,10 +57,26 @@ class MainActivity : AppCompatActivity() {
                 applicationContext?.startService(i)
             }
         }
+    }
 
-        getSessionKey()
-        getUserInfo()
-        initSpinners()
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        return when (item.itemId) {
+            R.id.action_settings -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                startActivity(intent)
+                return true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun initSpinners() {
@@ -196,40 +222,6 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Utils.logError("Conexão necessária para obter o id da sessão do usuário.", applicationContext)
             }
-        }
-    }
-
-    override fun onRestart() {
-        super.onRestart()
-        if (!Utils.verifyNotificationAccess(this)) {
-            Utils.changeNotificationAccess(this)
-        } else {
-            val i = Intent(applicationContext, MediaService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                applicationContext?.startForegroundService(i)
-            } else {
-                applicationContext?.startService(i)
-            }
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        return when (item.itemId) {
-            R.id.action_settings -> {
-                val intent = Intent(this, SettingsActivity::class.java)
-                startActivity(intent)
-                return true
-            }
-            else -> super.onOptionsItemSelected(item)
         }
     }
 }
