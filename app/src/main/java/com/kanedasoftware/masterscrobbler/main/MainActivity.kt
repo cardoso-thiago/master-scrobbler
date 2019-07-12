@@ -1,5 +1,6 @@
 package com.kanedasoftware.masterscrobbler.main
 
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -49,7 +50,10 @@ class MainActivity : AppCompatActivity() {
 
         getSessionKey()
         getUserInfo()
+        initSpinners()
+    }
 
+    private fun initSpinners() {
         val artistsAlbumsSpinner = findViewById<Spinner>(R.id.top_artists_albuns)
         val artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
         artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
@@ -60,12 +64,16 @@ class MainActivity : AppCompatActivity() {
         periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
         periodSpinner.adapter = periodAdapter
 
+        artistsAlbumsSpinner.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("artistsAlbums", 0))
+        periodSpinner.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("period", 0))
+
         artistsAlbumsSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {
                 //Do nothing
             }
 
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("artistsAlbums", position).commit()
                 val artistImage = parent?.getItemAtPosition(position) as EnumArtistsAlbums
                 searchImages(artistImage, periodSpinner.selectedItem as EnumPeriod)
             }
@@ -77,6 +85,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("period", position).commit()
                 val period = parent?.getItemAtPosition(position) as EnumPeriod
                 searchImages(artistsAlbumsSpinner.selectedItem as EnumArtistsAlbums, period)
             }
@@ -103,16 +112,7 @@ class MainActivity : AppCompatActivity() {
                 val list = ArrayList<String>()
                 if (artists != null) {
                     for (artist in artists) {
-                        Utils.log(RetrofitInitializer().fanArtTvService().getArtistInfo(artist.mbid, Constants.FAN_ART_API_KEY).request().url().toString(), applicationContext)
-                        val responseFanArt = RetrofitInitializer().fanArtTvService().getArtistInfo(artist.mbid, Constants.FAN_ART_API_KEY).execute()
-                        val artistthumb = responseFanArt.body()?.artistthumb
-                        val artistbackground = responseFanArt?.body()?.artistbackground
-                        val hdmusiclogo = responseFanArt?.body()?.hdmusiclogo
-                        when {
-                            artistthumb != null && artistthumb.isNotEmpty() -> artistthumb?.last()?.url?.let { list.add(it) }
-                            artistbackground != null && artistbackground.isNotEmpty() -> artistbackground?.last()?.url?.let { list.add(it) }
-                            else -> hdmusiclogo?.last()?.url?.let { list.add(it) }
-                        }
+                        list.add("https://tse2.mm.bing.net/th?q=${artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on")
                     }
                 }
                 uiThread {
