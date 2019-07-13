@@ -25,7 +25,12 @@ internal class GridViewTopAdapter(private val context: Context, imageUrls: Array
         view?.scaleType = CENTER_CROP
         // Get the image URL for the current position.
         val url = getItem(position)
-        Picasso.get().load(url).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).fit().tag(context).into(view)
+        if(url.isBlank()){
+            //TODO melhorar o placeholder, error e imagem inexistente
+            Picasso.get().load(R.drawable.placeholder).fit().tag(context).into(view)
+        } else {
+            Picasso.get().load(url).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).fit().tag(context).into(view)
+        }
         return view
     }
 
