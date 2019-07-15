@@ -40,36 +40,72 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/username" />
 
-    <Spinner
-        android:id="@+id/top_artists_albuns"
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+    <android.support.v4.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:layout_marginTop="16dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/info" />
-
-    <Spinner
-        android:id="@+id/period"
-        android:layout_width="170dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/info" />
+        app:layout_constraintTop_toBottomOf="@+id/info">
 
-    <GridView
-        android:id="@+id/grid_view"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginRight="16dp"
-        android:listSelector="@null"
-        android:numColumns="3"
-        android:scrollbarStyle="insideOverlay"
-        android:scrollbars="none"
-        app:layout_constraintEnd_toEndOf="@+id/top_artists_albuns"
-        app:layout_constraintStart_toEndOf="@+id/top_artists_albuns"
-        app:layout_constraintTop_toBottomOf="@+id/period" />
+        <android.support.constraint.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
+            <Spinner
+                android:id="@+id/top_artists_albuns"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginBottom="16dp"
+                app:layout_constraintBottom_toTopOf="@+id/grid_view"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <Spinner
+                android:id="@+id/period"
+                android:layout_width="170dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="16dp"
+                app:layout_constraintBottom_toTopOf="@+id/grid_view"
+                app:layout_constraintRight_toRightOf="parent" />
+
+            <GridView
+                android:id="@+id/grid_view"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginRight="16dp"
+                android:listSelector="@null"
+                android:numColumns="3"
+                android:scrollbarStyle="insideOverlay"
+                android:scrollbars="none"
+                app:layout_constraintEnd_toEndOf="@+id/top_artists_albuns"
+                app:layout_constraintStart_toEndOf="@+id/top_artists_albuns"
+                app:layout_constraintTop_toBottomOf="@+id/period" />
+
+            <TextView
+                android:id="@+id/text_recent_tracks"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Recent Tracks"
+                android:textColor="@color/dark_gray"
+                android:textSize="22sp"
+                app:layout_constraintStart_toStartOf="@+id/grid_view"
+                app:layout_constraintTop_toBottomOf="@+id/grid_view" />
+
+            <ListView
+                android:id="@+id/list_tracks"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="@+id/text_recent_tracks"
+                app:layout_constraintTop_toBottomOf="@+id/text_recent_tracks" />
+
+        </android.support.constraint.ConstraintLayout>
+    </android.support.v4.widget.NestedScrollView>
 </android.support.constraint.ConstraintLayout>
