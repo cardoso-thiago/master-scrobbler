@@ -13,6 +13,8 @@ import android.view.View
 import android.widget.*
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
+import com.kanedasoftware.masterscrobbler.adapters.ListViewTrackAdapter
+import com.kanedasoftware.masterscrobbler.beans.RecentBean
 import com.kanedasoftware.masterscrobbler.beans.TopBean
 import com.kanedasoftware.masterscrobbler.enums.EnumArtistsAlbums
 import com.kanedasoftware.masterscrobbler.enums.EnumPeriod
@@ -42,6 +44,15 @@ class MainActivity : AppCompatActivity() {
         getSessionKey()
         getUserInfo()
         initSpinners()
+
+        val item1 = RecentBean("https://lastfm-img2.akamaized.net/i/u/34s/a0270bb85ce549649d99dcfaa6375030.png", "Teste1", "Teste2", "Teste3", "1", "0")
+        val item2 = RecentBean("https://lastfm-img2.akamaized.net/i/u/34s/a0270bb85ce549649d99dcfaa6375030.png", "Teste2", "Teste3", "Teste4", "1", "0")
+        val listTracks = findViewById<ListView>(R.id.list_tracks)
+        val list = ArrayList<RecentBean>()
+        list.add(item1)
+        list.add(item2)
+        val listAdapter = ListViewTrackAdapter(this, list)
+        listTracks.adapter = listAdapter
     }
 
     override fun onRestart() {
