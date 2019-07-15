@@ -13,8 +13,10 @@ import android.view.View
 import android.widget.*
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
+import com.kanedasoftware.masterscrobbler.beans.TopBean
 import com.kanedasoftware.masterscrobbler.enums.EnumArtistsAlbums
 import com.kanedasoftware.masterscrobbler.enums.EnumPeriod
+import com.kanedasoftware.masterscrobbler.enums.EnumTopType
 import com.kanedasoftware.masterscrobbler.picasso.CircleTransform
 import com.kanedasoftware.masterscrobbler.services.MediaService
 import com.kanedasoftware.masterscrobbler.utils.Constants
@@ -41,6 +43,7 @@ class MainActivity : AppCompatActivity() {
         getUserInfo()
         initSpinners()
     }
+
     override fun onRestart() {
         super.onRestart()
         initService()
@@ -135,15 +138,18 @@ class MainActivity : AppCompatActivity() {
                     period.id, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val artists = response.body()?.topartists?.artist
-                val list = ArrayList<String>()
+                val list = ArrayList<TopBean>()
                 if (artists != null) {
                     for (artist in artists) {
-                        list.add("https://tse2.mm.bing.net/th?q=${artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on")
+                        val url = "https://tse2.mm.bing.net/th?q=${artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
+                        //TODO pegar o texto "plays" do resources
+                        val topBean = TopBean(url, artist.name, artist.playcount.plus(" plays"))
+                        list.add(topBean)
                     }
                 }
                 uiThread {
                     val gv = findViewById<GridView>(R.id.grid_view)
-                    gv.adapter = GridViewTopAdapter(applicationContext, list)
+                    gv.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ARTIST)
                 }
             }
         }
@@ -156,16 +162,19 @@ class MainActivity : AppCompatActivity() {
             val response = RetrofitInitializer().lastFmService().topAlbums("brownstein666",
                     period.id, Constants.API_KEY).execute()
             if (response.isSuccessful) {
-                uiThread {
-                    val albums = response.body()?.topalbums?.album
-                    val gv = findViewById<GridView>(R.id.grid_view)
-                    val list = ArrayList<String>()
-                    if (albums != null) {
-                        for (album in albums) {
-                            list.add(album.image.last().text)
-                        }
+                val albums = response.body()?.topalbums?.album
+                val list = ArrayList<TopBean>()
+                if (albums != null) {
+                    for (album in albums) {
+                        var topBean = TopBean(album.image.last().text, album.name, album.artist.name)
+                        //TODO pegar o texto "plays" do resources
+                        topBean.text3 = album.playcount.plus(" plays")
+                        list.add(topBean)
                     }
-                    gv.adapter = GridViewTopAdapter(applicationContext, list)
+                }
+                uiThread {
+                    val gv = findViewById<GridView>(R.id.grid_view)
+                    gv.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ALBUM)
                 }
             }
         }
