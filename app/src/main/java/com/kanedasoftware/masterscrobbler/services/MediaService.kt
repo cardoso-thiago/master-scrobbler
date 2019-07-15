@@ -166,7 +166,7 @@ class MediaService : NotificationListenerService(),
             val artist = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
             val track = mediaMetadata.getString(MediaMetadata.METADATA_KEY_TITLE)
             val duration = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
-            val album = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM)
+            var album = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM)
 
             if (playbackState == PlaybackState.STATE_PLAYING) {
                 if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2))) {
@@ -175,8 +175,11 @@ class MediaService : NotificationListenerService(),
                     timer.start()
 
                     Utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState", applicationContext)
-                    finalDuration = duration
+                    if (album == null) {
+                        album = ""
+                    }
                     finalAlbum = album
+                    finalDuration = duration
                     metadataArtist = artist
                     metadataTrack = track
 
@@ -216,9 +219,11 @@ class MediaService : NotificationListenerService(),
                                 "Em segundos: ${TimeUnit.MILLISECONDS.toSeconds(duration)} - " +
                                 "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(duration)}", applicationContext)
                     }
-                    if (finalAlbum != album) {
-                        Utils.log("Album atualizado de $finalAlbum para $album", applicationContext)
-                        finalAlbum = album
+                    if(album != null){
+                        if (finalAlbum != album) {
+                            Utils.log("Album atualizado de $finalAlbum para $album", applicationContext)
+                            finalAlbum = album
+                        }
                     }
                 }
             }
@@ -433,9 +438,7 @@ class MediaService : NotificationListenerService(),
                     val sig = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
                     //Tenta capturar qualquer exceção, caso a conexão caia durante o processo de scrobble e adiciona o scrobble pro cache.
                     try {
-                        val response = RetrofitInitializer().lastFmService().
-                                scrobble(scrobbleBean.artist, scrobbleBean.track, scrobbleBean.album, Constants.API_KEY, sig, sessionKey, timestamp).
-                                execute()
+                        val response = RetrofitInitializer().lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, scrobbleBean.album, Constants.API_KEY, sig, sessionKey, timestamp).execute()
                         if (response.isSuccessful) {
                             Utils.log("Scrobbeled: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
                         } else {
@@ -471,7 +474,7 @@ class MediaService : NotificationListenerService(),
             Utils.logDebug("Resumed timer", applicationContext)
             playtimeHolder += playtime
             paused = false
-            Utils.log("Duração até o momento $playtimeHolder", applicationContext)
+            Utils.log("Execução até o momento $playtimeHolder", applicationContext)
             timer.start()
         }
     }
