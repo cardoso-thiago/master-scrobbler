@@ -45,14 +45,24 @@ class MainActivity : AppCompatActivity() {
         getUserInfo()
         initSpinners()
 
-        val item1 = RecentBean("https://lastfm-img2.akamaized.net/i/u/34s/a0270bb85ce549649d99dcfaa6375030.png", "Teste1", "Teste2", "Teste3", "1", "0")
-        val item2 = RecentBean("https://lastfm-img2.akamaized.net/i/u/34s/a0270bb85ce549649d99dcfaa6375030.png", "Teste2", "Teste3", "Teste4", "1", "0")
-        val listTracks = findViewById<ListView>(R.id.list_tracks)
-        val list = ArrayList<RecentBean>()
-        list.add(item1)
-        list.add(item2)
-        val listAdapter = ListViewTrackAdapter(this, list)
-        listTracks.adapter = listAdapter
+        doAsync {
+            //TODO pegar usuário logado
+            val recentTracksList = ArrayList<RecentBean>()
+            val response = RetrofitInitializer().lastFmService().recentTracks("brownstein666", Constants.API_KEY).execute()
+            if(response.isSuccessful){
+                val tracks = response.body()?.recenttracks?.track
+                if (tracks != null) {
+                    for(track in tracks){
+                        recentTracksList.add(RecentBean(track.image.last().text, track.name, track.album.text, track.date.text, track.loved))
+                    }
+                }
+            }
+            uiThread {
+                val listTracks = findViewById<ListView>(R.id.list_tracks)
+                val listAdapter = ListViewTrackAdapter(applicationContext, recentTracksList)
+                listTracks.adapter = listAdapter
+            }
+        }
     }
 
     override fun onRestart() {

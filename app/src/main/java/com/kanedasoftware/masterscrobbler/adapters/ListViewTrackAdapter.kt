@@ -1,6 +1,8 @@
 package com.kanedasoftware.masterscrobbler.adapters
 
 import android.app.Activity
+import android.content.Context
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
@@ -13,11 +15,11 @@ import org.jetbrains.anko.doAsync
 import java.util.*
 
 
-class ListViewTrackAdapter(val context: Activity, private val beanList: ArrayList<RecentBean>) :
+class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<RecentBean>) :
         ArrayAdapter<RecentBean>(context, R.layout.list_recent_tracks, beanList) {
 
     override fun getView(position: Int, view: View?, parent: ViewGroup): View {
-        val inflater = context.layoutInflater
+        val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val rowView = inflater.inflate(R.layout.list_recent_tracks, null, true)
 
         val albumImage = rowView.findViewById(R.id.item_list_album_image) as SquaredImageView
