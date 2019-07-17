@@ -45,39 +45,7 @@ class MainActivity : AppCompatActivity() {
         getSessionKey()
         getUserInfo()
         initSpinners()
-
-        doAsync {
-            //TODO pegar usuário logado
-            //TODO colocar nos settings quantas músicas vai exibir
-            //TOOD tratar now playing
-            val recentTracksList = ArrayList<RecentBean>()
-            val response = RetrofitInitializer().lastFmService().recentTracks("brownstein666", Constants.API_KEY).execute()
-            if (response.isSuccessful) {
-                val tracks = response.body()?.recenttracks?.track
-                if (tracks != null) {
-                    for (track in tracks) {
-                        val albumImageUrl = track.image.last().text
-                        val name = track.name
-                        val albumName = track.album.text
-                        var timestamp = ""
-                        if (track.date != null) {
-                            timestamp = track.date.text
-                        }
-                        val loved = track.loved
-                        if (track.attr != null) {
-                            Utils.log("NOW PLAYING ${track.attr.nowplaying}", applicationContext)
-                        }
-                        recentTracksList.add(RecentBean(albumImageUrl, name, albumName, timestamp, loved))
-                    }
-                }
-            }
-            uiThread {
-                val listTracks = findViewById<ListView>(R.id.list_tracks)
-                val listAdapter = ListViewTrackAdapter(applicationContext, recentTracksList)
-                listTracks.adapter = listAdapter
-                Utils.setListViewHeightBasedOnItems(listTracks)
-            }
-        }
+        getRecentTracks()
     }
 
     override fun onRestart() {
@@ -118,6 +86,60 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getSessionKey() {
+        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+        var sessionKey = preferences.getString("sessionKey", "")
+
+        //TODO voltar para valiação isBlank depois de tratar o invalid session key
+        if (sessionKey.isNullOrBlank()) {
+            //TODO pegar login e senha do usuário
+            val params = mutableMapOf("password" to "Fennec@147", "username" to "brownstein666")
+            val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
+
+            if (Utils.isConnected(this)) {
+                doAsync {
+                    //TODO tratar erro visualmente para o usuário, verificar tratamentos para erros diversos
+                    val response = RetrofitInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
+                            Constants.API_KEY, sig, "auth.getMobileSession").execute()
+                    if (!response.isSuccessful) {
+                        Utils.logDebug("Logando o erro da obtenção do session key para tentar capturar situações: ${response.code()}", applicationContext)
+                    }
+                    sessionKey = response.body()?.session?.key.toString()
+                    //TODO verificar melhor maneira de armazenar a sessionkey
+                    preferences.edit().putString("sessionKey", sessionKey).apply()
+                }
+            } else {
+                Utils.logError("Conexão necessária para obter o id da sessão do usuário.", applicationContext)
+            }
+        }
+    }
+
+    private fun getUserInfo() {
+        val profile = findViewById<ImageView>(R.id.profile)
+        val username = findViewById<TextView>(R.id.username)
+        val info = findViewById<TextView>(R.id.info)
+        doAsync {
+            //TODO pegar usuário logado
+            //TODO tratar conexão ativa e/ou try/catch
+            val response = RetrofitInitializer().lastFmService().userInfo("brownstein666", Constants.API_KEY).execute()
+            if (response.isSuccessful) {
+                val profileUrl = response.body()?.user?.image?.last()?.text
+                val name = response.body()?.user?.name
+                val realName = response.body()?.user?.realname
+                val registered = response.body()?.user?.registered?.text
+                uiThread {
+                    Picasso.get().load(profileUrl).transform(CircleTransformation()).into(profile)
+                    username.text = name
+                    if (registered != null) {
+                        info.text = applicationContext.getString(R.string.scrobbling_since, realName, Utils.getDateTimeFromEpoch(registered))
+                    } else {
+                        info.text = realName
+                    }
+                }
+            }
+        }
+    }
+
     private fun initSpinners() {
         val artistsAlbumsSpinner = findViewById<Spinner>(R.id.top_artists_albuns)
         val artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
@@ -138,7 +160,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("artistsAlbums", position).commit()
+                getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("artistsAlbums", position).apply()
                 val artistImage = parent?.getItemAtPosition(position) as EnumArtistsAlbums
                 searchImages(artistImage, periodSpinner.selectedItem as EnumPeriod)
             }
@@ -150,9 +172,44 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("period", position).commit()
+                getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("period", position).apply()
                 val period = parent?.getItemAtPosition(position) as EnumPeriod
                 searchImages(artistsAlbumsSpinner.selectedItem as EnumArtistsAlbums, period)
+            }
+        }
+    }
+
+    private fun getRecentTracks() {
+        doAsync {
+            //TODO pegar usuário logado
+            //TODO colocar nos settings quantas músicas vai exibir
+            //TOOD tratar now playing
+            val recentTracksList = ArrayList<RecentBean>()
+            val response = RetrofitInitializer().lastFmService().recentTracks("brownstein666", Constants.API_KEY).execute()
+            if (response.isSuccessful) {
+                val tracks = response.body()?.recenttracks?.track
+                if (tracks != null) {
+                    for (track in tracks) {
+                        val albumImageUrl = track.image.last().text
+                        val name = track.name
+                        val albumName = track.album.text
+                        var timestamp = ""
+                        if (track.date != null) {
+                            timestamp = track.date.text
+                        }
+                        val loved = track.loved
+                        if (track.attr != null) {
+                            Utils.log("NOW PLAYING ${track.attr.nowplaying}", applicationContext)
+                        }
+                        recentTracksList.add(RecentBean(albumImageUrl, name, albumName, timestamp, loved))
+                    }
+                }
+            }
+            uiThread {
+                val listTracks = findViewById<ListView>(R.id.list_tracks)
+                val listAdapter = ListViewTrackAdapter(applicationContext, recentTracksList)
+                listTracks.adapter = listAdapter
+                Utils.setListViewHeightBasedOnItems(listTracks)
             }
         }
     }
@@ -202,7 +259,7 @@ class MainActivity : AppCompatActivity() {
                 val list = ArrayList<TopBean>()
                 if (albums != null) {
                     for (album in albums) {
-                        var topBean = TopBean(album.image.last().text, album.name, album.artist.name)
+                        val topBean = TopBean(album.image.last().text, album.name, album.artist.name)
                         //TODO pegar o texto "plays" do resources
                         topBean.text3 = album.playcount.plus(" plays")
                         list.add(topBean)
@@ -212,60 +269,6 @@ class MainActivity : AppCompatActivity() {
                     val gv = findViewById<WrappedGridView>(R.id.grid_view)
                     gv.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ALBUM)
                 }
-            }
-        }
-    }
-
-    private fun getUserInfo() {
-        val profile = findViewById<ImageView>(R.id.profile)
-        val username = findViewById<TextView>(R.id.username)
-        val info = findViewById<TextView>(R.id.info)
-        doAsync {
-            //TODO pegar usuário logado
-            //TODO tratar conexão ativa e/ou try/catch
-            val response = RetrofitInitializer().lastFmService().userInfo("brownstein666", Constants.API_KEY).execute()
-            if (response.isSuccessful) {
-                val profileUrl = response.body()?.user?.image?.last()?.text
-                val name = response.body()?.user?.name
-                val realName = response.body()?.user?.realname
-                val registered = response.body()?.user?.registered?.text
-                uiThread {
-                    Picasso.get().load(profileUrl).transform(CircleTransformation()).into(profile)
-                    username.text = name
-                    if (registered != null) {
-                        info.text = "$realName • scrobbling since ${Utils.getDateTimeFromEpoch(registered)}"
-                    } else {
-                        info.text = realName
-                    }
-                }
-            }
-        }
-    }
-
-    private fun getSessionKey() {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
-        var sessionKey = preferences.getString("sessionKey", "")
-
-        //TODO voltar para valiação isBlank depois de tratar o invalid session key
-        if (sessionKey.isNullOrBlank()) {
-            //TODO pegar login e senha do usuário
-            val params = mutableMapOf("password" to "Fennec@147", "username" to "brownstein666")
-            val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
-
-            if (Utils.isConnected(this)) {
-                doAsync {
-                    //TODO tratar erro visualmente para o usuário, verificar tratamentos para erros diversos
-                    val response = RetrofitInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
-                            Constants.API_KEY, sig, "auth.getMobileSession").execute()
-                    if (!response.isSuccessful) {
-                        Utils.logDebug("Logando o erro da obtenção do session key para tentar capturar situações: ${response.code()}", applicationContext)
-                    }
-                    sessionKey = response.body()?.session?.key.toString()
-                    //TODO verificar melhor maneira de armazenar a sessionkey
-                    preferences.edit().putString("sessionKey", sessionKey).apply()
-                }
-            } else {
-                Utils.logError("Conexão necessária para obter o id da sessão do usuário.", applicationContext)
             }
         }
     }

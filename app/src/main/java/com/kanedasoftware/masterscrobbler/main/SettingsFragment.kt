@@ -28,8 +28,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val packageManager = context?.packageManager
         playerList = packageManager?.queryIntentActivities(intent,  PackageManager.GET_RESOLVED_FILTER) as List<ResolveInfo>
 
-        var entries: MutableList<String> = mutableListOf()
-        var entryValues: MutableList<String> = mutableListOf()
+        val entries: MutableList<String> = mutableListOf()
+        val entryValues: MutableList<String> = mutableListOf()
 
         for (player in playerList) {
             entries.add(packageManager.getApplicationLabel(player.activityInfo.applicationInfo).toString())
