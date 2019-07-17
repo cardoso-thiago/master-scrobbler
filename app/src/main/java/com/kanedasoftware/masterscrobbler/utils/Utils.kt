@@ -9,6 +9,7 @@ import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationManagerCompat
 import android.support.v7.app.AlertDialog
 import android.support.v7.preference.PreferenceManager
+import android.widget.ListView
 import com.kanedasoftware.masterscrobbler.R
 import org.jetbrains.anko.*
 import java.io.BufferedWriter
@@ -153,6 +154,22 @@ class Utils {
                     buf.close()
                 }
             }
+        }
+
+        fun setListViewHeightBasedOnItems(listView: ListView) {
+            val listAdapter = listView.adapter ?: return
+            val numberOfItems = listAdapter.count
+            var totalItemsHeight = 0
+            for (itemPos in 0 until numberOfItems) {
+                val item = listAdapter.getView(itemPos, null, listView)
+                item.measure(0, 0)
+                totalItemsHeight += item.measuredHeight
+            }
+            val totalDividersHeight = listView.dividerHeight * (numberOfItems - 1)
+            val params = listView.layoutParams
+            params.height = totalItemsHeight + totalDividersHeight
+            listView.layoutParams = params
+            listView.requestLayout()
         }
     }
 }

@@ -8,8 +8,8 @@ import android.widget.BaseAdapter
 import android.widget.TextView
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.TopBean
+import com.kanedasoftware.masterscrobbler.components.SquaredImageView
 import com.kanedasoftware.masterscrobbler.enums.EnumTopType
-import com.kanedasoftware.masterscrobbler.picasso.SquaredImageView
 import com.squareup.picasso.Picasso
 import java.util.*
 

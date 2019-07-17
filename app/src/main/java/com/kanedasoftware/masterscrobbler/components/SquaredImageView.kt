@@ -1,4 +1,4 @@
-package com.kanedasoftware.masterscrobbler.picasso
+package com.kanedasoftware.masterscrobbler.components
 
 import android.content.Context
 import android.util.AttributeSet

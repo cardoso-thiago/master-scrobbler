@@ -16,10 +16,11 @@ import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
 import com.kanedasoftware.masterscrobbler.adapters.ListViewTrackAdapter
 import com.kanedasoftware.masterscrobbler.beans.RecentBean
 import com.kanedasoftware.masterscrobbler.beans.TopBean
+import com.kanedasoftware.masterscrobbler.components.WrappedGridView
 import com.kanedasoftware.masterscrobbler.enums.EnumArtistsAlbums
 import com.kanedasoftware.masterscrobbler.enums.EnumPeriod
 import com.kanedasoftware.masterscrobbler.enums.EnumTopType
-import com.kanedasoftware.masterscrobbler.picasso.CircleTransform
+import com.kanedasoftware.masterscrobbler.picasso.CircleTransformation
 import com.kanedasoftware.masterscrobbler.services.MediaService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
@@ -47,13 +48,26 @@ class MainActivity : AppCompatActivity() {
 
         doAsync {
             //TODO pegar usuário logado
+            //TODO colocar nos settings quantas músicas vai exibir
+            //TOOD tratar now playing
             val recentTracksList = ArrayList<RecentBean>()
             val response = RetrofitInitializer().lastFmService().recentTracks("brownstein666", Constants.API_KEY).execute()
-            if(response.isSuccessful){
+            if (response.isSuccessful) {
                 val tracks = response.body()?.recenttracks?.track
                 if (tracks != null) {
-                    for(track in tracks){
-                        recentTracksList.add(RecentBean(track.image.last().text, track.name, track.album.text, track.date.text, track.loved))
+                    for (track in tracks) {
+                        val albumImageUrl = track.image.last().text
+                        val name = track.name
+                        val albumName = track.album.text
+                        var timestamp = ""
+                        if (track.date != null) {
+                            timestamp = track.date.text
+                        }
+                        val loved = track.loved
+                        if (track.attr != null) {
+                            Utils.log("NOW PLAYING ${track.attr.nowplaying}", applicationContext)
+                        }
+                        recentTracksList.add(RecentBean(albumImageUrl, name, albumName, timestamp, loved))
                     }
                 }
             }
@@ -61,6 +75,7 @@ class MainActivity : AppCompatActivity() {
                 val listTracks = findViewById<ListView>(R.id.list_tracks)
                 val listAdapter = ListViewTrackAdapter(applicationContext, recentTracksList)
                 listTracks.adapter = listAdapter
+                Utils.setListViewHeightBasedOnItems(listTracks)
             }
         }
     }
@@ -169,7 +184,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 uiThread {
-                    val gv = findViewById<GridView>(R.id.grid_view)
+                    val gv = findViewById<WrappedGridView>(R.id.grid_view)
                     gv.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ARTIST)
                 }
             }
@@ -194,7 +209,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 uiThread {
-                    val gv = findViewById<GridView>(R.id.grid_view)
+                    val gv = findViewById<WrappedGridView>(R.id.grid_view)
                     gv.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ALBUM)
                 }
             }
@@ -215,7 +230,7 @@ class MainActivity : AppCompatActivity() {
                 val realName = response.body()?.user?.realname
                 val registered = response.body()?.user?.registered?.text
                 uiThread {
-                    Picasso.get().load(profileUrl).transform(CircleTransform()).into(profile)
+                    Picasso.get().load(profileUrl).transform(CircleTransformation()).into(profile)
                     username.text = name
                     if (registered != null) {
                         info.text = "$realName • scrobbling since ${Utils.getDateTimeFromEpoch(registered)}"
