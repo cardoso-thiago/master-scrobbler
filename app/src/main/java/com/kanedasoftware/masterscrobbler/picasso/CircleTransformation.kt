@@ -3,7 +3,7 @@ package com.kanedasoftware.masterscrobbler.picasso
 import android.graphics.*
 import com.squareup.picasso.Transformation
 
-class CircleTransform : Transformation {
+class CircleTransformation : Transformation {
     override fun transform(source: Bitmap): Bitmap {
         val size = Math.min(source.width, source.height)
 
