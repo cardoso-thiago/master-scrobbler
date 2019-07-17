@@ -28,7 +28,8 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="16dp"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                android:contentDescription="@string/profile_picture" />
 
             <TextView
                 android:id="@+id/username"
@@ -86,7 +87,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Recent Tracks"
+                android:text="@string/recent_tracks"
                 android:textColor="@color/dark_gray"
                 android:textSize="22sp"
                 app:layout_constraintStart_toStartOf="@+id/grid_view"
@@ -100,7 +101,8 @@
                 android:layout_marginTop="10dp"
                 android:layout_marginEnd="10dp"
                 app:layout_constraintStart_toStartOf="@+id/text_recent_tracks"
-                app:layout_constraintTop_toBottomOf="@+id/text_recent_tracks" />
+                app:layout_constraintTop_toBottomOf="@+id/text_recent_tracks"
+                tools:ignore="NestedScrolling" />
         </android.support.constraint.ConstraintLayout>
     </ScrollView>
 </android.support.constraint.ConstraintLayout>

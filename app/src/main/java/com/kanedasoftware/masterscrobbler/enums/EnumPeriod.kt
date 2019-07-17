@@ -1,6 +1,6 @@
 package com.kanedasoftware.masterscrobbler.enums
 
-enum class EnumPeriod(var value: String, var id: String) {
+enum class EnumPeriod(private var value: String, var id: String) {
     WEEK("Last 7 days", "7day"),
     MONTH("Last 30 days", "1month"),
     THREE_MONTH("Last 90 days", "3month"),

@@ -19,11 +19,11 @@ internal class GridViewTopAdapter(private val context: Context, beanList: ArrayL
     private val gridType = type
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View? {
-        var gridViewAndroid: View
+        val gridViewAndroid: View
         val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         if (convertView == null) {
             if (gridType == EnumTopType.ARTIST) {
-                gridViewAndroid = inflater.inflate(R.layout.gridview_artist_layout, null)
+                gridViewAndroid = inflater.inflate(R.layout.gridview_artist_layout, parent, false)
                 val textArtist = gridViewAndroid.findViewById<View>(R.id.gridview_artist_text) as TextView
                 textArtist.text = list[position].text1
 
@@ -36,7 +36,7 @@ internal class GridViewTopAdapter(private val context: Context, beanList: ArrayL
                     Picasso.get().load(url).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).fit().tag(context).into(imageViewAndroid)
                 }
             } else {
-                gridViewAndroid = inflater.inflate(R.layout.gridview_album_layout, null)
+                gridViewAndroid = inflater.inflate(R.layout.gridview_album_layout, parent, false)
                 val textAlbum = gridViewAndroid.findViewById<View>(R.id.gridview_album_text) as TextView
                 textAlbum.text = list[position].text1
 
