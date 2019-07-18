@@ -7,7 +7,7 @@ import android.content.Context
 import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
 import com.kanedasoftware.masterscrobbler.dao.ScrobbleDao
 
-@Database(entities = [ScrobbleBean::class], version = 5)
+@Database(entities = [ScrobbleBean::class], version = 6)
 abstract class ScrobbleDb : RoomDatabase() {
     abstract fun scrobbleDao(): ScrobbleDao
 
