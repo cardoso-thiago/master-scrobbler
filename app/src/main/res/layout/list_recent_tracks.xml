@@ -61,13 +61,13 @@
 
     <io.gresse.hugo.vumeterlibrary.VuMeterView
         android:id="@+id/item_list_equalizer"
-        android:layout_width="25dp"
-        android:layout_height="25dp"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
         android:layout_gravity="center_vertical"
         android:layout_marginEnd="16dp"
         vumeter:vumeter_backgroundColor="@color/gray"
         vumeter:vumeter_blockNumber="3"
-        vumeter:vumeter_blockSpacing="5dp"
+        vumeter:vumeter_blockSpacing="3dp"
         vumeter:vumeter_speed="5"
         vumeter:vumeter_startOff="false" />
 </LinearLayout>
