@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.ConnectivityManager
 import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationManagerCompat
@@ -21,6 +22,7 @@ import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.HashMap
+
 
 const val KEY_PREF_DEBUG_MODE = "debug_mode"
 
@@ -105,13 +107,27 @@ class Utils {
             notificationManager.notify(Constants.NOTIFICATION_ID, notification)
         }
 
+        fun updateNotification(context: Context, title: String, text: String, image: Bitmap?) {
+            val notification = buildNotification(context, title, text, image)
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(Constants.NOTIFICATION_ID, notification)
+        }
+
         fun buildNotification(context: Context, title: String, text: String): Notification? {
-            return NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
+            return buildNotification(context, title, text, null)
+        }
+
+        private fun buildNotification(context: Context, title: String, text: String, image: Bitmap?): Notification? {
+            val notif = NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
                     .setContentTitle(title)
                     .setContentText(text)
                     .setSmallIcon(R.drawable.ic_stat_cassette)
                     .setVibrate(longArrayOf(0L))
-                    .build()
+            if (image != null) {
+                notif.setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle()).setColorized(true)
+                notif.setLargeIcon(image)
+            }
+            return notif.build()
         }
 
         fun isConnected(context: Context): Boolean {

@@ -8,7 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
@@ -23,7 +25,9 @@ import com.kanedasoftware.masterscrobbler.network.ConnectionLiveData
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
+import com.squareup.picasso.Picasso
 import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.uiThread
 import java.util.concurrent.TimeUnit
 
 class MediaService : NotificationListenerService(),
@@ -197,9 +201,26 @@ class MediaService : NotificationListenerService(),
                                 Utils.log("Não conseguiu validar a música, não será realizado o scrobble.", applicationContext)
                             } else {
                                 if (!scrobbleBean.validationError) {
-                                    Utils.updateNotification(applicationContext, "Scrobbling", "${scrobbleBean.artist} - ${scrobbleBean.track}")
-                                    Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble (toScrobble)", applicationContext)
-                                    toScrobble = scrobbleValidationBean
+                                    uiThread {
+                                        val artistImageUrl = "https://tse2.mm.bing.net/th?q=${scrobbleBean.artist} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
+                                        val target = object : com.squareup.picasso.Target {
+                                            override fun onBitmapFailed(e: java.lang.Exception?, errorDrawable: Drawable?) {
+                                                Utils.updateNotification(applicationContext, "Scrobbling", "${scrobbleBean.artist} - ${scrobbleBean.track}")
+                                            }
+
+                                            override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
+                                                //Do nothing
+                                            }
+
+                                            override fun onBitmapLoaded(bitmap: Bitmap?, from: Picasso.LoadedFrom?) {
+                                                Utils.updateNotification(applicationContext, "Scrobbling", "${scrobbleBean.artist} - ${scrobbleBean.track}", bitmap)
+                                            }
+                                        }
+                                        Picasso.get().load(artistImageUrl).into(target)
+
+                                        Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble (toScrobble)", applicationContext)
+                                        toScrobble = scrobbleValidationBean
+                                    }
                                     updateNowPlaying(scrobbleValidationBean)
                                 } else {
                                     Utils.log("Erro de validação, vai armazenar a música  para o próximo scrobble (toScrobble)", applicationContext)
@@ -219,7 +240,7 @@ class MediaService : NotificationListenerService(),
                                 "Em segundos: ${TimeUnit.MILLISECONDS.toSeconds(duration)} - " +
                                 "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(duration)}", applicationContext)
                     }
-                    if(album != null){
+                    if (album != null) {
                         if (finalAlbum != album) {
                             Utils.log("Album atualizado de $finalAlbum para $album", applicationContext)
                             finalAlbum = album
@@ -341,7 +362,6 @@ class MediaService : NotificationListenerService(),
                         if (track.artist != "[unknown]" && track.name != "[unknown]") {
                             scrobbleBean.artist = track.artist
                             scrobbleBean.track = track.name
-                            scrobbleBean.image = track.image[0].text
                             scrobbleBean.mbid = track.mbid
                             scrobbleBean.validated = true
                             Utils.log("Música validada na busca padrão: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
@@ -366,7 +386,6 @@ class MediaService : NotificationListenerService(),
                             if (track.artist != "[unknown]" && track.name != "[unknown]") {
                                 scrobbleBean.artist = track.artist
                                 scrobbleBean.track = track.name
-                                scrobbleBean.image = track.image[0].text
                                 scrobbleBean.mbid = track.mbid
                                 scrobbleBean.validated = true
                                 Utils.log("Música validada na busca somente pelo nome: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
