@@ -186,22 +186,27 @@ class MainActivity : AppCompatActivity() {
             //TOOD tratar now playing
             val recentTracksList = ArrayList<RecentBean>()
             val response = RetrofitInitializer().lastFmService().recentTracks("brownstein666", Constants.API_KEY).execute()
+            Utils.log(RetrofitInitializer().lastFmService().recentTracks("brownstein666", Constants.API_KEY).request().url().toString(), applicationContext)
             if (response.isSuccessful) {
                 val tracks = response.body()?.recenttracks?.track
                 if (tracks != null) {
                     for (track in tracks) {
-                        val albumImageUrl = track.image.last().text
                         val name = track.name
-                        val albumName = track.album.text
-                        var timestamp = ""
-                        if (track.date != null) {
+                        val artist = track.artist.name
+                        var imageUrl: String
+                        var timestamp: String
+                        var loved = "0"
+                        var scrobbling = false
+                        if (track.attr != null && track.attr.nowplaying.toBoolean()) {
+                            imageUrl = "https://tse2.mm.bing.net/th?q=${track.artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
+                            timestamp = "Scrobbling now"
+                            scrobbling = true
+                        } else {
+                            imageUrl = track.image.last().text
                             timestamp = track.date.text
+                            loved = track.loved
                         }
-                        val loved = track.loved
-                        if (track.attr != null) {
-                            Utils.log("NOW PLAYING ${track.attr.nowplaying}", applicationContext)
-                        }
-                        recentTracksList.add(RecentBean(albumImageUrl, name, albumName, timestamp, loved))
+                        recentTracksList.add(RecentBean(imageUrl, name, artist, timestamp, loved, scrobbling))
                     }
                 }
             }
