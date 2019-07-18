@@ -11,6 +11,7 @@ import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.RecentBean
 import com.kanedasoftware.masterscrobbler.components.SquaredImageView
 import com.squareup.picasso.Picasso
+import io.gresse.hugo.vumeterlibrary.VuMeterView
 import java.util.*
 
 internal class ViewHolder {
@@ -19,6 +20,7 @@ internal class ViewHolder {
     var artist: TextView? = null
     var timestamp: TextView? = null
     var icon: ImageView? = null
+    var equalizer: VuMeterView? = null
 }
 
 class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<RecentBean>) :
@@ -36,6 +38,7 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
             viewHolder.artist = rowView.findViewById(R.id.item_list_artist) as TextView
             viewHolder.timestamp = rowView.findViewById(R.id.item_list_timestamp) as TextView
             viewHolder.icon = rowView.findViewById(R.id.item_list_icon) as ImageView
+            viewHolder.equalizer = rowView.findViewById(R.id.item_list_equalizer) as VuMeterView
             rowView.tag = viewHolder
         } else {
             viewHolder = rowView.tag as ViewHolder
@@ -52,12 +55,18 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
             Picasso.get().load(albumImageUrl).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).fit().tag(context).into(viewHolder.image)
         }
 
-        if(beanList[position].loved == "1"){
-            viewHolder.icon?.setImageResource(R.drawable.ic_heart)
-        }
-
-        if(beanList[position].scrobbling){
-            viewHolder.icon?.setImageResource(R.drawable.ic_sound_bars)
+        val icon = viewHolder.icon
+        val equalizer = viewHolder.equalizer
+        when {
+            beanList[position].scrobbling -> icon?.visibility = View.GONE
+            beanList[position].loved -> {
+                equalizer?.visibility = View.GONE
+                icon?.setImageResource(R.drawable.ic_heart)
+            }
+            else -> {
+                equalizer?.visibility = View.GONE
+                icon?.visibility = View.GONE
+            }
         }
         return rowView
     }
