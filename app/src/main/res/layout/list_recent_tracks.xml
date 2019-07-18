@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:vumeter="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal">
@@ -57,4 +58,16 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:layout_marginEnd="16dp" />
+
+    <io.gresse.hugo.vumeterlibrary.VuMeterView
+        android:id="@+id/item_list_equalizer"
+        android:layout_width="25dp"
+        android:layout_height="25dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginEnd="16dp"
+        vumeter:vumeter_backgroundColor="@color/gray"
+        vumeter:vumeter_blockNumber="3"
+        vumeter:vumeter_blockSpacing="5dp"
+        vumeter:vumeter_speed="5"
+        vumeter:vumeter_startOff="false" />
 </LinearLayout>

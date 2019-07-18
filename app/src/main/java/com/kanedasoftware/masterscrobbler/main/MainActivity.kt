@@ -195,7 +195,7 @@ class MainActivity : AppCompatActivity() {
                         val artist = track.artist.name
                         var imageUrl: String
                         var timestamp: String
-                        var loved = "0"
+                        var loved = false
                         var scrobbling = false
                         if (track.attr != null && track.attr.nowplaying.toBoolean()) {
                             imageUrl = "https://tse2.mm.bing.net/th?q=${track.artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
@@ -204,7 +204,7 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             imageUrl = track.image.last().text
                             timestamp = track.date.text
-                            loved = track.loved
+                            loved = track.loved == "1"
                         }
                         recentTracksList.add(RecentBean(imageUrl, name, artist, timestamp, loved, scrobbling))
                     }
