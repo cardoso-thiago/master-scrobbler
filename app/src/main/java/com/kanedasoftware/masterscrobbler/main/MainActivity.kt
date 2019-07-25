@@ -5,11 +5,11 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.*
+import androidx.appcompat.app.AppCompatActivity
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
 import com.kanedasoftware.masterscrobbler.adapters.ListViewTrackAdapter
@@ -36,20 +36,43 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
-        fab.setOnClickListener {
-            getRecentTracks()
+        initService()
+
+        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+        val user: String?
+        user = preferences.getString("user", "")
+
+        if (verifySessionKey()) {
+            getUserInfo(user)
+            initSpinners(user)
+            getRecentTracks(user)
+        } else {
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
         }
 
-        initService()
-        getSessionKey()
-        getUserInfo()
-        initSpinners()
-        getRecentTracks()
+        fab.setOnClickListener {
+            if (verifySessionKey()) {
+                getRecentTracks(user)
+            }
+        }
     }
 
     override fun onRestart() {
         super.onRestart()
         initService()
+        if (!verifySessionKey()) {
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!verifySessionKey()) {
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     private fun initService() {
@@ -66,7 +89,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_main, menu)
         return true
     }
@@ -78,46 +100,29 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
                 return true
             }
+            R.id.action_Logoff -> {
+                PreferenceManager.getDefaultSharedPreferences(this).edit().putString("sessionKey", "").apply()
+                val intent = Intent(this, LoginActivity::class.java)
+                startActivity(intent)
+                return true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
-    private fun getSessionKey() {
+    private fun verifySessionKey(): Boolean {
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)
-        var sessionKey = preferences.getString("sessionKey", "")
-
-        //TODO voltar para valiação isBlank depois de tratar o invalid session key
-        if (sessionKey.isNullOrBlank()) {
-            //TODO pegar login e senha do usuário
-            val params = mutableMapOf("password" to "Fennec@147", "username" to "brownstein666")
-            val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
-
-            if (Utils.isConnected(this)) {
-                doAsync {
-                    //TODO tratar erro visualmente para o usuário, verificar tratamentos para erros diversos
-                    val response = RetrofitInitializer().lastFmSecureService().getMobileSession("Fennec@147", "brownstein666",
-                            Constants.API_KEY, sig, "auth.getMobileSession").execute()
-                    if (!response.isSuccessful) {
-                        Utils.logDebug("Logando o erro da obtenção do session key para tentar capturar situações: ${response.code()}", applicationContext)
-                    }
-                    sessionKey = response.body()?.session?.key.toString()
-                    //TODO verificar melhor maneira de armazenar a sessionkey
-                    preferences.edit().putString("sessionKey", sessionKey).apply()
-                }
-            } else {
-                Utils.logError("Conexão necessária para obter o id da sessão do usuário.", applicationContext)
-            }
-        }
+        val sessionKey = preferences.getString("sessionKey", "")
+        return !sessionKey.isNullOrBlank()
     }
 
-    private fun getUserInfo() {
+    private fun getUserInfo(user: String) {
         val profile = findViewById<ImageView>(R.id.profile)
         val username = findViewById<TextView>(R.id.username)
         val info = findViewById<TextView>(R.id.info)
         doAsync {
-            //TODO pegar usuário logado
             //TODO tratar conexão ativa e/ou try/catch
-            val response = RetrofitInitializer().lastFmService().userInfo("brownstein666", Constants.API_KEY).execute()
+            val response = RetrofitInitializer().lastFmService().userInfo(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val profileUrl = response.body()?.user?.image?.last()?.text
                 val name = response.body()?.user?.name
@@ -136,7 +141,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun initSpinners() {
+    private fun initSpinners(user: String) {
         val artistsAlbumsSpinner = findViewById<Spinner>(R.id.top_artists_albuns)
         val artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
         artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
@@ -158,7 +163,7 @@ class MainActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("artistsAlbums", position).apply()
                 val artistImage = parent?.getItemAtPosition(position) as EnumArtistsAlbums
-                searchImages(artistImage, periodSpinner.selectedItem as EnumPeriod)
+                searchImages(user, artistImage, periodSpinner.selectedItem as EnumPeriod)
             }
         }
 
@@ -170,19 +175,17 @@ class MainActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("period", position).apply()
                 val period = parent?.getItemAtPosition(position) as EnumPeriod
-                searchImages(artistsAlbumsSpinner.selectedItem as EnumArtistsAlbums, period)
+                searchImages(user, artistsAlbumsSpinner.selectedItem as EnumArtistsAlbums, period)
             }
         }
     }
 
-    private fun getRecentTracks() {
+    private fun getRecentTracks(user: String) {
         doAsync {
-            //TODO pegar usuário logado
             //TODO colocar nos settings quantas músicas vai exibir
-            //TOOD tratar now playing
             val recentTracksList = ArrayList<RecentBean>()
-            val response = RetrofitInitializer().lastFmService().recentTracks("brownstein666", Constants.API_KEY).execute()
-            Utils.log(RetrofitInitializer().lastFmService().recentTracks("brownstein666", Constants.API_KEY).request().url().toString(), applicationContext)
+            val response = RetrofitInitializer().lastFmService().recentTracks(user, Constants.API_KEY).execute()
+            Utils.log(RetrofitInitializer().lastFmService().recentTracks(user, Constants.API_KEY).request().url().toString(), applicationContext)
             if (response.isSuccessful) {
                 val tracks = response.body()?.recenttracks?.track
                 if (tracks != null) {
@@ -215,20 +218,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun searchImages(artistAlbum: EnumArtistsAlbums, period: EnumPeriod) {
+    private fun searchImages(user: String, artistAlbum: EnumArtistsAlbums, period: EnumPeriod) {
         if (artistAlbum == EnumArtistsAlbums.ARTISTS) {
-            getTopArtists(period)
+            getTopArtists(user, period)
         } else {
-            getTopAlbums(period)
+            getTopAlbums(user, period)
         }
     }
 
-    private fun getTopArtists(period: EnumPeriod) {
+    private fun getTopArtists(user: String, period: EnumPeriod) {
         doAsync {
-            //TODO pegar o usuário logado
             //TODO tratar conexão ativa e/ou try/catch
-            Utils.log(RetrofitInitializer().lastFmService().topArtists("brownstein666", period.id, Constants.API_KEY).request().url().toString(), applicationContext)
-            val response = RetrofitInitializer().lastFmService().topArtists("brownstein666",
+            Utils.log(RetrofitInitializer().lastFmService().topArtists(user, period.id, Constants.API_KEY).request().url().toString(), applicationContext)
+            val response = RetrofitInitializer().lastFmService().topArtists(user,
                     period.id, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val artists = response.body()?.topartists?.artist
@@ -249,11 +251,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getTopAlbums(period: EnumPeriod) {
+    private fun getTopAlbums(user: String, period: EnumPeriod) {
         doAsync {
-            //TODO pegar o usuário logado
             //TODO tratar conexão ativa e/ou try/catch
-            val response = RetrofitInitializer().lastFmService().topAlbums("brownstein666",
+            val response = RetrofitInitializer().lastFmService().topAlbums(user,
                     period.id, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val albums = response.body()?.topalbums?.album

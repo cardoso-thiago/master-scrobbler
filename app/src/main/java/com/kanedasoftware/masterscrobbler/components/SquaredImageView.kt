@@ -2,7 +2,7 @@ package com.kanedasoftware.masterscrobbler.components
 
 import android.content.Context
 import android.util.AttributeSet
-import android.support.v7.widget.AppCompatImageView
+import androidx.appcompat.widget.AppCompatImageView
 
 class SquaredImageView : AppCompatImageView {
     constructor(context: Context) : super(context)
