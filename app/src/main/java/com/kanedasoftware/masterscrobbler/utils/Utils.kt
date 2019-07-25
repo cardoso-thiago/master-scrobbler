@@ -6,11 +6,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.ConnectivityManager
-import android.support.v4.app.NotificationCompat
-import android.support.v4.app.NotificationManagerCompat
-import android.support.v7.app.AlertDialog
-import android.support.v7.preference.PreferenceManager
 import android.widget.ListView
+import androidx.appcompat.app.AlertDialog
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.preference.PreferenceManager
 import com.kanedasoftware.masterscrobbler.R
 import org.jetbrains.anko.*
 import java.io.BufferedWriter
@@ -124,7 +124,7 @@ class Utils {
                     .setSmallIcon(R.drawable.ic_stat_cassette)
                     .setVibrate(longArrayOf(0L))
             if (image != null) {
-                notif.setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle()).setColorized(true)
+                notif.setStyle(androidx.media.app.NotificationCompat.MediaStyle()).setColorized(true)
                 notif.setLargeIcon(image)
             }
             return notif.build()

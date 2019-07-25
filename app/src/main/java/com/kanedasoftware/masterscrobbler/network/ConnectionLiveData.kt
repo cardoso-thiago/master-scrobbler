@@ -1,7 +1,6 @@
 package com.kanedasoftware.masterscrobbler.network
 
 import android.annotation.TargetApi
-import android.arch.lifecycle.LiveData
 import android.content.Context
 import android.content.Context.CONNECTIVITY_SERVICE
 import android.net.ConnectivityManager
@@ -9,6 +8,7 @@ import android.net.Network
 import android.net.NetworkInfo
 import android.net.NetworkRequest
 import android.os.Build
+import androidx.lifecycle.LiveData
 
 class ConnectionLiveData(context: Context) : LiveData<Boolean>() {
 

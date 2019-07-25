@@ -279,7 +279,7 @@ class MediaService : NotificationListenerService(),
                         registerCallback(mediaController)
                     }
                 } else {
-                    Utils.log("Nenhum app ativo para scrobble.", applicationContext)
+                    Utils.log("Nenhum app ativo para scrobble. App ativo ${activeMediaController?.packageName}", applicationContext)
                 }
             } else {
                 Utils.log("Nenhum app selecionado para scrobble.", applicationContext)

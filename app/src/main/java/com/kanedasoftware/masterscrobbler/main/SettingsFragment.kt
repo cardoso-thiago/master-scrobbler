@@ -6,10 +6,9 @@ import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
-import android.support.v14.preference.MultiSelectListPreference
-import android.support.v7.preference.PreferenceFragmentCompat
+import androidx.preference.MultiSelectListPreference
+import androidx.preference.PreferenceFragmentCompat
 import com.kanedasoftware.masterscrobbler.R
-
 
 class SettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstance: Bundle?, rootKey: String?) {
