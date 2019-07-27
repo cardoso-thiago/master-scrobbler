@@ -31,6 +31,9 @@ import org.jetbrains.anko.uiThread
 
 class MainActivity : AppCompatActivity() {
 
+    var lastArtistsAlbumsSpinner = ""
+    var lastPeriodSpinner = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -117,12 +120,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getUserInfo(user: String) {
+        Utils.log("User Info", applicationContext)
         val profile = findViewById<ImageView>(R.id.profile)
         val username = findViewById<TextView>(R.id.username)
         val info = findViewById<TextView>(R.id.info)
         doAsync {
             //TODO tratar conexão ativa e/ou try/catch
-            val response = RetrofitInitializer().lastFmService().userInfo(user, Constants.API_KEY).execute()
+            val response = RetrofitInitializer(applicationContext).lastFmService().userInfo(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val profileUrl = response.body()?.user?.image?.last()?.text
                 val name = response.body()?.user?.name
@@ -181,11 +185,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getRecentTracks(user: String) {
+        Utils.log("Recent Tracks", applicationContext)
         doAsync {
             //TODO colocar nos settings quantas músicas vai exibir
             val recentTracksList = ArrayList<RecentBean>()
-            val response = RetrofitInitializer().lastFmService().recentTracks(user, Constants.API_KEY).execute()
-            Utils.log(RetrofitInitializer().lastFmService().recentTracks(user, Constants.API_KEY).request().url().toString(), applicationContext)
+            val response = RetrofitInitializer(applicationContext).lastFmService().recentTracks(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val tracks = response.body()?.recenttracks?.track
                 if (tracks != null) {
@@ -219,18 +223,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun searchImages(user: String, artistAlbum: EnumArtistsAlbums, period: EnumPeriod) {
-        if (artistAlbum == EnumArtistsAlbums.ARTISTS) {
-            getTopArtists(user, period)
+        if (artistAlbum.id == lastArtistsAlbumsSpinner && period.id == lastPeriodSpinner) {
+            Utils.log("Não houve mudança, não vai carregar de novo o grid", applicationContext)
         } else {
-            getTopAlbums(user, period)
+            lastArtistsAlbumsSpinner = artistAlbum.id
+            lastPeriodSpinner = period.id
+            if (artistAlbum == EnumArtistsAlbums.ARTISTS) {
+                getTopArtists(user, period)
+            } else {
+                getTopAlbums(user, period)
+            }
         }
     }
 
     private fun getTopArtists(user: String, period: EnumPeriod) {
         doAsync {
             //TODO tratar conexão ativa e/ou try/catch
-            Utils.log(RetrofitInitializer().lastFmService().topArtists(user, period.id, Constants.API_KEY).request().url().toString(), applicationContext)
-            val response = RetrofitInitializer().lastFmService().topArtists(user,
+            Utils.log("Top Artists Grid", applicationContext)
+            val response = RetrofitInitializer(applicationContext).lastFmService().topArtists(user,
                     period.id, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val artists = response.body()?.topartists?.artist
@@ -252,9 +262,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getTopAlbums(user: String, period: EnumPeriod) {
+        Utils.log("Top Albums Grid", applicationContext)
         doAsync {
             //TODO tratar conexão ativa e/ou try/catch
-            val response = RetrofitInitializer().lastFmService().topAlbums(user,
+            val response = RetrofitInitializer(applicationContext).lastFmService().topAlbums(user,
                     period.id, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val albums = response.body()?.topalbums?.album

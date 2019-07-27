@@ -192,7 +192,7 @@ class MediaService : NotificationListenerService(),
 
                     val postTime = System.currentTimeMillis()
                     //Cria novo bean com validação com base na informação atual
-                    val scrobbleBean = ScrobbleBean(artist, track, postTime, duration)
+                    val scrobbleBean = ScrobbleBean(Utils.clearArtist(artist), Utils.clearTrack(track), postTime, duration)
                     //Se não estiver conectado já adiciona para realizar o scrobble
                     if (isOnline) {
                         doAsync {
@@ -241,9 +241,9 @@ class MediaService : NotificationListenerService(),
                                 "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(duration)}", applicationContext)
                     }
                     if (album != null) {
-                        if (finalAlbum != album) {
+                        if (finalAlbum != Utils.clearAlbum(album)) {
                             Utils.log("Album atualizado de $finalAlbum para $album", applicationContext)
-                            finalAlbum = album
+                            finalAlbum = Utils.clearAlbum(album)
                         }
                     }
                 }
@@ -265,9 +265,18 @@ class MediaService : NotificationListenerService(),
                 //Atualiza a notificação para o padrão do serviço
                 createNotification()
             }
+            val playersMap = Utils.getPlayersMap(applicationContext)
+            val packageManager = applicationContext?.packageManager
+            val packagePlayerList = Utils.getPackagePlayerList(packageManager)
+
             for (controller in controllers) {
-                Utils.logDebug(controller.packageName, applicationContext)
+                if (!packagePlayerList.contains(controller.packageName)) {
+                    if (!playersMap.containsKey(controller.packageName)) {
+                        playersMap[controller.packageName] = packageManager?.getApplicationLabel(packageManager.getApplicationInfo(controller.packageName, 0)).toString()
+                    }
+                }
             }
+            Utils.savePlayersMap(applicationContext, playersMap)
         }
 
         val activeMediaController = controllers?.firstOrNull()
@@ -332,7 +341,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun validateTrack(scrobbleBean: ScrobbleBean): ScrobbleBean? {
-        val responseArtist = RetrofitInitializer().lastFmService().validateArtist(scrobbleBean.artist, Constants.API_KEY).execute()
+        val responseArtist = RetrofitInitializer(applicationContext).lastFmService().validateArtist(scrobbleBean.artist, Constants.API_KEY).execute()
         if (responseArtist.isSuccessful) {
             val artistList = responseArtist.body()?.results?.artistmatches?.artist
             if (artistList != null) {
@@ -353,7 +362,7 @@ class MediaService : NotificationListenerService(),
             return scrobbleBean
         }
 
-        val responseTrackArtist = RetrofitInitializer().lastFmService().validateTrackAndArtist(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY).execute()
+        val responseTrackArtist = RetrofitInitializer(applicationContext).lastFmService().validateTrackAndArtist(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY).execute()
         if (responseTrackArtist.isSuccessful) {
             val artistTrackList = responseTrackArtist.body()?.results?.trackmatches?.track
             if (artistTrackList != null) {
@@ -377,7 +386,7 @@ class MediaService : NotificationListenerService(),
                 return scrobbleBean
             }
 
-            val responseTrack = RetrofitInitializer().lastFmService().validateTrack(scrobbleBean.track, Constants.API_KEY).execute()
+            val responseTrack = RetrofitInitializer(applicationContext).lastFmService().validateTrack(scrobbleBean.track, Constants.API_KEY).execute()
             if (responseTrack.isSuccessful) {
                 val trackList = responseTrack.body()?.results?.trackmatches?.track
                 if (trackList != null) {
@@ -405,7 +414,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun getFullTrackInfo(scrobbleBean: ScrobbleBean): Long {
-        val response = RetrofitInitializer().lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).execute()
+        val response = RetrofitInitializer(applicationContext).lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).execute()
         return if (response.isSuccessful) {
             val duration = response.body()?.track?.duration
             if (!duration.isNullOrBlank()) {
@@ -424,7 +433,7 @@ class MediaService : NotificationListenerService(),
         val sessionKey = preferences!!.getString("sessionKey", "")
         val params = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey)
         val sig = Utils.getSig(params, Constants.API_UPDATE_NOW_PLAYING)
-        RetrofitInitializer().lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey!!).execute()
+        RetrofitInitializer(applicationContext).lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey!!).execute()
     }
 
     private fun scrobblePendingAsync(playtimeHolder: Long, finalDuration: Long, finalAlbum: String) {
@@ -457,7 +466,7 @@ class MediaService : NotificationListenerService(),
                     val sig = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
                     //Tenta capturar qualquer exceção, caso a conexão caia durante o processo de scrobble e adiciona o scrobble pro cache.
                     try {
-                        val response = RetrofitInitializer().lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, scrobbleBean.album, Constants.API_KEY, sig, sessionKey, timestamp).execute()
+                        val response = RetrofitInitializer(applicationContext).lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, scrobbleBean.album, Constants.API_KEY, sig, sessionKey, timestamp).execute()
                         if (response.isSuccessful) {
                             Utils.log("Scrobbeled: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
                         } else {

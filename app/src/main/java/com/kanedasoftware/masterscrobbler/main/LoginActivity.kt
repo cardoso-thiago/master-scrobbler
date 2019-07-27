@@ -123,7 +123,7 @@ class LoginActivity : AppCompatActivity() {
 
             if (Utils.isConnected(this)) {
                 doAsync {
-                    val response = RetrofitInitializer().lastFmSecureService().getMobileSession(password, user,
+                    val response = RetrofitInitializer(applicationContext).lastFmSecureService().getMobileSession(password, user,
                             Constants.API_KEY, sig, "auth.getMobileSession").execute()
                     if (response.isSuccessful) {
                         sessionKey = response.body()?.session?.key.toString()
