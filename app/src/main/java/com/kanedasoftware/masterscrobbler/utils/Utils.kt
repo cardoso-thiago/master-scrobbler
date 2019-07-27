@@ -4,13 +4,18 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
 import android.net.ConnectivityManager
+import android.net.Uri
+import android.provider.MediaStore
 import android.widget.ListView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
+import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.R
 import org.jetbrains.anko.*
 import java.io.BufferedWriter
@@ -21,10 +26,12 @@ import java.math.BigInteger
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 
 const val KEY_PREF_DEBUG_MODE = "debug_mode"
+private val metaSpam = arrayOf("downloaded", ".com", ".co.", "www.", ".br")
 
 class Utils {
     companion object {
@@ -77,8 +84,7 @@ class Utils {
         }
 
         private fun isDebugMode(context: Context): Boolean {
-            val sharedPref = PreferenceManager
-                    .getDefaultSharedPreferences(context)
+            val sharedPref = PreferenceManager.getDefaultSharedPreferences(context)
             return sharedPref.getBoolean(KEY_PREF_DEBUG_MODE, false)
         }
 
@@ -186,6 +192,65 @@ class Utils {
             params.height = totalItemsHeight + totalDividersHeight
             listView.layoutParams = params
             listView.requestLayout()
+        }
+
+        fun getPlayerList(packageManager: PackageManager?): List<ResolveInfo> {
+            val intent = Intent(Intent.ACTION_VIEW)
+            val uri = Uri.withAppendedPath(MediaStore.Audio.Media.INTERNAL_CONTENT_URI, "1")
+            intent.setDataAndType(uri, "audio/*")
+            val playerList: List<ResolveInfo>
+            playerList = packageManager?.queryIntentActivities(intent, PackageManager.GET_RESOLVED_FILTER) as List<ResolveInfo>
+            return playerList
+        }
+
+        fun getPackagePlayerList(packageManager: PackageManager?): List<String> {
+            val players = getPlayerList(packageManager)
+            val packageList: MutableList<String> = ArrayList()
+            for (player in players) {
+                packageList.add(player.activityInfo.packageName)
+            }
+            return packageList
+        }
+
+        fun savePlayersMap(context: Context, map: Map<String, String>) {
+            val editor = PreferenceManager.getDefaultSharedPreferences(context).edit()
+            val mapPlayers = Gson().toJson(map)
+            editor.putString("players_map", mapPlayers).apply()
+        }
+
+        fun getPlayersMap(context: Context): MutableMap<String, String> {
+            val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+            val playersMap = preferences.getString("players_map", "")
+            if (!playersMap.isNullOrBlank()) {
+                return Gson().fromJson(playersMap, HashMap<String, String>()::class.java)
+            }
+            return HashMap()
+        }
+
+        fun clearTrack(titleContentOriginal: String): String {
+            return titleContentOriginal.replace(" *\\([^)]*\\) *".toRegex(), " ")
+                    .replace(" *\\[[^)]*] *".toRegex(), " ")
+                    .replace("\\W* HD|HQ|4K|MV|M/V|Official Music Video|Music Video|Lyric Video|Official Audio( \\W*)?"
+                            .toRegex(RegexOption.IGNORE_CASE)
+                            , " ")
+        }
+
+        fun clearAlbum(albumOrig: String): String {
+            if (albumOrig.contains("unknown", true) && albumOrig.length <= "unknown".length + 4) {
+                return ""
+            }
+            if (metaSpam.any { albumOrig.contains(it) }) {
+                return ""
+            }
+            return albumOrig
+        }
+
+        fun clearArtist(artistOrig: String): String {
+            val splits = artistOrig.split("; ").filter { !it.isBlank() }
+            if (splits.isEmpty()) {
+                return ""
+            }
+            return splits[0]
         }
     }
 }
