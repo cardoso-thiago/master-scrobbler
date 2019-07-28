@@ -19,13 +19,19 @@ import android.os.Build
 import android.os.CountDownTimer
 import android.preference.PreferenceManager
 import android.service.notification.NotificationListenerService
+import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
 import com.kanedasoftware.masterscrobbler.db.ScrobbleDb
+import com.kanedasoftware.masterscrobbler.main.LoginActivity
+import com.kanedasoftware.masterscrobbler.main.MainActivity
+import com.kanedasoftware.masterscrobbler.model.ErrorInfo
 import com.kanedasoftware.masterscrobbler.network.ConnectionLiveData
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import com.squareup.picasso.Picasso
+import de.adorsys.android.securestoragelibrary.SecurePreferences
+import okhttp3.ResponseBody
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import java.util.concurrent.TimeUnit
@@ -430,10 +436,15 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun updateNowPlaying(scrobbleBean: ScrobbleBean) {
-        val sessionKey = preferences!!.getString("sessionKey", "")
-        val params = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey)
-        val sig = Utils.getSig(params, Constants.API_UPDATE_NOW_PLAYING)
-        RetrofitInitializer(applicationContext).lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey!!).execute()
+        val sessionKey = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_SESSION_TAG, "")
+        if (sessionKey != null) {
+            val params = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey)
+            val sig = Utils.getSig(params, Constants.API_UPDATE_NOW_PLAYING)
+            val response = RetrofitInitializer(applicationContext).lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey).execute()
+            if(!response.isSuccessful){
+                verifySessionKey(response.errorBody())
+            }
+        }
     }
 
     private fun scrobblePendingAsync(playtimeHolder: Long, finalDuration: Long, finalAlbum: String) {
@@ -460,7 +471,7 @@ class MediaService : NotificationListenerService(),
                     "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.playtime)}", applicationContext)
             if (scrobbleBean.playtime > (scrobbleBean.duration / 2)) {
                 if (isOnline && scrobbleBean.validated) {
-                    val sessionKey = preferences?.getString("sessionKey", "")
+                    val sessionKey = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_SESSION_TAG, "")
                     val timestamp = (scrobbleBean.postTime.div(1000)).toString()
                     val paramsScrobble = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "album" to scrobbleBean.album, "sk" to sessionKey!!, "timestamp" to timestamp)
                     val sig = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
@@ -472,6 +483,7 @@ class MediaService : NotificationListenerService(),
                         } else {
                             Utils.logError("Erro ao fazer o scrobble, adiciona ao cache para tentar novamente depois: ${response.code()}", applicationContext)
                             cacheScrobble(scrobbleBean)
+                            verifySessionKey(response.errorBody())
                         }
                     } catch (t: Throwable) {
                         cacheScrobble(scrobbleBean)
@@ -482,6 +494,16 @@ class MediaService : NotificationListenerService(),
             } else {
                 Utils.log("Tempo de execução não alcançou ao menos metade da música, não será feito o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
             }
+        }
+    }
+
+    private fun verifySessionKey(responseBody: ResponseBody?) {
+        val errorInfo = Gson().fromJson(responseBody?.charStream(), ErrorInfo::class.java)
+        //Session Key inválida, necessário reautenticar
+        if (errorInfo.error == 9) {
+            val intent = Intent(this, LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
         }
     }
 

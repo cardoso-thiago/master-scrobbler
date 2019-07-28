@@ -1,10 +1,11 @@
 package com.kanedasoftware.masterscrobbler.main
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
-import android.preference.PreferenceManager
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
@@ -20,6 +21,7 @@ import com.kanedasoftware.masterscrobbler.model.ErrorInfo
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
+import de.adorsys.android.securestoragelibrary.SecurePreferences
 import org.jetbrains.anko.doAsync
 
 
@@ -50,6 +52,11 @@ class LoginActivity : AppCompatActivity() {
     @Optional
     @OnClick(R.id.btn_login)
     fun onClick() {
+        val view = this.currentFocus
+        view?.let { v ->
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.let { it.hideSoftInputFromWindow(v.windowToken, 0) }
+        }
         login()
     }
 
@@ -114,33 +121,31 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun getSessionKey(user: String, password: String) {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
-        var sessionKey = preferences.getString("sessionKey", "")
-
-        if (sessionKey.isNullOrBlank()) {
+        if (SecurePreferences.getStringValue(applicationContext, Constants.SECURE_SESSION_TAG, "").isNullOrBlank()) {
             val params = mutableMapOf("password" to password, "username" to user)
             val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
 
             if (Utils.isConnected(this)) {
                 doAsync {
-                    val response = RetrofitInitializer(applicationContext).lastFmSecureService().getMobileSession(password, user,
-                            Constants.API_KEY, sig, "auth.getMobileSession").execute()
+                    val response = RetrofitInitializer(applicationContext).lastFmSecureService().getMobileSession(password, user, Constants.API_KEY, sig, "auth.getMobileSession").execute()
+
                     if (response.isSuccessful) {
-                        sessionKey = response.body()?.session?.key.toString()
-                        //TODO verificar melhor maneira de armazenar a sessionkey e user
-                        preferences.edit().putString("sessionKey", sessionKey).apply()
-                        preferences.edit().putString("user", user).apply()
+                        val sessionKey = response.body()?.session?.key.toString()
+                        SecurePreferences.setValue(applicationContext, Constants.SECURE_SESSION_TAG, sessionKey)
+                        SecurePreferences.setValue(applicationContext, Constants.SECURE_USER_TAG, user)
                         onLoginSuccess()
                     } else {
-                        //TODO tratar todos os tipos de erro
-                        Utils.logDebug("Logando o erro da obtenção do session key para tentar capturar situações: ${response.code()}", applicationContext)
                         val errorInfo = Gson().fromJson(response.errorBody()?.charStream(), ErrorInfo::class.java)
-                        onLoginFailed(errorInfo.message)
+                        when (errorInfo.error) {
+                            4 -> onLoginFailed("Falha na autenticação, verifique o usuário e senha do Last.fm")
+                            11 -> onLoginFailed("O serviço do Last.fm está temporariamente offline, tente novamente mais tarde")
+                            16 -> onLoginFailed("Erro temporário processando o login, por favor, tente novamente")
+                            29 -> onLoginFailed("O seu IP fez muitas requisições em um curto espaço de tempo")
+                        }
                     }
                 }
             } else {
-                Utils.logError("Conexão necessária para obter o id da sessão do usuário.", applicationContext)
-                onLoginFailed("Conexão necessária para fazer o login")
+                onLoginFailed("Erro ao fazer o login, por favor, verifique a sua conexão.")
             }
         } else {
             onLoginSuccess()

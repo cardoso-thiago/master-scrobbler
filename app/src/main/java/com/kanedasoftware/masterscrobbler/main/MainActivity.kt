@@ -4,18 +4,18 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import butterknife.BindView
+import butterknife.ButterKnife
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
 import com.kanedasoftware.masterscrobbler.adapters.ListViewTrackAdapter
 import com.kanedasoftware.masterscrobbler.beans.RecentBean
 import com.kanedasoftware.masterscrobbler.beans.TopBean
-import com.kanedasoftware.masterscrobbler.components.WrappedGridView
 import com.kanedasoftware.masterscrobbler.enums.EnumArtistsAlbums
 import com.kanedasoftware.masterscrobbler.enums.EnumPeriod
 import com.kanedasoftware.masterscrobbler.enums.EnumTopType
@@ -25,11 +25,33 @@ import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import com.squareup.picasso.Picasso
+import de.adorsys.android.securestoragelibrary.SecurePreferences
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 
 class MainActivity : AppCompatActivity() {
+    @JvmField
+    @BindView(R.id.profile)
+    var profile: ImageView? = null
+    @JvmField
+    @BindView(R.id.username)
+    var username: TextView? = null
+    @JvmField
+    @BindView(R.id.info)
+    var info: TextView? = null
+    @JvmField
+    @BindView(R.id.list_tracks)
+    var listTracks: ListView? = null
+    @JvmField
+    @BindView(R.id.grid_view)
+    var gridView: GridView? = null
+    @JvmField
+    @BindView(R.id.top_artists_albuns)
+    var artistsAlbumsSpinner: Spinner? = null
+    @JvmField
+    @BindView(R.id.period)
+    var periodSpinner: Spinner? = null
 
     var lastArtistsAlbumsSpinner = ""
     var lastPeriodSpinner = ""
@@ -37,18 +59,19 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        ButterKnife.bind(this)
         setSupportActionBar(toolbar)
 
         initService()
 
-        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
-        val user: String?
-        user = preferences.getString("user", "")
+        val user: String? = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_USER_TAG, "")
 
         if (verifySessionKey()) {
-            getUserInfo(user)
-            initSpinners(user)
-            getRecentTracks(user)
+            if (user != null) {
+                getUserInfo(user)
+                initSpinners(user)
+                getRecentTracks(user)
+            }
         } else {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
@@ -56,7 +79,9 @@ class MainActivity : AppCompatActivity() {
 
         fab.setOnClickListener {
             if (verifySessionKey()) {
-                getRecentTracks(user)
+                if (user != null) {
+                    getRecentTracks(user)
+                }
             }
         }
     }
@@ -104,7 +129,7 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
             R.id.action_Logoff -> {
-                PreferenceManager.getDefaultSharedPreferences(this).edit().putString("sessionKey", "").apply()
+                SecurePreferences.setValue(applicationContext, Constants.SECURE_SESSION_TAG, "")
                 val intent = Intent(this, LoginActivity::class.java)
                 startActivity(intent)
                 return true
@@ -114,18 +139,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun verifySessionKey(): Boolean {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
-        val sessionKey = preferences.getString("sessionKey", "")
-        return !sessionKey.isNullOrBlank()
+        return !SecurePreferences.getStringValue(applicationContext, Constants.SECURE_SESSION_TAG, "").isNullOrBlank()
     }
 
     private fun getUserInfo(user: String) {
         Utils.log("User Info", applicationContext)
-        val profile = findViewById<ImageView>(R.id.profile)
-        val username = findViewById<TextView>(R.id.username)
-        val info = findViewById<TextView>(R.id.info)
+
         doAsync {
-            //TODO tratar conexão ativa e/ou try/catch
             val response = RetrofitInitializer(applicationContext).lastFmService().userInfo(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val profileUrl = response.body()?.user?.image?.last()?.text
@@ -134,11 +154,11 @@ class MainActivity : AppCompatActivity() {
                 val registered = response.body()?.user?.registered?.text
                 uiThread {
                     Picasso.get().load(profileUrl).transform(CircleTransformation()).into(profile)
-                    username.text = name
+                    username?.text = name
                     if (registered != null) {
-                        info.text = applicationContext.getString(R.string.scrobbling_since, realName, Utils.getDateTimeFromEpoch(registered))
+                        info?.text = applicationContext.getString(R.string.scrobbling_since, realName, Utils.getDateTimeFromEpoch(registered))
                     } else {
-                        info.text = realName
+                        info?.text = realName
                     }
                 }
             }
@@ -146,40 +166,42 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initSpinners(user: String) {
-        val artistsAlbumsSpinner = findViewById<Spinner>(R.id.top_artists_albuns)
-        val artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
-        artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
-        artistsAlbumsSpinner.adapter = artistsAlbumsAdapter
+        if (artistsAlbumsSpinner != null) {
+            val artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
+            artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+            artistsAlbumsSpinner!!.adapter = artistsAlbumsAdapter
+            artistsAlbumsSpinner!!.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("artistsAlbums", 0))
 
-        val periodSpinner = findViewById<Spinner>(R.id.period)
-        val periodAdapter = ArrayAdapter<EnumPeriod>(this, R.layout.spinner_item_period, EnumPeriod.values())
-        periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
-        periodSpinner.adapter = periodAdapter
+            artistsAlbumsSpinner!!.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent: AdapterView<*>?) {
+                    //Do nothing
+                }
 
-        artistsAlbumsSpinner.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("artistsAlbums", 0))
-        periodSpinner.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("period", 0))
-
-        artistsAlbumsSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                //Do nothing
-            }
-
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("artistsAlbums", position).apply()
-                val artistImage = parent?.getItemAtPosition(position) as EnumArtistsAlbums
-                searchImages(user, artistImage, periodSpinner.selectedItem as EnumPeriod)
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("artistsAlbums", position).apply()
+                    val artistImage = parent?.getItemAtPosition(position) as EnumArtistsAlbums
+                    searchImages(user, artistImage, periodSpinner?.selectedItem as EnumPeriod)
+                }
             }
         }
 
-        periodSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                //Do nothing
-            }
+        if (periodSpinner != null) {
+            val periodAdapter = ArrayAdapter<EnumPeriod>(this, R.layout.spinner_item_period, EnumPeriod.values())
+            periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+            periodSpinner!!.adapter = periodAdapter
+            periodSpinner!!.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("period", 0))
 
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("period", position).apply()
-                val period = parent?.getItemAtPosition(position) as EnumPeriod
-                searchImages(user, artistsAlbumsSpinner.selectedItem as EnumArtistsAlbums, period)
+
+            periodSpinner!!.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent: AdapterView<*>?) {
+                    //Do nothing
+                }
+
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("period", position).apply()
+                    val period = parent?.getItemAtPosition(position) as EnumPeriod
+                    searchImages(user, artistsAlbumsSpinner?.selectedItem as EnumArtistsAlbums, period)
+                }
             }
         }
     }
@@ -187,7 +209,6 @@ class MainActivity : AppCompatActivity() {
     private fun getRecentTracks(user: String) {
         Utils.log("Recent Tracks", applicationContext)
         doAsync {
-            //TODO colocar nos settings quantas músicas vai exibir
             val recentTracksList = ArrayList<RecentBean>()
             val response = RetrofitInitializer(applicationContext).lastFmService().recentTracks(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
@@ -214,10 +235,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             uiThread {
-                val listTracks = findViewById<ListView>(R.id.list_tracks)
-                val listAdapter = ListViewTrackAdapter(applicationContext, recentTracksList)
-                listTracks.adapter = listAdapter
-                Utils.setListViewHeightBasedOnItems(listTracks)
+                if (listTracks != null) {
+                    val listAdapter = ListViewTrackAdapter(applicationContext, recentTracksList)
+                    listTracks!!.adapter = listAdapter
+                    Utils.setListViewHeightBasedOnItems(listTracks!!)
+                }
             }
         }
     }
@@ -238,7 +260,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun getTopArtists(user: String, period: EnumPeriod) {
         doAsync {
-            //TODO tratar conexão ativa e/ou try/catch
             Utils.log("Top Artists Grid", applicationContext)
             val response = RetrofitInitializer(applicationContext).lastFmService().topArtists(user,
                     period.id, Constants.API_KEY).execute()
@@ -248,14 +269,14 @@ class MainActivity : AppCompatActivity() {
                 if (artists != null) {
                     for (artist in artists) {
                         val url = "https://tse2.mm.bing.net/th?q=${artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
-                        //TODO pegar o texto "plays" do resources
                         val topBean = TopBean(url, artist.name, artist.playcount.plus(" plays"))
                         list.add(topBean)
                     }
                 }
                 uiThread {
-                    val gv = findViewById<WrappedGridView>(R.id.grid_view)
-                    gv.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ARTIST)
+                    if (gridView != null) {
+                        gridView!!.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ARTIST)
+                    }
                 }
             }
         }
@@ -264,7 +285,6 @@ class MainActivity : AppCompatActivity() {
     private fun getTopAlbums(user: String, period: EnumPeriod) {
         Utils.log("Top Albums Grid", applicationContext)
         doAsync {
-            //TODO tratar conexão ativa e/ou try/catch
             val response = RetrofitInitializer(applicationContext).lastFmService().topAlbums(user,
                     period.id, Constants.API_KEY).execute()
             if (response.isSuccessful) {
@@ -273,14 +293,14 @@ class MainActivity : AppCompatActivity() {
                 if (albums != null) {
                     for (album in albums) {
                         val topBean = TopBean(album.image.last().text, album.name, album.artist.name)
-                        //TODO pegar o texto "plays" do resources
                         topBean.text3 = album.playcount.plus(" plays")
                         list.add(topBean)
                     }
                 }
                 uiThread {
-                    val gv = findViewById<WrappedGridView>(R.id.grid_view)
-                    gv.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ALBUM)
+                    if (gridView != null) {
+                        gridView!!.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ALBUM)
+                    }
                 }
             }
         }
