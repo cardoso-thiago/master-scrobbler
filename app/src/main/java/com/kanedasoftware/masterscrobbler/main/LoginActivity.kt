@@ -55,7 +55,7 @@ class LoginActivity : AppCompatActivity() {
         val view = this.currentFocus
         view?.let { v ->
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-            imm?.let { it.hideSoftInputFromWindow(v.windowToken, 0) }
+            imm?.hideSoftInputFromWindow(v.windowToken, 0)
         }
         login()
     }

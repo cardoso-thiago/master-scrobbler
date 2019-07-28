@@ -23,7 +23,6 @@ import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
 import com.kanedasoftware.masterscrobbler.db.ScrobbleDb
 import com.kanedasoftware.masterscrobbler.main.LoginActivity
-import com.kanedasoftware.masterscrobbler.main.MainActivity
 import com.kanedasoftware.masterscrobbler.model.ErrorInfo
 import com.kanedasoftware.masterscrobbler.network.ConnectionLiveData
 import com.kanedasoftware.masterscrobbler.utils.Constants
