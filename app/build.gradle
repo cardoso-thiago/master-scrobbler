@@ -51,6 +51,7 @@ dependencies {
     implementation 'com.squareup.picasso:picasso:2.71828'
     implementation 'io.gresse.hugo.vumeterlibrary:vumeterlibrary:1.0.17'
     implementation 'me.zhanghai.android.materialprogressbar:library:1.6.1'
+    implementation "de.adorsys.android:securestoragelibrary:1.1.1"
 
     debugImplementation 'com.amitshekhar.android:debug-db:1.0.6'
     testImplementation 'junit:junit:4.12'
