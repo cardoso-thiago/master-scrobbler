@@ -53,8 +53,8 @@ class MainActivity : AppCompatActivity() {
     @BindView(R.id.period)
     var periodSpinner: Spinner? = null
 
-    var lastArtistsAlbumsSpinner = ""
-    var lastPeriodSpinner = ""
+    private var lastArtistsAlbumsSpinner = ""
+    private var lastPeriodSpinner = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

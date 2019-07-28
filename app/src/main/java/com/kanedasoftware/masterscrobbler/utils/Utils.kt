@@ -17,10 +17,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
 import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.R
-import com.kanedasoftware.masterscrobbler.model.ErrorInfo
-import okhttp3.ResponseBody
 import org.jetbrains.anko.*
-import retrofit2.Response
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
