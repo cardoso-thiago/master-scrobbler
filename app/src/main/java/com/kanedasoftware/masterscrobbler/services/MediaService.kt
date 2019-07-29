@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.Drawable
+import android.media.AudioAttributes
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
@@ -18,6 +19,7 @@ import android.media.session.PlaybackState
 import android.os.Build
 import android.os.CountDownTimer
 import android.preference.PreferenceManager
+import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
@@ -71,28 +73,49 @@ class MediaService : NotificationListenerService(),
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && !intent.action.isNullOrBlank()) {
-            Utils.logWarning("Tentando reconectar. Action: ".plus(intent.action), applicationContext)
-            tryReconnectService()//switch on/off component and rebind
+            if (intent.action == Constants.START_SERVICE) {
+                startService()
+            } else if (intent.action == Constants.STOP_SERVICE) {
+                stopService()
+            }
         }
         return Service.START_STICKY
     }
 
     override fun onCreate() {
+        startService()
         super.onCreate()
-        val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        defaultSharedPreferences.registerOnSharedPreferenceChangeListener(this)
-        this.preferences = defaultSharedPreferences
+    }
 
-        observeConnection()
-        createNotificationChannel()
-        createNotification()
-        createCallback()
-        createMediaSessionManager()
+    private fun startService() {
+        if (Utils.isValidSessionKey(applicationContext)) {
+            tryReconnectService()
+            val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            defaultSharedPreferences.registerOnSharedPreferenceChangeListener(this)
+            this.preferences = defaultSharedPreferences
+
+            observeConnection()
+            createQuietNotificationChannel()
+            createNotificationChannel()
+            createNotification()
+            createCallback()
+            createMediaSessionManager()
+        }
     }
 
     override fun onDestroy() {
-        unregisterCallback(mediaController)
+        stopService()
         super.onDestroy()
+    }
+
+    private fun stopService() {
+        val mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
+        mediaSessionManager.removeOnActiveSessionsChangedListener(this)
+        val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        defaultSharedPreferences.registerOnSharedPreferenceChangeListener(this)
+        unregisterCallback(mediaController)
+        //Limpa o texto da notificação
+        createNotification()
     }
 
     private fun tryReconnectService() {
@@ -111,10 +134,12 @@ class MediaService : NotificationListenerService(),
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
     }
 
-    private fun createNotificationChannel() {
+    //TODO colocar a criação dos canais de notificação no Utils
+    //TODO separar o Utils por mais modos
+    private fun createQuietNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(
-                    Constants.NOTIFICATION_CHANNEL,
+                    Constants.QUIET_NOTIFICATION_CHANNEL,
                     "Master Scrobbler",
                     NotificationManager.IMPORTANCE_LOW
             )
@@ -128,8 +153,29 @@ class MediaService : NotificationListenerService(),
         }
     }
 
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val audioAtt = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            val notificationChannel = NotificationChannel(
+                    Constants.NOTIFICATION_CHANNEL,
+                    "Master Scrobbler",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            )
+            notificationChannel.description = "Master Scrobble Notifications"
+            notificationChannel.enableLights(true)
+            notificationChannel.lightColor = Color.WHITE
+            notificationChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAtt)
+            notificationChannel.enableVibration(true)
+            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(notificationChannel)
+        }
+    }
+
     private fun createNotification() {
-        val notification = Utils.buildNotification(applicationContext, "Master Scrobbler", "Service Running")
+        val notification = Utils.buildNotification(applicationContext, "Master Scrobbler", "Service is Running")
         startForeground(Constants.NOTIFICATION_ID, notification)
     }
 
@@ -277,7 +323,9 @@ class MediaService : NotificationListenerService(),
             for (controller in controllers) {
                 if (!packagePlayerList.contains(controller.packageName)) {
                     if (!playersMap.containsKey(controller.packageName)) {
-                        playersMap[controller.packageName] = packageManager?.getApplicationLabel(packageManager.getApplicationInfo(controller.packageName, 0)).toString()
+                        val playerName = packageManager?.getApplicationLabel(packageManager.getApplicationInfo(controller.packageName, 0)).toString()
+                        playersMap[controller.packageName] = playerName
+                        Utils.sendNewPlayerNotification(applicationContext, playerName)
                     }
                 }
             }
@@ -440,7 +488,7 @@ class MediaService : NotificationListenerService(),
             val params = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey)
             val sig = Utils.getSig(params, Constants.API_UPDATE_NOW_PLAYING)
             val response = RetrofitInitializer(applicationContext).lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey).execute()
-            if(!response.isSuccessful){
+            if (!response.isSuccessful) {
                 verifySessionKey(response.errorBody())
             }
         }
@@ -500,6 +548,7 @@ class MediaService : NotificationListenerService(),
         val errorInfo = Gson().fromJson(responseBody?.charStream(), ErrorInfo::class.java)
         //Session Key inválida, necessário reautenticar
         if (errorInfo.error == 9) {
+            stopService()
             val intent = Intent(this, LoginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)

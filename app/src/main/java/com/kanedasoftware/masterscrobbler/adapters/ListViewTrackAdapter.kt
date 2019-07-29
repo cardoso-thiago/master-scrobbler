@@ -50,9 +50,9 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
 
         val albumImageUrl = beanList[position].imageUrl
         if (albumImageUrl.isBlank()) {
-            Picasso.get().load(R.drawable.placeholder).fit().tag(context).into(viewHolder.image)
+            Picasso.get().load(R.drawable.ic_placeholder).fit().tag(context).into(viewHolder.image)
         } else {
-            Picasso.get().load(albumImageUrl).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).fit().tag(context).into(viewHolder.image)
+            Picasso.get().load(albumImageUrl).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder).fit().tag(context).into(viewHolder.image)
         }
 
         val icon = viewHolder.icon

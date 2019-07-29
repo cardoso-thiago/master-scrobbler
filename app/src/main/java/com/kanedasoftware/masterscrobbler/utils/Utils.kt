@@ -2,6 +2,7 @@ package com.kanedasoftware.masterscrobbler.utils
 
 import android.app.Notification
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -10,6 +11,7 @@ import android.graphics.Bitmap
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.provider.MediaStore
+import android.provider.Settings
 import android.widget.ListView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.NotificationCompat
@@ -17,6 +19,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
 import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.R
+import com.kanedasoftware.masterscrobbler.main.MainActivity
+import com.kanedasoftware.masterscrobbler.main.SettingsActivity
+import de.adorsys.android.securestoragelibrary.SecurePreferences
 import org.jetbrains.anko.*
 import java.io.BufferedWriter
 import java.io.File
@@ -92,7 +97,6 @@ class Utils {
 
         fun changeNotificationAccess(context: Context) {
             if (!verifyNotificationAccess(context)) {
-                //TODO colocar os textos nos properties
                 AlertDialog.Builder(context)
                         .setTitle("Acesso às Notificações")
                         .setMessage("Para o aplicativo funcionar é necessário conceder acesso às notificações. Deseja abrir a configuração?")
@@ -124,16 +128,41 @@ class Utils {
         }
 
         private fun buildNotification(context: Context, title: String, text: String, image: Bitmap?): Notification? {
-            val notif = NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            val pendingIntent: PendingIntent = PendingIntent.getActivity(context, 0, intent, 0)
+
+            val notif = NotificationCompat.Builder(context, Constants.QUIET_NOTIFICATION_CHANNEL)
                     .setContentTitle(title)
                     .setContentText(text)
                     .setSmallIcon(R.drawable.ic_stat_cassette)
+                    .setContentIntent(pendingIntent)
                     .setVibrate(longArrayOf(0L))
             if (image != null) {
                 notif.setStyle(androidx.media.app.NotificationCompat.MediaStyle()).setColorized(true)
                 notif.setLargeIcon(image)
             }
             return notif.build()
+        }
+
+        fun sendNewPlayerNotification(context: Context, player: String) {
+            val intent = Intent(context, SettingsActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            val pendingIntent: PendingIntent = PendingIntent.getActivity(context, 0, intent, 0)
+
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notif = NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
+                    .setContentTitle("New Player Identified")
+                    .setContentText("Player $player identified. Touch to add the player to scrobble.")
+                    .setSmallIcon(R.drawable.ic_stat_cassette)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setContentIntent(pendingIntent)
+                    .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
+                    .setAutoCancel(true)
+                    .build()
+            notificationManager.notify(Constants.NOTIFICATION_NEW_PLAYER_ID, notif)
         }
 
         fun isConnected(context: Context): Boolean {
@@ -150,6 +179,14 @@ class Utils {
             } catch (e: Exception) {
                 e.toString()
             }
+        }
+
+        fun convertUTCToLocal(date: String): String {
+            val simpleDateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm")
+            simpleDateFormat.timeZone = TimeZone.getTimeZone("UTC")
+            val outputSdf = SimpleDateFormat("dd MMM yyyy, HH:mm")
+            val localDate = simpleDateFormat.parse(date)
+            return outputSdf.format(localDate)
         }
 
         private fun appendLog(text: String) {
@@ -251,6 +288,10 @@ class Utils {
                 return ""
             }
             return splits[0]
+        }
+
+        fun isValidSessionKey(context: Context): Boolean {
+            return !SecurePreferences.getStringValue(context, Constants.SECURE_SESSION_TAG, "").isNullOrBlank()
         }
     }
 }
