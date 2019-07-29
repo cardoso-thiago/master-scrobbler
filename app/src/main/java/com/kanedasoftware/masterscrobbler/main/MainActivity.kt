@@ -27,6 +27,7 @@ import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import com.squareup.picasso.Picasso
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import kotlinx.android.synthetic.main.activity_main.*
+import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 
@@ -65,8 +66,7 @@ class MainActivity : AppCompatActivity() {
         initService()
 
         val user: String? = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_USER_TAG, "")
-
-        if (verifySessionKey()) {
+        if (Utils.isValidSessionKey(applicationContext)) {
             if (user != null) {
                 getUserInfo(user)
                 initSpinners(user)
@@ -78,7 +78,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         fab.setOnClickListener {
-            if (verifySessionKey()) {
+            if (Utils.isValidSessionKey(applicationContext)) {
                 if (user != null) {
                     getRecentTracks(user)
                 }
@@ -89,7 +89,7 @@ class MainActivity : AppCompatActivity() {
     override fun onRestart() {
         super.onRestart()
         initService()
-        if (!verifySessionKey()) {
+        if (!Utils.isValidSessionKey(applicationContext)) {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
@@ -97,7 +97,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!verifySessionKey()) {
+        if (!Utils.isValidSessionKey(applicationContext)) {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
@@ -108,11 +108,22 @@ class MainActivity : AppCompatActivity() {
             Utils.changeNotificationAccess(this)
         } else {
             val i = Intent(applicationContext, MediaService::class.java)
+            i.action = Constants.START_SERVICE
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 applicationContext?.startForegroundService(i)
             } else {
                 applicationContext?.startService(i)
             }
+        }
+    }
+
+    private fun stopService() {
+        val i = Intent(applicationContext, MediaService::class.java)
+        i.action = Constants.STOP_SERVICE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            applicationContext?.startForegroundService(i)
+        } else {
+            applicationContext?.startService(i)
         }
     }
 
@@ -129,7 +140,9 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
             R.id.action_Logoff -> {
-                SecurePreferences.setValue(applicationContext, Constants.SECURE_SESSION_TAG, "")
+                SecurePreferences.clearAllValues(applicationContext)
+                applicationContext.defaultSharedPreferences.edit().clear().apply()
+                stopService()
                 val intent = Intent(this, LoginActivity::class.java)
                 startActivity(intent)
                 return true
@@ -138,19 +151,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun verifySessionKey(): Boolean {
-        return !SecurePreferences.getStringValue(applicationContext, Constants.SECURE_SESSION_TAG, "").isNullOrBlank()
-    }
-
     private fun getUserInfo(user: String) {
         Utils.log("User Info", applicationContext)
-
         doAsync {
             val response = RetrofitInitializer(applicationContext).lastFmService().userInfo(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val profileUrl = response.body()?.user?.image?.last()?.text
                 val name = response.body()?.user?.name
-                val realName = response.body()?.user?.realname
+                var realName = response.body()?.user?.realname
+                if (realName.isNullOrEmpty()) {
+                    realName = name
+                }
                 val registered = response.body()?.user?.registered?.text
                 uiThread {
                     Picasso.get().load(profileUrl).transform(CircleTransformation()).into(profile)
@@ -227,7 +238,7 @@ class MainActivity : AppCompatActivity() {
                             scrobbling = true
                         } else {
                             imageUrl = track.image.last().text
-                            timestamp = track.date.text
+                            timestamp = Utils.convertUTCToLocal(track.date.text)
                             loved = track.loved == "1"
                         }
                         recentTracksList.add(RecentBean(imageUrl, name, artist, timestamp, loved, scrobbling))

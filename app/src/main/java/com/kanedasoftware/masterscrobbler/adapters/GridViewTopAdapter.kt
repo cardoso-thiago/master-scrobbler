@@ -33,7 +33,7 @@ internal class GridViewTopAdapter(private val context: Context, beanList: ArrayL
                 val imageViewAndroid = gridViewAndroid.findViewById<View>(R.id.gridview_artist_image) as SquaredImageView
                 val url = list[position].url
                 if (!url.isBlank()) {
-                    Picasso.get().load(url).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).fit().tag(context).into(imageViewAndroid)
+                    Picasso.get().load(url).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder).fit().tag(context).into(imageViewAndroid)
                 }
             } else {
                 gridViewAndroid = inflater.inflate(R.layout.gridview_album_layout, parent, false)
@@ -49,7 +49,7 @@ internal class GridViewTopAdapter(private val context: Context, beanList: ArrayL
                 val imageViewAndroid = gridViewAndroid.findViewById<View>(R.id.gridview_album_image) as SquaredImageView
                 val url = list[position].url
                 if (!url.isBlank()) {
-                    Picasso.get().load(url).placeholder(R.drawable.placeholder).error(R.drawable.placeholder).fit().tag(context).into(imageViewAndroid)
+                    Picasso.get().load(url).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder).fit().tag(context).into(imageViewAndroid)
                 }
             }
         } else {
