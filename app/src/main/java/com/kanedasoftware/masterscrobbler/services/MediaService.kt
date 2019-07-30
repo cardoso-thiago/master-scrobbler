@@ -114,8 +114,8 @@ class MediaService : NotificationListenerService(),
         val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         defaultSharedPreferences.registerOnSharedPreferenceChangeListener(this)
         unregisterCallback(mediaController)
-        //Limpa o texto da notificação
-        createNotification()
+        stopForeground(true)
+        stopSelf()
     }
 
     private fun tryReconnectService() {
@@ -351,7 +351,7 @@ class MediaService : NotificationListenerService(),
 
     private fun registerCallback(newMediaController: MediaController) {
         unregisterCallback(this.mediaController)
-        Utils.logDebug("Registering callback for ${newMediaController.packageName}", applicationContext)
+        Utils.log("Registering callback for ${newMediaController.packageName}", applicationContext)
 
         if (newMediaController.playbackState != null) {
             //Atualiza o estado atual do playback
@@ -367,7 +367,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun unregisterCallback(mediaController: MediaController?) {
-        Utils.logDebug("Unregistering callback for ${mediaController?.packageName}", applicationContext)
+        Utils.log("Unregistering callback for ${mediaController?.packageName}", applicationContext)
         mediaControllerCallback.let { mediaControllerCallback ->
             mediaController?.unregisterCallback(mediaControllerCallback)
         }

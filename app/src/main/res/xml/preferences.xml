@@ -12,4 +12,10 @@
         android:summary="Select the apps to scrobble"
         android:title="Apps to Scrobble" />
 
+    <ListPreference
+        android:dialogTitle="Themes"
+        android:key="app_themes"
+        android:summary="Choose the app theme"
+        android:title="Themes" />
+
 </PreferenceScreen>

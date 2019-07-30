@@ -9,7 +9,6 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
-import androidx.appcompat.app.AppCompatActivity
 import butterknife.BindView
 import butterknife.ButterKnife
 import butterknife.OnClick
@@ -22,10 +21,11 @@ import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import de.adorsys.android.securestoragelibrary.SecurePreferences
+import io.multimoon.colorful.CAppCompatActivity
 import org.jetbrains.anko.doAsync
 
 
-class LoginActivity : AppCompatActivity() {
+class LoginActivity : CAppCompatActivity() {
 
     @JvmField
     @BindView(R.id.input_login)

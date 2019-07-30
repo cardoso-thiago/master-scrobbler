@@ -2,8 +2,7 @@ package com.kanedasoftware.masterscrobbler.main
 
 import android.content.pm.ResolveInfo
 import android.os.Bundle
-import androidx.preference.MultiSelectListPreference
-import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.*
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.utils.Utils
 
@@ -12,11 +11,20 @@ class SettingsFragment : PreferenceFragmentCompat() {
         setPreferencesFromResource(R.xml.preferences, rootKey)
 
         val listPreference = findPreference("apps_to_scrobble") as MultiSelectListPreference
-        setListPreferenceData(listPreference)
+        setPlayers(listPreference)
 
+        val listThemes = findPreference("app_themes") as ListPreference
+        setThemes(listThemes)
+        if (listThemes.value == null) {
+            listThemes.setValueIndex(0)
+        }
+
+        listThemes.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
+            true
+        }
     }
 
-    private fun setListPreferenceData(listPreference: MultiSelectListPreference) {
+    private fun setPlayers(listPreference: MultiSelectListPreference) {
         val packageManager = context?.packageManager
         val playerList: List<ResolveInfo> = Utils.getPlayerList(packageManager)
 
@@ -38,5 +46,28 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         listPreference.entries = entries.toTypedArray()
         listPreference.entryValues = entryValues.toTypedArray()
+    }
+
+    private fun setThemes(listPreference: ListPreference) {
+        val entries: MutableList<String> = mutableListOf()
+        val entryValues: MutableList<String> = mutableListOf()
+
+        entries.add("RED/GRAY")
+        entryValues.add("red_gray")
+
+        entries.add("GREEN/BLUE")
+        entryValues.add("green_blue")
+
+        listPreference.entries = entries.toTypedArray()
+        listPreference.entryValues = entryValues.toTypedArray()
+    }
+
+    override fun setPreferenceScreen(preferenceScreen: PreferenceScreen?) {
+        super.setPreferenceScreen(preferenceScreen)
+        if (preferenceScreen != null) {
+            val count = preferenceScreen.preferenceCount
+            for (i in 0 until count)
+                preferenceScreen.getPreference(i)!!.isIconSpaceReserved = false
+        }
     }
 }

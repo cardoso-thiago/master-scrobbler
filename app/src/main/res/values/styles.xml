@@ -1,10 +1,6 @@
 <resources>
 
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+    <style name="AppTheme">
         <item name="colorButtonNormal">@color/colorPrimary</item>
         <item name="android:colorButtonNormal">@color/colorPrimary</item>
     </style>
@@ -17,11 +13,9 @@
         <item name="android:shadowRadius">25</item>
     </style>
 
-    <style name="spinnerItemStyle" parent="android:Widget.TextView.SpinnerItem">
-    </style>
+    <style name="spinnerItemStyle" parent="android:Widget.TextView.SpinnerItem" />
 
-    <style name="spinnerDropDownItemStyle" parent="android:TextAppearance.Widget.TextView.SpinnerItem">
-    </style>
+    <style name="spinnerDropDownItemStyle" parent="android:TextAppearance.Widget.TextView.SpinnerItem" />
 
     <style name="AppTheme.NoActionBar">
         <item name="windowActionBar">false</item>
