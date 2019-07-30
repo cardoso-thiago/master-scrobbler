@@ -26,12 +26,13 @@ import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import com.squareup.picasso.Picasso
 import de.adorsys.android.securestoragelibrary.SecurePreferences
+import io.multimoon.colorful.CAppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : CAppCompatActivity() {
     @JvmField
     @BindView(R.id.profile)
     var profile: ImageView? = null
@@ -63,11 +64,10 @@ class MainActivity : AppCompatActivity() {
         ButterKnife.bind(this)
         setSupportActionBar(toolbar)
 
-        initService()
-
         val user: String? = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_USER_TAG, "")
         if (Utils.isValidSessionKey(applicationContext)) {
             if (user != null) {
+                initService()
                 getUserInfo(user)
                 initSpinners(user)
                 getRecentTracks(user)
@@ -238,6 +238,9 @@ class MainActivity : AppCompatActivity() {
                             scrobbling = true
                         } else {
                             imageUrl = track.image.last().text
+                            if(imageUrl.isBlank()){
+                                imageUrl = "https://tse2.mm.bing.net/th?q=${track.artist.name} ${track.name} Album&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
+                            }
                             timestamp = Utils.convertUTCToLocal(track.date.text)
                             loved = track.loved == "1"
                         }
@@ -303,7 +306,11 @@ class MainActivity : AppCompatActivity() {
                 val list = ArrayList<TopBean>()
                 if (albums != null) {
                     for (album in albums) {
-                        val topBean = TopBean(album.image.last().text, album.name, album.artist.name)
+                        var imageUrl = album.image.last().text
+                        if(imageUrl.isBlank()){
+                            imageUrl = "https://tse2.mm.bing.net/th?q=${album.artist.name} ${album.name} Album&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
+                        }
+                        val topBean = TopBean(imageUrl, album.name, album.artist.name)
                         topBean.text3 = album.playcount.plus(" plays")
                         list.add(topBean)
                     }
