@@ -5,6 +5,13 @@
         <item name="android:colorButtonNormal">@color/colorPrimary</item>
     </style>
 
+    <style name="AppThemeDark">
+        <item name="colorButtonNormal">@color/colorPrimary</item>
+        <item name="android:colorButtonNormal">@color/colorPrimary</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:itemBackground">@color/background_dark_gray</item>
+    </style>
+
     <style name="shadowText" parent="@android:style/TextAppearance">
         <item name="android:textColor">@android:color/white</item>
         <item name="android:shadowColor">@android:color/black</item>

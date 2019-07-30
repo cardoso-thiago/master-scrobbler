@@ -8,7 +8,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import butterknife.BindView
 import butterknife.ButterKnife
 import com.kanedasoftware.masterscrobbler.R
@@ -27,6 +27,7 @@ import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import com.squareup.picasso.Picasso
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import io.multimoon.colorful.CAppCompatActivity
+import io.multimoon.colorful.Colorful
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
@@ -54,6 +55,9 @@ class MainActivity : CAppCompatActivity() {
     @JvmField
     @BindView(R.id.period)
     var periodSpinner: Spinner? = null
+    @JvmField
+    @BindView(R.id.text_recent_tracks)
+    var recentTracks: TextView? = null
 
     private var lastArtistsAlbumsSpinner = ""
     private var lastPeriodSpinner = ""
@@ -63,6 +67,8 @@ class MainActivity : CAppCompatActivity() {
         setContentView(R.layout.activity_main)
         ButterKnife.bind(this)
         setSupportActionBar(toolbar)
+
+        validateTheme()
 
         val user: String? = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_USER_TAG, "")
         if (Utils.isValidSessionKey(applicationContext)) {
@@ -83,6 +89,14 @@ class MainActivity : CAppCompatActivity() {
                     getRecentTracks(user)
                 }
             }
+        }
+    }
+
+    private fun validateTheme() {
+        if (Colorful().getDarkTheme()) {
+            username?.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
+            info?.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
+            recentTracks?.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
         }
     }
 
@@ -178,8 +192,12 @@ class MainActivity : CAppCompatActivity() {
 
     private fun initSpinners(user: String) {
         if (artistsAlbumsSpinner != null) {
-            val artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
+            var artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
             artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+            if(Colorful().getDarkTheme()){
+                artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album_dark, EnumArtistsAlbums.values())
+                artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
+            }
             artistsAlbumsSpinner!!.adapter = artistsAlbumsAdapter
             artistsAlbumsSpinner!!.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("artistsAlbums", 0))
 
@@ -197,8 +215,12 @@ class MainActivity : CAppCompatActivity() {
         }
 
         if (periodSpinner != null) {
-            val periodAdapter = ArrayAdapter<EnumPeriod>(this, R.layout.spinner_item_period, EnumPeriod.values())
+            var periodAdapter = ArrayAdapter<EnumPeriod>(this, R.layout.spinner_item_period, EnumPeriod.values())
             periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+            if(Colorful().getDarkTheme()){
+                periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period_dark, EnumPeriod.values())
+                periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
+            }
             periodSpinner!!.adapter = periodAdapter
             periodSpinner!!.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("period", 0))
 
@@ -238,7 +260,7 @@ class MainActivity : CAppCompatActivity() {
                             scrobbling = true
                         } else {
                             imageUrl = track.image.last().text
-                            if(imageUrl.isBlank()){
+                            if (imageUrl.isBlank()) {
                                 imageUrl = "https://tse2.mm.bing.net/th?q=${track.artist.name} ${track.name} Album&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                             }
                             timestamp = Utils.convertUTCToLocal(track.date.text)
@@ -307,7 +329,7 @@ class MainActivity : CAppCompatActivity() {
                 if (albums != null) {
                     for (album in albums) {
                         var imageUrl = album.image.last().text
-                        if(imageUrl.isBlank()){
+                        if (imageUrl.isBlank()) {
                             imageUrl = "https://tse2.mm.bing.net/th?q=${album.artist.name} ${album.name} Album&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                         }
                         val topBean = TopBean(imageUrl, album.name, album.artist.name)

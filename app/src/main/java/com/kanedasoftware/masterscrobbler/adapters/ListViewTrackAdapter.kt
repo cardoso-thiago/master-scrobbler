@@ -7,11 +7,13 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.RecentBean
 import com.kanedasoftware.masterscrobbler.components.SquaredImageView
 import com.squareup.picasso.Picasso
 import io.gresse.hugo.vumeterlibrary.VuMeterView
+import io.multimoon.colorful.Colorful
 import java.util.*
 
 internal class ViewHolder {
@@ -47,6 +49,12 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
         viewHolder.track?.text = beanList[position].track
         viewHolder.artist?.text = beanList[position].artist
         viewHolder.timestamp?.text = beanList[position].timestamp
+
+        if(Colorful().getDarkTheme()){
+            viewHolder.track?.setTextColor(ContextCompat.getColor(context, R.color.white))
+            viewHolder.artist?.setTextColor(ContextCompat.getColor(context, R.color.white))
+            viewHolder.timestamp?.setTextColor(ContextCompat.getColor(context, R.color.white))
+        }
 
         val albumImageUrl = beanList[position].imageUrl
         if (albumImageUrl.isBlank()) {
