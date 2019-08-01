@@ -72,14 +72,6 @@ class Utils {
             }
         }
 
-        fun logWarning(message: String, context: Context) {
-            val log = AnkoLogger(Constants.LOG_TAG)
-            log.warn(message)
-            if (isDebugMode(context)) {
-                appendLog("[WARN] - $message")
-            }
-        }
-
         fun logError(message: String, context: Context) {
             val log = AnkoLogger(Constants.LOG_TAG)
             log.error(message)
@@ -182,9 +174,9 @@ class Utils {
         }
 
         fun convertUTCToLocal(date: String): String {
-            val simpleDateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm")
+            val simpleDateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
             simpleDateFormat.timeZone = TimeZone.getTimeZone("UTC")
-            val outputSdf = SimpleDateFormat("dd MMM yyyy, HH:mm")
+            val outputSdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
             val localDate = simpleDateFormat.parse(date)
             return outputSdf.format(localDate)
         }
