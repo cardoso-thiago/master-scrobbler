@@ -86,6 +86,7 @@ class MainActivity : CAppCompatActivity() {
         fab.setOnClickListener {
             if (Utils.isValidSessionKey(applicationContext)) {
                 if (user != null) {
+                    initSpinners(user)
                     getRecentTracks(user)
                 }
             }

@@ -471,7 +471,7 @@ class MediaService : NotificationListenerService(),
         return if (response.isSuccessful) {
             val duration = response.body()?.track?.duration
             if (!duration.isNullOrBlank()) {
-                duration?.toLong()!!
+                duration.toLong()
             } else {
                 Utils.log("Não encontrou a duração no Metadata nem no Last.fm, assume um minuto de música.", applicationContext)
                 60000

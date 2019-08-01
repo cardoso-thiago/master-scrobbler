@@ -2,6 +2,7 @@
 
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:paddingLeft="24dp"
@@ -35,8 +36,10 @@
                 android:id="@+id/input_login"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:autofillHints="username"
                 android:hint="Last.fm Username"
-                android:inputType="text|textEmailAddress" />
+                android:inputType="text|textEmailAddress"
+                tools:targetApi="o" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -49,8 +52,10 @@
                 android:id="@+id/input_password"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:autofillHints="password"
                 android:hint="Password"
-                android:inputType="textPassword" />
+                android:inputType="textPassword"
+                tools:targetApi="o" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <androidx.appcompat.widget.AppCompatButton
@@ -68,7 +73,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:indeterminate="true"
-            android:indeterminateTint="@color/colorPrimary"
+            android:indeterminateTint="@color/red"
             app:mpb_progressStyle="horizontal"
             app:mpb_useIntrinsicPadding="false" />
     </LinearLayout>

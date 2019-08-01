@@ -57,6 +57,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
+        android:contentDescription="Album image"
         android:layout_marginEnd="16dp" />
 
     <io.gresse.hugo.vumeterlibrary.VuMeterView

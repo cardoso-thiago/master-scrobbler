@@ -1,13 +1,13 @@
 <resources>
 
     <style name="AppTheme">
-        <item name="colorButtonNormal">@color/colorPrimary</item>
-        <item name="android:colorButtonNormal">@color/colorPrimary</item>
+        <item name="colorButtonNormal">@color/red</item>
+        <item name="android:colorButtonNormal">@color/red</item>
     </style>
 
     <style name="AppThemeDark">
-        <item name="colorButtonNormal">@color/colorPrimary</item>
-        <item name="android:colorButtonNormal">@color/colorPrimary</item>
+        <item name="colorButtonNormal">@color/red</item>
+        <item name="android:colorButtonNormal">@color/red</item>
         <item name="android:textColor">@android:color/white</item>
         <item name="android:itemBackground">@color/background_dark_gray</item>
     </style>
