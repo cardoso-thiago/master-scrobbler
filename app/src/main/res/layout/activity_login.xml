@@ -11,14 +11,14 @@
 
     <ImageView
         android:id="@+id/last_fm_logo"
-        android:layout_width="96dp"
-        android:layout_height="96dp"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="48dp"
         android:layout_marginBottom="96dp"
         android:contentDescription="Last.fm Logo"
-        android:src="@drawable/ic_lastfm" />
+        android:src="@mipmap/ic_lasfm" />
 
     <LinearLayout
         android:id="@+id/form_login"
@@ -65,6 +65,7 @@
             android:layout_marginTop="48dp"
             android:padding="12dp"
             android:text="Login"
+            android:background="@color/red"
             android:textColor="@android:color/white" />
 
         <me.zhanghai.android.materialprogressbar.MaterialProgressBar

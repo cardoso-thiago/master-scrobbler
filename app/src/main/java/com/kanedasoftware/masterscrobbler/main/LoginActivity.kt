@@ -24,7 +24,6 @@ import de.adorsys.android.securestoragelibrary.SecurePreferences
 import io.multimoon.colorful.CAppCompatActivity
 import org.jetbrains.anko.doAsync
 
-
 class LoginActivity : CAppCompatActivity() {
 
     @JvmField

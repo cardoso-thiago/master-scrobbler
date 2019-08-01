@@ -28,6 +28,7 @@ import com.squareup.picasso.Picasso
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import io.multimoon.colorful.CAppCompatActivity
 import io.multimoon.colorful.Colorful
+import io.multimoon.colorful.ThemeColor
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
@@ -158,6 +159,11 @@ class MainActivity : CAppCompatActivity() {
                 SecurePreferences.clearAllValues(applicationContext)
                 applicationContext.defaultSharedPreferences.edit().clear().apply()
                 stopService()
+
+                //Volta ao tema original
+                Colorful().edit().setPrimaryColor(ThemeColor.RED).setAccentColor(ThemeColor.GREY)
+                        .setDarkTheme(false).setCustomThemeOverride(R.style.AppTheme).apply(applicationContext)
+
                 val intent = Intent(this, LoginActivity::class.java)
                 startActivity(intent)
                 return true
@@ -195,7 +201,7 @@ class MainActivity : CAppCompatActivity() {
         if (artistsAlbumsSpinner != null) {
             var artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
             artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
-            if(Colorful().getDarkTheme()){
+            if (Colorful().getDarkTheme()) {
                 artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album_dark, EnumArtistsAlbums.values())
                 artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
             }
@@ -218,7 +224,7 @@ class MainActivity : CAppCompatActivity() {
         if (periodSpinner != null) {
             var periodAdapter = ArrayAdapter<EnumPeriod>(this, R.layout.spinner_item_period, EnumPeriod.values())
             periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
-            if(Colorful().getDarkTheme()){
+            if (Colorful().getDarkTheme()) {
                 periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period_dark, EnumPeriod.values())
                 periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
             }

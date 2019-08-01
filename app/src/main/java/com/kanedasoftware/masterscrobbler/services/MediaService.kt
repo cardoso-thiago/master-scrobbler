@@ -88,6 +88,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun startService() {
+        createCallback()
         if (Utils.isValidSessionKey(applicationContext)) {
             tryReconnectService()
             val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
@@ -98,7 +99,6 @@ class MediaService : NotificationListenerService(),
             createQuietNotificationChannel()
             createNotificationChannel()
             createNotification()
-            createCallback()
             createMediaSessionManager()
         }
     }
@@ -113,6 +113,7 @@ class MediaService : NotificationListenerService(),
         mediaSessionManager.removeOnActiveSessionsChangedListener(this)
         val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         defaultSharedPreferences.registerOnSharedPreferenceChangeListener(this)
+        createCallback()
         unregisterCallback(mediaController)
         stopForeground(true)
         stopSelf()
