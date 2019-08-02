@@ -74,12 +74,12 @@ class Utils {
         fun changeNotificationAccess(context: Context) {
             if (!verifyNotificationAccess(context)) {
                 AlertDialog.Builder(context)
-                        .setTitle("Acesso às Notificações")
-                        .setMessage("Para o aplicativo funcionar é necessário conceder acesso às notificações. Deseja abrir a configuração?")
-                        .setPositiveButton("Sim") { _, _ ->
+                        .setTitle(context.getString(R.string.notification_access))
+                        .setMessage(context.getString(R.string.question_notification_access))
+                        .setPositiveButton(context.getString(R.string.option_yes)) { _, _ ->
                             context.startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
                         }
-                        .setNegativeButton("Sair") { _, _ ->
+                        .setNegativeButton(context.getString(R.string.option_exit)) { _, _ ->
                             android.os.Process.killProcess(android.os.Process.myPid())
                             System.exit(1)
                         }
@@ -130,8 +130,8 @@ class Utils {
 
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val notif = NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
-                    .setContentTitle("New Player Identified")
-                    .setContentText("Player $player identified. Touch to add the player to scrobble.")
+                    .setContentTitle(context.getString(R.string.new_player_identified))
+                    .setContentText(context.getString(R.string.player_identified, player))
                     .setSmallIcon(R.drawable.ic_stat_cassette)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setContentIntent(pendingIntent)

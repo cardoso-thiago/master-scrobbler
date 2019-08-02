@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <MultiSelectListPreference
-        android:dialogTitle="Apps to Scrobble"
+        android:dialogTitle="@string/apps_to_scrobble"
         android:key="apps_to_scrobble"
-        android:summary="Select the apps to scrobble"
-        android:title="Apps to Scrobble" />
+        android:summary="@string/select_apps_scrobble"
+        android:title="@string/apps_to_scrobble" />
 
     <ListPreference
-        android:dialogTitle="Themes"
+        android:dialogTitle="@string/themes"
         android:key="app_themes"
-        android:summary="Choose the app theme"
-        android:title="Themes" />
+        android:summary="@string/choose_app_theme"
+        android:title="@string/themes" />
 </PreferenceScreen>
