@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        android:key="debug_mode"
-        android:summary="Enable debug mode to save log to file"
-        android:title="Debug Mode" />
-
     <MultiSelectListPreference
         android:dialogTitle="Apps to Scrobble"
         android:key="apps_to_scrobble"
@@ -17,5 +11,4 @@
         android:key="app_themes"
         android:summary="Choose the app theme"
         android:title="Themes" />
-
 </PreferenceScreen>

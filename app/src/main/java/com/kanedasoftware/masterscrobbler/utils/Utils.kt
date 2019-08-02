@@ -22,11 +22,10 @@ import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.main.MainActivity
 import com.kanedasoftware.masterscrobbler.main.SettingsActivity
 import de.adorsys.android.securestoragelibrary.SecurePreferences
-import org.jetbrains.anko.*
-import java.io.BufferedWriter
-import java.io.File
-import java.io.FileWriter
-import java.io.IOException
+import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.debug
+import org.jetbrains.anko.error
+import org.jetbrains.anko.info
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
@@ -34,8 +33,6 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
-
-const val KEY_PREF_DEBUG_MODE = "debug_mode"
 private val metaSpam = arrayOf("downloaded", ".com", ".co.", "www.", ".br")
 
 class Utils {
@@ -55,35 +52,22 @@ class Utils {
             return String.format("%032x", BigInteger(1, MessageDigest.getInstance("MD5").digest(sigFormat.toByteArray(Charsets.UTF_8))))
         }
 
-        fun logDebug(message: String, context: Context) {
+        fun logDebug(message: String) {
             val log = AnkoLogger(Constants.LOG_TAG)
             log.debug(message)
-            if (isDebugMode(context)) {
-                appendLog("[DEBUG] - $message")
-            }
         }
 
 
-        fun log(message: String, context: Context) {
+        fun log(message: String) {
             val log = AnkoLogger(Constants.LOG_TAG)
             log.info(message)
-            if (isDebugMode(context)) {
-                appendLog("[INFO] - $message")
-            }
         }
 
-        fun logError(message: String, context: Context) {
+        fun logError(message: String) {
             val log = AnkoLogger(Constants.LOG_TAG)
             log.error(message)
-            if (isDebugMode(context)) {
-                appendLog("[ERROR] - $message")
-            }
         }
 
-        private fun isDebugMode(context: Context): Boolean {
-            val sharedPref = PreferenceManager.getDefaultSharedPreferences(context)
-            return sharedPref.getBoolean(KEY_PREF_DEBUG_MODE, false)
-        }
 
         fun verifyNotificationAccess(context: Context) = NotificationManagerCompat.getEnabledListenerPackages(context).contains("com.kanedasoftware.masterscrobbler")
 
@@ -174,37 +158,11 @@ class Utils {
         }
 
         fun convertUTCToLocal(date: String): String {
-            val simpleDateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+            val simpleDateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.US)
             simpleDateFormat.timeZone = TimeZone.getTimeZone("UTC")
             val outputSdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
             val localDate = simpleDateFormat.parse(date)
             return outputSdf.format(localDate)
-        }
-
-        private fun appendLog(text: String) {
-            val logFile = File("sdcard/MasterScrobbler/MasterScrobbler.log")
-            val sdf = SimpleDateFormat("dd/MM/yyyy hh:mm:ss", Locale.getDefault())
-            val currentDate = sdf.format(Date())
-            if (!logFile.exists()) {
-                try {
-                    logFile.createNewFile()
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                }
-            }
-            var buf: BufferedWriter? = null
-            try {
-                buf = BufferedWriter(FileWriter(logFile, true))
-                buf.append("$currentDate - $text")
-                buf.newLine()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            } finally {
-                if (buf != null) {
-                    buf.flush()
-                    buf.close()
-                }
-            }
         }
 
         fun setListViewHeightBasedOnItems(listView: ListView) {
@@ -284,6 +242,17 @@ class Utils {
 
         fun isValidSessionKey(context: Context): Boolean {
             return !SecurePreferences.getStringValue(context, Constants.SECURE_SESSION_TAG, "").isNullOrBlank()
+        }
+
+        fun getPeriodParameter(context: Context, value: String): String {
+            return when (value) {
+                context.getString(R.string.period_7day) -> "7day"
+                context.getString(R.string.period_1month) -> "1month"
+                context.getString(R.string.period_3month) -> "3month"
+                context.getString(R.string.period_6month) -> "6month"
+                context.getString(R.string.period_12month) -> "12month"
+                else -> "overall"
+            }
         }
     }
 }

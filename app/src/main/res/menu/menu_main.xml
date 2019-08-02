@@ -11,6 +11,6 @@
     <item
         android:id="@+id/action_Logoff"
         android:orderInCategory="200"
-        android:title="Logoff"
+        android:title="@string/action_logoff"
         app:showAsAction="never" />
 </menu>

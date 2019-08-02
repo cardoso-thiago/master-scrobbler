@@ -9,11 +9,11 @@ import android.widget.TextView
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.TopBean
 import com.kanedasoftware.masterscrobbler.components.SquaredImageView
-import com.kanedasoftware.masterscrobbler.enums.EnumTopType
+import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.squareup.picasso.Picasso
 import java.util.*
 
-internal class GridViewTopAdapter(private val context: Context, beanList: ArrayList<TopBean>, type: EnumTopType) : BaseAdapter() {
+internal class GridViewTopAdapter(private val context: Context, beanList: ArrayList<TopBean>, type: String) : BaseAdapter() {
 
     private val list = beanList
     private val gridType = type
@@ -22,7 +22,7 @@ internal class GridViewTopAdapter(private val context: Context, beanList: ArrayL
         val gridViewAndroid: View
         val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         if (convertView == null) {
-            if (gridType == EnumTopType.ARTIST) {
+            if (gridType == Constants.ARTISTS) {
                 gridViewAndroid = inflater.inflate(R.layout.gridview_artist_layout, parent, false)
                 val textArtist = gridViewAndroid.findViewById<View>(R.id.gridview_artist_text) as TextView
                 textArtist.text = list[position].text1
