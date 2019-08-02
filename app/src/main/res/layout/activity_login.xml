@@ -17,7 +17,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="48dp"
         android:layout_marginBottom="96dp"
-        android:contentDescription="Last.fm Logo"
+        android:contentDescription="@string/last_fm_logo"
         android:src="@mipmap/ic_lasfm" />
 
     <LinearLayout
@@ -37,7 +37,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:autofillHints="username"
-                android:hint="Last.fm Username"
+                android:hint="@string/last_fm_username"
                 android:inputType="text|textEmailAddress"
                 tools:targetApi="o" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -53,7 +53,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:autofillHints="password"
-                android:hint="Password"
+                android:hint="@string/last_fm_password"
                 android:inputType="textPassword"
                 tools:targetApi="o" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -64,7 +64,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="48dp"
             android:padding="12dp"
-            android:text="Login"
+            android:text="@string/button_login"
             android:background="@color/red"
             android:textColor="@android:color/white" />
 

@@ -13,6 +13,9 @@ class Constants {
         const val START_SERVICE = "startService"
         const val STOP_SERVICE = "stopService"
 
+        const val ARTISTS = "artists"
+        const val ALBUMS = "albums"
+
         const val API_GET_MOBILE_SESSION = "auth.getMobileSession"
         const val API_UPDATE_NOW_PLAYING = "track.updateNowPlaying"
         const val API_TRACK_SCROBBLE = "track.scrobble"

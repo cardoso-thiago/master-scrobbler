@@ -80,14 +80,14 @@ class LoginActivity : CAppCompatActivity() {
         val password = passwordText?.text.toString()
 
         if (login.isEmpty()) {
-            loginText?.error = "enter a login user"
+            loginText?.error = getString(R.string.error_username)
             valid = false
         } else {
             loginText?.error = null
         }
 
         if (password.isEmpty()) {
-            passwordText?.error = "enter the password"
+            passwordText?.error = getString(R.string.error_password)
             valid = false
         } else {
             passwordText?.error = null
@@ -136,15 +136,15 @@ class LoginActivity : CAppCompatActivity() {
                     } else {
                         val errorInfo = Gson().fromJson(response.errorBody()?.charStream(), ErrorInfo::class.java)
                         when (errorInfo.error) {
-                            4 -> onLoginFailed("Falha na autenticação, verifique o usuário e senha do Last.fm")
-                            11 -> onLoginFailed("O serviço do Last.fm está temporariamente offline, tente novamente mais tarde")
-                            16 -> onLoginFailed("Erro temporário processando o login, por favor, tente novamente")
-                            29 -> onLoginFailed("O seu IP fez muitas requisições em um curto espaço de tempo")
+                            4 -> onLoginFailed(getString(R.string.authentication_failed))
+                            11 -> onLoginFailed(getString(R.string.service_offline))
+                            16 -> onLoginFailed(getString(R.string.try_again))
+                            29 -> onLoginFailed(getString(R.string.too_much_requisitions))
                         }
                     }
                 }
             } else {
-                onLoginFailed("Erro ao fazer o login, por favor, verifique a sua conexão.")
+                onLoginFailed(getString(R.string.connection_error))
             }
         } else {
             onLoginSuccess()

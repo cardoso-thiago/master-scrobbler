@@ -22,6 +22,7 @@ import android.preference.PreferenceManager
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import com.google.gson.Gson
+import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
 import com.kanedasoftware.masterscrobbler.db.ScrobbleDb
 import com.kanedasoftware.masterscrobbler.main.LoginActivity
@@ -59,7 +60,7 @@ class MediaService : NotificationListenerService(),
 
     private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
         override fun onFinish() {
-            Utils.logDebug("Finish timer. Duration: ${playtime + playtimeHolder}", applicationContext)
+            Utils.logDebug("Finish timer. Duration: ${playtime + playtimeHolder}")
             //Faz scrobble do que estiver pendente
             scrobblePendingAsync(playtime.plus(playtimeHolder), finalDuration, finalAlbum)
             playtime = 0L
@@ -141,10 +142,10 @@ class MediaService : NotificationListenerService(),
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(
                     Constants.QUIET_NOTIFICATION_CHANNEL,
-                    "Master Scrobbler",
+                    getString(R.string.app_name),
                     NotificationManager.IMPORTANCE_LOW
             )
-            notificationChannel.description = "Foreground Service"
+            notificationChannel.description = getString(R.string.foreground_service)
             notificationChannel.setSound(null, null)
             notificationChannel.enableLights(true)
             notificationChannel.lightColor = Color.WHITE
@@ -162,10 +163,10 @@ class MediaService : NotificationListenerService(),
                     .build()
             val notificationChannel = NotificationChannel(
                     Constants.NOTIFICATION_CHANNEL,
-                    "Master Scrobbler",
+                    getString(R.string.app_name),
                     NotificationManager.IMPORTANCE_DEFAULT
             )
-            notificationChannel.description = "Master Scrobble Notifications"
+            notificationChannel.description = getString(R.string.master_scrobbler_notifications)
             notificationChannel.enableLights(true)
             notificationChannel.lightColor = Color.WHITE
             notificationChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAtt)
@@ -176,7 +177,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun createNotification() {
-        val notification = Utils.buildNotification(applicationContext, "Master Scrobbler", "Service is Running")
+        val notification = Utils.buildNotification(applicationContext, getString(R.string.app_name), getString(R.string.service_running))
         startForeground(Constants.NOTIFICATION_ID, notification)
     }
 
@@ -184,7 +185,7 @@ class MediaService : NotificationListenerService(),
         mediaControllerCallback = object : MediaController.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackState?) {
                 playbackState = state?.state!!
-                Utils.logDebug(playbackState.toString(), applicationContext)
+                Utils.logDebug("Playback state: $playbackState")
                 when (state.state) {
                     PlaybackState.STATE_PAUSED -> {
                         pauseTimer()
@@ -202,7 +203,7 @@ class MediaService : NotificationListenerService(),
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-        Utils.log("Preference changed: $key", applicationContext)
+        Utils.log("Preference changed: $key")
         if (key == "apps_to_scrobble") {
             createMediaSessionManager()
         }
@@ -227,10 +228,10 @@ class MediaService : NotificationListenerService(),
             if (playbackState == PlaybackState.STATE_PLAYING) {
                 if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2))) {
                     timer.onFinish()
-                    Utils.log("Duração até o momento $playtimeHolder", applicationContext)
+                    Utils.log("Duração até o momento $playtimeHolder")
                     timer.start()
 
-                    Utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState", applicationContext)
+                    Utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState")
                     if (album == null) {
                         album = ""
                     }
@@ -250,14 +251,14 @@ class MediaService : NotificationListenerService(),
                         doAsync {
                             val scrobbleValidationBean = allValidations(scrobbleBean)
                             if (scrobbleValidationBean == null) {
-                                Utils.log("Não conseguiu validar a música, não será realizado o scrobble.", applicationContext)
+                                Utils.log("Não conseguiu validar a música, não será realizado o scrobble.")
                             } else {
                                 if (!scrobbleBean.validationError) {
                                     uiThread {
                                         val artistImageUrl = "https://tse2.mm.bing.net/th?q=${scrobbleBean.artist} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                                         val target = object : com.squareup.picasso.Target {
                                             override fun onBitmapFailed(e: java.lang.Exception?, errorDrawable: Drawable?) {
-                                                Utils.updateNotification(applicationContext, "Scrobbling", "${scrobbleBean.artist} - ${scrobbleBean.track}")
+                                                Utils.updateNotification(applicationContext, getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}")
                                             }
 
                                             override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
@@ -265,36 +266,36 @@ class MediaService : NotificationListenerService(),
                                             }
 
                                             override fun onBitmapLoaded(bitmap: Bitmap?, from: Picasso.LoadedFrom?) {
-                                                Utils.updateNotification(applicationContext, "Scrobbling", "${scrobbleBean.artist} - ${scrobbleBean.track}", bitmap)
+                                                Utils.updateNotification(applicationContext, getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}", bitmap)
                                             }
                                         }
                                         Picasso.get().load(artistImageUrl).into(target)
 
-                                        Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble (toScrobble)", applicationContext)
+                                        Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble (toScrobble)")
                                         toScrobble = scrobbleValidationBean
                                     }
                                     updateNowPlaying(scrobbleValidationBean)
                                 } else {
-                                    Utils.log("Erro de validação, vai armazenar a música  para o próximo scrobble (toScrobble)", applicationContext)
+                                    Utils.log("Erro de validação, vai armazenar a música  para o próximo scrobble (toScrobble)")
                                     toScrobble = scrobbleBean
                                 }
                             }
                         }
                     } else {
-                        Utils.log("Não está online, vai armazenar a música para o próximo scrobble (toScrobble)", applicationContext)
+                        Utils.log("Não está online, vai armazenar a música para o próximo scrobble (toScrobble)")
                         toScrobble = scrobbleBean
                     }
                 } else {
-                    Utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata, mas será atualizada a duração da música e o álbum.", applicationContext)
+                    Utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata, mas será atualizada a duração da música e o álbum.")
                     if (finalDuration != duration) {
                         finalDuration = duration
                         Utils.log("Duração Atualizada - Em milisegundos: $duration - " +
                                 "Em segundos: ${TimeUnit.MILLISECONDS.toSeconds(duration)} - " +
-                                "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(duration)}", applicationContext)
+                                "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(duration)}")
                     }
                     if (album != null) {
                         if (finalAlbum != Utils.clearAlbum(album)) {
-                            Utils.log("Album atualizado de $finalAlbum para $album", applicationContext)
+                            Utils.log("Album atualizado de $finalAlbum para $album")
                             finalAlbum = Utils.clearAlbum(album)
                         }
                     }
@@ -304,7 +305,7 @@ class MediaService : NotificationListenerService(),
     }
 
     override fun onActiveSessionsChanged(controllers: MutableList<MediaController>?) {
-        Utils.logDebug("Active Sessions Changed", applicationContext)
+        Utils.logDebug("Active Sessions Changed")
         if (controllers != null) {
             //Se não tem controles ativos envia um broadcast para o receiver sem artista, para fazer scrobble de alguma possível música pendente
             if (controllers.size == 0) {
@@ -342,17 +343,18 @@ class MediaService : NotificationListenerService(),
                         registerCallback(mediaController)
                     }
                 } else {
-                    Utils.log("Nenhum app ativo para scrobble. App ativo ${activeMediaController?.packageName}", applicationContext)
+                    Utils.log("Nenhum app ativo para scrobble. App ativo ${activeMediaController?.packageName}")
                 }
             } else {
-                Utils.log("Nenhum app selecionado para scrobble.", applicationContext)
+                Utils.log("Nenhum app selecionado para scrobble.")
             }
         }
     }
 
+    //TODO melhorar nível dos logs
     private fun registerCallback(newMediaController: MediaController) {
         unregisterCallback(this.mediaController)
-        Utils.log("Registering callback for ${newMediaController.packageName}", applicationContext)
+        Utils.log("Registering callback for ${newMediaController.packageName}")
 
         if (newMediaController.playbackState != null) {
             //Atualiza o estado atual do playback
@@ -368,7 +370,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun unregisterCallback(mediaController: MediaController?) {
-        Utils.log("Unregistering callback for ${mediaController?.packageName}", applicationContext)
+        Utils.log("Unregistering callback for ${mediaController?.packageName}")
         mediaControllerCallback.let { mediaControllerCallback ->
             mediaController?.unregisterCallback(mediaControllerCallback)
         }
@@ -381,7 +383,7 @@ class MediaService : NotificationListenerService(),
                 val scrobbleBeanValidationBean = validateTrack(scrobbleBean)
                 if (scrobbleBeanValidationBean != null) {
                     if (scrobbleBeanValidationBean.duration == 0L) {
-                        Utils.log("Não conseguiu obter a duração no metadata, vai tentar obter no Last.fm", applicationContext)
+                        Utils.log("Não conseguiu obter a duração no metadata, vai tentar obter no Last.fm")
                         scrobbleBeanValidationBean.duration = getFullTrackInfo(scrobbleBeanValidationBean)
                     }
                 }
@@ -402,7 +404,7 @@ class MediaService : NotificationListenerService(),
                 for (artist in artistList) {
                     if (!artist.mbid.isBlank() || !artist.image[0].text.isBlank()) {
                         if (scrobbleBean.artist == artist.name) {
-                            Utils.log("Encontrou o artista ${scrobbleBean.artist} no Last.fm, assume que a música está correta.", applicationContext)
+                            Utils.log("Encontrou o artista ${scrobbleBean.artist} no Last.fm, assume que a música está correta.")
                             scrobbleBean.validated = true
                             return scrobbleBean
                         }
@@ -410,7 +412,7 @@ class MediaService : NotificationListenerService(),
                 }
             }
         } else {
-            Utils.logError("Erro na validação da música: ${responseArtist.code()}", applicationContext)
+            Utils.logError("Erro na validação da música: ${responseArtist.code()}")
             scrobbleBean.validated = false
             scrobbleBean.validationError = true
             return scrobbleBean
@@ -427,13 +429,13 @@ class MediaService : NotificationListenerService(),
                             scrobbleBean.track = track.name
                             scrobbleBean.mbid = track.mbid
                             scrobbleBean.validated = true
-                            Utils.log("Música validada na busca padrão: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
+                            Utils.log("Música validada na busca padrão: ${scrobbleBean.artist} - ${scrobbleBean.track}")
                             return scrobbleBean
                         }
                     }
                 }
             } else {
-                Utils.logError("Erro na validação da música: ${responseTrackArtist.code()}", applicationContext)
+                Utils.logError("Erro na validação da música: ${responseTrackArtist.code()}")
 
                 scrobbleBean.validated = false
                 scrobbleBean.validationError = true
@@ -451,13 +453,13 @@ class MediaService : NotificationListenerService(),
                                 scrobbleBean.track = track.name
                                 scrobbleBean.mbid = track.mbid
                                 scrobbleBean.validated = true
-                                Utils.log("Música validada na busca somente pelo nome: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
+                                Utils.log("Música validada na busca somente pelo nome: ${scrobbleBean.artist} - ${scrobbleBean.track}")
                                 return scrobbleBean
                             }
                         }
                     }
                 } else {
-                    Utils.logError("Erro na validação da música: ${responseTrack.code()}", applicationContext)
+                    Utils.logError("Erro na validação da música: ${responseTrack.code()}")
                     scrobbleBean.validated = false
                     scrobbleBean.validationError = true
                     return scrobbleBean
@@ -474,11 +476,11 @@ class MediaService : NotificationListenerService(),
             if (!duration.isNullOrBlank()) {
                 duration.toLong()
             } else {
-                Utils.log("Não encontrou a duração no Metadata nem no Last.fm, assume um minuto de música.", applicationContext)
+                Utils.log("Não encontrou a duração no Metadata nem no Last.fm, assume um minuto de música.")
                 60000
             }
         } else {
-            Utils.logError("Erro na obtenção das informações completas da música: ${response.code()}. Vai retornar um minuto de música.", applicationContext)
+            Utils.logError("Erro na obtenção das informações completas da música: ${response.code()}. Vai retornar um minuto de música.")
             60000
         }
     }
@@ -496,9 +498,9 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun scrobblePendingAsync(playtimeHolder: Long, finalDuration: Long, finalAlbum: String) {
-        Utils.log("ScrobblePendingAsync ${toScrobble?.artist} - ${toScrobble?.track}", applicationContext)
+        Utils.log("ScrobblePendingAsync ${toScrobble?.artist} - ${toScrobble?.track}")
         val scrobbleBean = toScrobble
-        Utils.logDebug("Vai zerar o toScrobble", applicationContext)
+        Utils.logDebug("Vai zerar o toScrobble")
         toScrobble = null
         if (scrobbleBean != null) {
             scrobbleBean.playtime = scrobbleBean.playtime + playtimeHolder
@@ -512,11 +514,11 @@ class MediaService : NotificationListenerService(),
 
     private fun scrobble(scrobbleBean: ScrobbleBean) {
         if (scrobbleBean.duration <= 30000) {
-            Utils.log("Música muito curta, não será realizado o scrobble: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track), applicationContext)
+            Utils.log("Música muito curta, não será realizado o scrobble: ".plus(scrobbleBean.artist).plus(" - ").plus(scrobbleBean.track))
         } else {
             Utils.log("Execução - Em milisegundos: ${scrobbleBean.playtime} - " +
                     "Em segundos: ${TimeUnit.MILLISECONDS.toSeconds(scrobbleBean.playtime)} - " +
-                    "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.playtime)}", applicationContext)
+                    "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(scrobbleBean.playtime)}")
             if (scrobbleBean.playtime > (scrobbleBean.duration / 2)) {
                 if (isOnline && scrobbleBean.validated) {
                     val sessionKey = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_SESSION_TAG, "")
@@ -527,9 +529,9 @@ class MediaService : NotificationListenerService(),
                     try {
                         val response = RetrofitInitializer(applicationContext).lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, scrobbleBean.album, Constants.API_KEY, sig, sessionKey, timestamp).execute()
                         if (response.isSuccessful) {
-                            Utils.log("Scrobbeled: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
+                            Utils.log("Scrobbeled: ${scrobbleBean.artist} - ${scrobbleBean.track}")
                         } else {
-                            Utils.logError("Erro ao fazer o scrobble, adiciona ao cache para tentar novamente depois: ${response.code()}", applicationContext)
+                            Utils.logError("Erro ao fazer o scrobble, adiciona ao cache para tentar novamente depois: ${response.code()}")
                             cacheScrobble(scrobbleBean)
                             verifySessionKey(response.errorBody())
                         }
@@ -540,7 +542,7 @@ class MediaService : NotificationListenerService(),
                     cacheScrobble(scrobbleBean)
                 }
             } else {
-                Utils.log("Tempo de execução não alcançou ao menos metade da música, não será feito o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
+                Utils.log("Tempo de execução não alcançou ao menos metade da música, não será feito o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}")
             }
         }
     }
@@ -557,23 +559,23 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun cacheScrobble(scrobbleBean: ScrobbleBean) {
-        Utils.log("Caching scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
+        Utils.log("Caching scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}")
         ScrobbleDb.getInstance(applicationContext).scrobbleDao().add(scrobbleBean)
     }
 
     private fun pauseTimer() {
-        Utils.logDebug("Pause timer. Duração até aqui: ${playtime + playtimeHolder}", applicationContext)
+        Utils.logDebug("Pause timer. Duração até aqui: ${playtime + playtimeHolder}")
         timer.cancel()
         paused = true
     }
 
     private fun resumeTimer() {
-        Utils.logDebug("Resume timer", applicationContext)
+        Utils.logDebug("Resume timer")
         if (paused) {
-            Utils.logDebug("Resumed timer", applicationContext)
+            Utils.logDebug("Resumed timer")
             playtimeHolder += playtime
             paused = false
-            Utils.log("Execução até o momento $playtimeHolder", applicationContext)
+            Utils.log("Execução até o momento $playtimeHolder")
             timer.start()
         }
     }
@@ -583,7 +585,7 @@ class MediaService : NotificationListenerService(),
         connectionLiveData.let {
             it?.observeForever { isConnected ->
                 isConnected?.let {
-                    Utils.log("Connection state: $isConnected", applicationContext)
+                    Utils.log("Connection state: $isConnected")
                     isOnline = isConnected
                     if (isConnected) {
                         //Fazer scrobbles pendentes
@@ -595,32 +597,32 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun validateAndScrobblePending() {
-        Utils.log("Scrobbling pending cache", applicationContext)
+        Utils.log("Scrobbling pending cache")
         if (isOnline) {
             val scrobbleDao = ScrobbleDb.getInstance(applicationContext).scrobbleDao()
             val scrobbles = scrobbleDao.getAll()
             for (scrobbleBean in scrobbles) {
                 if (scrobbleBean.validated) {
-                    Utils.log("Scrobble já validado, só registra no Last.FM: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
+                    Utils.log("Scrobble já validado, só registra no Last.FM: ${scrobbleBean.artist} - ${scrobbleBean.track}")
                     doAsync {
                         scrobble(scrobbleBean)
                     }
                 } else {
                     doAsync {
-                        Utils.log("Vai fazer a validação e em seguida o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}", applicationContext)
+                        Utils.log("Vai fazer a validação e em seguida o scrobble: ${scrobbleBean.artist} - ${scrobbleBean.track}")
                         val scrobbleValidationBean = allValidations(scrobbleBean)
                         if (scrobbleValidationBean != null) {
-                            Utils.log("Música validada ${scrobbleBean.artist} - ${scrobbleBean.track}. Vai encaminhar pro scrobble.", applicationContext)
+                            Utils.log("Música validada ${scrobbleBean.artist} - ${scrobbleBean.track}. Vai encaminhar pro scrobble.")
                             scrobble(scrobbleValidationBean)
                         } else {
-                            Utils.log("Não foi possível validar a música, não será feito o scrobble.", applicationContext)
+                            Utils.log("Não foi possível validar a música, não será feito o scrobble.")
                         }
                     }
                 }
                 scrobbleDao.delete(scrobbleBean)
             }
         } else {
-            Utils.log("Não vai sincronizar o cache, não está online", applicationContext)
+            Utils.log("Não vai sincronizar o cache, não está online")
         }
     }
 }

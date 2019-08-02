@@ -16,9 +16,6 @@ import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
 import com.kanedasoftware.masterscrobbler.adapters.ListViewTrackAdapter
 import com.kanedasoftware.masterscrobbler.beans.RecentBean
 import com.kanedasoftware.masterscrobbler.beans.TopBean
-import com.kanedasoftware.masterscrobbler.enums.EnumArtistsAlbums
-import com.kanedasoftware.masterscrobbler.enums.EnumPeriod
-import com.kanedasoftware.masterscrobbler.enums.EnumTopType
 import com.kanedasoftware.masterscrobbler.picasso.CircleTransformation
 import com.kanedasoftware.masterscrobbler.services.MediaService
 import com.kanedasoftware.masterscrobbler.utils.Constants
@@ -63,11 +60,36 @@ class MainActivity : CAppCompatActivity() {
     private var lastArtistsAlbumsSpinner = ""
     private var lastPeriodSpinner = ""
 
+    private var topArtists:String = ""
+    private var topAlbums:String = ""
+    private lateinit var valuesArtistsAlbums:List<String>
+
+    private var sevenDays:String = ""
+    private var oneMonth:String = ""
+    private var threeMonths:String = ""
+    private var sixMonths:String = ""
+    private var oneYear:String = ""
+    private var overall:String = ""
+    private lateinit var valuesPeriods:List<String>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         ButterKnife.bind(this)
         setSupportActionBar(toolbar)
+
+        //Obtém os resources
+        topArtists = getString(R.string.top_artists)
+        topAlbums = getString(R.string.top_albums)
+        valuesArtistsAlbums = mutableListOf(topArtists, topAlbums)
+
+        sevenDays = getString(R.string.period_7day)
+        oneMonth= getString(R.string.period_1month)
+        threeMonths= getString(R.string.period_3month)
+        sixMonths= getString(R.string.period_6month)
+        oneYear= getString(R.string.period_12month)
+        overall= getString(R.string.period_overall)
+        valuesPeriods = mutableListOf(sevenDays, oneMonth, threeMonths, sixMonths, oneYear, overall)
 
         validateTheme()
 
@@ -173,7 +195,6 @@ class MainActivity : CAppCompatActivity() {
     }
 
     private fun getUserInfo(user: String) {
-        Utils.log("User Info", applicationContext)
         doAsync {
             val response = RetrofitInitializer(applicationContext).lastFmService().userInfo(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
@@ -198,11 +219,12 @@ class MainActivity : CAppCompatActivity() {
     }
 
     private fun initSpinners(user: String) {
+        //TODO melhorar o tratamento do dark theme para mudar somente os layouts
         if (artistsAlbumsSpinner != null) {
-            var artistsAlbumsAdapter = ArrayAdapter<EnumArtistsAlbums>(this, R.layout.spinner_item_artist_album, EnumArtistsAlbums.values())
+            var artistsAlbumsAdapter = ArrayAdapter<String>(this, R.layout.spinner_item_artist_album, valuesArtistsAlbums)
             artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
             if (Colorful().getDarkTheme()) {
-                artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album_dark, EnumArtistsAlbums.values())
+                artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album_dark, valuesArtistsAlbums)
                 artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
             }
             artistsAlbumsSpinner!!.adapter = artistsAlbumsAdapter
@@ -215,17 +237,17 @@ class MainActivity : CAppCompatActivity() {
 
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                     getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("artistsAlbums", position).apply()
-                    val artistImage = parent?.getItemAtPosition(position) as EnumArtistsAlbums
-                    searchImages(user, artistImage, periodSpinner?.selectedItem as EnumPeriod)
+                    val artistImage = parent?.getItemAtPosition(position).toString()
+                    searchImages(user, artistImage, periodSpinner?.selectedItem.toString())
                 }
             }
         }
 
         if (periodSpinner != null) {
-            var periodAdapter = ArrayAdapter<EnumPeriod>(this, R.layout.spinner_item_period, EnumPeriod.values())
+            var periodAdapter = ArrayAdapter<String>(this, R.layout.spinner_item_period, valuesPeriods)
             periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
             if (Colorful().getDarkTheme()) {
-                periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period_dark, EnumPeriod.values())
+                periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period_dark, valuesPeriods)
                 periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
             }
             periodSpinner!!.adapter = periodAdapter
@@ -239,15 +261,14 @@ class MainActivity : CAppCompatActivity() {
 
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                     getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("period", position).apply()
-                    val period = parent?.getItemAtPosition(position) as EnumPeriod
-                    searchImages(user, artistsAlbumsSpinner?.selectedItem as EnumArtistsAlbums, period)
+                    val period = parent?.getItemAtPosition(position).toString()
+                    searchImages(user, artistsAlbumsSpinner?.selectedItem.toString(), period)
                 }
             }
         }
     }
 
     private fun getRecentTracks(user: String) {
-        Utils.log("Recent Tracks", applicationContext)
         doAsync {
             val recentTracksList = ArrayList<RecentBean>()
             val response = RetrofitInitializer(applicationContext).lastFmService().recentTracks(user, Constants.API_KEY).execute()
@@ -287,13 +308,13 @@ class MainActivity : CAppCompatActivity() {
         }
     }
 
-    private fun searchImages(user: String, artistAlbum: EnumArtistsAlbums, period: EnumPeriod) {
-        if (artistAlbum.id == lastArtistsAlbumsSpinner && period.id == lastPeriodSpinner) {
-            Utils.log("Não houve mudança, não vai carregar de novo o grid", applicationContext)
+    private fun searchImages(user: String, artistAlbum: String, period: String) {
+        if (artistAlbum == lastArtistsAlbumsSpinner && period == lastPeriodSpinner) {
+            Utils.log("Não houve mudança, não vai carregar de novo o grid")
         } else {
-            lastArtistsAlbumsSpinner = artistAlbum.id
-            lastPeriodSpinner = period.id
-            if (artistAlbum == EnumArtistsAlbums.ARTISTS) {
+            lastArtistsAlbumsSpinner = artistAlbum
+            lastPeriodSpinner = period
+            if (artistAlbum == topArtists) {
                 getTopArtists(user, period)
             } else {
                 getTopAlbums(user, period)
@@ -301,11 +322,10 @@ class MainActivity : CAppCompatActivity() {
         }
     }
 
-    private fun getTopArtists(user: String, period: EnumPeriod) {
+    private fun getTopArtists(user: String, period: String) {
         doAsync {
-            Utils.log("Top Artists Grid", applicationContext)
             val response = RetrofitInitializer(applicationContext).lastFmService().topArtists(user,
-                    period.id, Constants.API_KEY).execute()
+                    Utils.getPeriodParameter(applicationContext, period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val artists = response.body()?.topartists?.artist
                 val list = ArrayList<TopBean>()
@@ -318,18 +338,17 @@ class MainActivity : CAppCompatActivity() {
                 }
                 uiThread {
                     if (gridView != null) {
-                        gridView!!.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ARTIST)
+                        gridView!!.adapter = GridViewTopAdapter(applicationContext, list, Constants.ARTISTS)
                     }
                 }
             }
         }
     }
 
-    private fun getTopAlbums(user: String, period: EnumPeriod) {
-        Utils.log("Top Albums Grid", applicationContext)
+    private fun getTopAlbums(user: String, period: String) {
         doAsync {
             val response = RetrofitInitializer(applicationContext).lastFmService().topAlbums(user,
-                    period.id, Constants.API_KEY).execute()
+                    Utils.getPeriodParameter(applicationContext, period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val albums = response.body()?.topalbums?.album
                 val list = ArrayList<TopBean>()
@@ -346,7 +365,7 @@ class MainActivity : CAppCompatActivity() {
                 }
                 uiThread {
                     if (gridView != null) {
-                        gridView!!.adapter = GridViewTopAdapter(applicationContext, list, EnumTopType.ALBUM)
+                        gridView!!.adapter = GridViewTopAdapter(applicationContext, list, Constants.ALBUMS)
                     }
                 }
             }
