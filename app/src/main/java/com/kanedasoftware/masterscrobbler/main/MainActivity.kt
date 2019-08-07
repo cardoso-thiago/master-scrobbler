@@ -7,6 +7,8 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.animation.Animation
+import android.view.animation.RotateAnimation
 import android.widget.*
 import androidx.core.content.ContextCompat
 import butterknife.BindView
@@ -30,6 +32,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
+
 
 class MainActivity : CAppCompatActivity() {
     @JvmField
@@ -60,17 +63,17 @@ class MainActivity : CAppCompatActivity() {
     private var lastArtistsAlbumsSpinner = ""
     private var lastPeriodSpinner = ""
 
-    private var topArtists:String = ""
-    private var topAlbums:String = ""
-    private lateinit var valuesArtistsAlbums:List<String>
+    private var topArtists: String = ""
+    private var topAlbums: String = ""
+    private lateinit var valuesArtistsAlbums: List<String>
 
-    private var sevenDays:String = ""
-    private var oneMonth:String = ""
-    private var threeMonths:String = ""
-    private var sixMonths:String = ""
-    private var oneYear:String = ""
-    private var overall:String = ""
-    private lateinit var valuesPeriods:List<String>
+    private var sevenDays: String = ""
+    private var oneMonth: String = ""
+    private var threeMonths: String = ""
+    private var sixMonths: String = ""
+    private var oneYear: String = ""
+    private var overall: String = ""
+    private lateinit var valuesPeriods: List<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,11 +87,11 @@ class MainActivity : CAppCompatActivity() {
         valuesArtistsAlbums = mutableListOf(topArtists, topAlbums)
 
         sevenDays = getString(R.string.period_7day)
-        oneMonth= getString(R.string.period_1month)
-        threeMonths= getString(R.string.period_3month)
-        sixMonths= getString(R.string.period_6month)
-        oneYear= getString(R.string.period_12month)
-        overall= getString(R.string.period_overall)
+        oneMonth = getString(R.string.period_1month)
+        threeMonths = getString(R.string.period_3month)
+        sixMonths = getString(R.string.period_6month)
+        oneYear = getString(R.string.period_12month)
+        overall = getString(R.string.period_overall)
         valuesPeriods = mutableListOf(sevenDays, oneMonth, threeMonths, sixMonths, oneYear, overall)
 
         validateTheme()
@@ -109,11 +112,26 @@ class MainActivity : CAppCompatActivity() {
         fab.setOnClickListener {
             if (Utils.isValidSessionKey(applicationContext)) {
                 if (user != null) {
+                    getUserInfo(user)
                     initSpinners(user)
                     getRecentTracks(user)
                 }
             }
         }
+    }
+
+    private fun startFabAnimation() {
+        val rotate = RotateAnimation(0f, 360f,
+                Animation.RELATIVE_TO_SELF, 0.5f,
+                Animation.RELATIVE_TO_SELF, 0.5f
+        )
+        rotate.duration = 900
+        rotate.repeatCount = Animation.INFINITE
+        fab.startAnimation(rotate)
+    }
+
+    private fun stopFabAnimation() {
+        fab.clearAnimation()
     }
 
     private fun validateTheme() {
@@ -220,6 +238,7 @@ class MainActivity : CAppCompatActivity() {
 
     private fun initSpinners(user: String) {
         //TODO melhorar o tratamento do dark theme para mudar somente os layouts
+        startFabAnimation()
         if (artistsAlbumsSpinner != null) {
             var artistsAlbumsAdapter = ArrayAdapter<String>(this, R.layout.spinner_item_artist_album, valuesArtistsAlbums)
             artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
@@ -303,6 +322,7 @@ class MainActivity : CAppCompatActivity() {
                     val listAdapter = ListViewTrackAdapter(applicationContext, recentTracksList)
                     listTracks!!.adapter = listAdapter
                     Utils.setListViewHeightBasedOnItems(listTracks!!)
+                    stopFabAnimation()
                 }
             }
         }
