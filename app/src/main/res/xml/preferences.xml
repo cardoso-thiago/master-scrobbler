@@ -11,4 +11,5 @@
         android:key="app_themes"
         android:summary="@string/choose_app_theme"
         android:title="@string/themes" />
+
 </PreferenceScreen>

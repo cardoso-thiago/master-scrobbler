@@ -22,7 +22,7 @@
     <string name="foreground_service">Serviço de Primeiro Plano</string>
     <string name="master_scrobbler_notifications">Notificações Master Scrobbler</string>
     <string name="service_running">Serviço Rodando</string>
-    <string name="notification_scrobbling">Fazendo scrobble de</string>
+    <string name="notification_scrobbling">Fazendo scrobble</string>
     <string name="last_fm_username">Usuário Last.fm</string>
     <string name="last_fm_password">Senha</string>
     <string name="button_login">Realizar Login</string>

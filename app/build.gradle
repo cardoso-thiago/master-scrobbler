@@ -51,13 +51,10 @@ dependencies {
     implementation 'com.squareup.picasso:picasso:2.71828'
     implementation 'io.gresse.hugo.vumeterlibrary:vumeterlibrary:1.0.17'
     implementation 'me.zhanghai.android.materialprogressbar:library:1.6.1'
-    implementation "de.adorsys.android:securestoragelibrary:1.1.1"
+    implementation 'de.adorsys.android:securestoragelibrary:1.1.1'
     implementation 'com.github.garretyoder:Colorful:2.3.4'
 
     debugImplementation 'com.amitshekhar.android:debug-db:1.0.6'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
     def anko_version = '0.10.8'
     implementation "org.jetbrains.anko:anko-commons:$anko_version"
