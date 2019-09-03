@@ -1,12 +1,15 @@
 package com.kanedasoftware.masterscrobbler.adapters
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.RecentBean
@@ -34,6 +37,7 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
         if (rowView == null) {
             val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
             rowView = inflater.inflate(R.layout.list_recent_tracks, parent, false)
+
             viewHolder = ViewHolder()
             viewHolder.image = rowView.findViewById(R.id.item_list_image) as SquaredImageView
             viewHolder.track = rowView.findViewById(R.id.item_list_track) as TextView
@@ -76,6 +80,16 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
                 icon?.visibility = View.GONE
             }
         }
+
+        //TODO colocar opção para abrir no navegador direto nas configurações
+        //TODO tratamento para possível url vazia
+        rowView?.setOnClickListener(View.OnClickListener {
+            val builder = CustomTabsIntent.Builder()
+            val customTabsIntent = builder.build()
+            customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            customTabsIntent.launchUrl(context, Uri.parse(beanList[position].lastFmUrl))
+        })
+
         return rowView
     }
 }

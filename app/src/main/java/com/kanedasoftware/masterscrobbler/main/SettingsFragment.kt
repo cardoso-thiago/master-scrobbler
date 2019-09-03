@@ -4,9 +4,12 @@ import android.content.Intent
 import android.content.pm.ResolveInfo
 import android.os.Bundle
 import androidx.preference.*
+import com.jaredrummler.android.colorpicker.ColorPreference
+import com.jaredrummler.android.colorpicker.ColorPreferenceCompat
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import io.multimoon.colorful.Colorful
+import io.multimoon.colorful.CustomThemeColor
 import io.multimoon.colorful.ThemeColor
 
 class SettingsFragment : PreferenceFragmentCompat() {
@@ -15,6 +18,22 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         val listPreference = findPreference("apps_to_scrobble") as MultiSelectListPreference
         setPlayers(listPreference)
+
+        val primaryColor = findPreference("color_picker_primary") as ColorPreferenceCompat
+        primaryColor.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
+            var primaryTheme = ThemeColor.RED
+            context?.let {
+                Colorful().edit()
+                        .setPrimaryColor(primaryTheme)
+                        .apply(it) {
+                            //TODO exibir dialogo informando o restart
+                            val intent = Intent(it, MainActivity::class.java)
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            startActivity(intent)
+                        }
+            }
+            true
+        }
 
         val listThemes = findPreference("app_themes") as ListPreference
         setThemes(listThemes)
@@ -25,8 +44,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
         listThemes.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
-            //TODO tratar dark
-            //TODO verificar cores boas pros temas
             var darkTheme = false
             var customTheme = R.style.AppTheme
             var primaryTheme = ThemeColor.RED
