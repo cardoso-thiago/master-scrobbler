@@ -301,6 +301,7 @@ class MainActivity : CAppCompatActivity() {
                         var timestamp: String
                         var loved = false
                         var scrobbling = false
+                        var lastFmUrl = track.url
                         if (track.attr != null && track.attr.nowplaying.toBoolean()) {
                             imageUrl = "https://tse2.mm.bing.net/th?q=${track.artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                             timestamp = "Scrobbling now"
@@ -313,7 +314,7 @@ class MainActivity : CAppCompatActivity() {
                             timestamp = Utils.convertUTCToLocal(track.date.text)
                             loved = track.loved == "1"
                         }
-                        recentTracksList.add(RecentBean(imageUrl, name, artist, timestamp, loved, scrobbling))
+                        recentTracksList.add(RecentBean(imageUrl, name, artist, timestamp, loved, scrobbling, lastFmUrl))
                     }
                 }
             }
