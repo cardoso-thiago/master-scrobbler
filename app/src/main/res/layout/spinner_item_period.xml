@@ -6,5 +6,5 @@
     android:ellipsize="marquee"
     android:singleLine="true"
     android:textAlignment="inherit"
-    android:textColor="@color/gray"
+    android:textColor="@color/light_gray"
     android:textSize="15sp" />

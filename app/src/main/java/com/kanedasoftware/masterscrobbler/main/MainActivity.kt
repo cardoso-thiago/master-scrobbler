@@ -2,6 +2,8 @@ package com.kanedasoftware.masterscrobbler.main
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import android.os.Build
 import android.os.Bundle
 import android.view.Menu
@@ -13,6 +15,9 @@ import android.widget.*
 import androidx.core.content.ContextCompat
 import butterknife.BindView
 import butterknife.ButterKnife
+import com.jaredrummler.cyanea.Cyanea
+import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
+import com.jaredrummler.cyanea.prefs.CyaneaThemePickerActivity
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
 import com.kanedasoftware.masterscrobbler.adapters.ListViewTrackAdapter
@@ -25,16 +30,12 @@ import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import com.squareup.picasso.Picasso
 import de.adorsys.android.securestoragelibrary.SecurePreferences
-import io.multimoon.colorful.CAppCompatActivity
-import io.multimoon.colorful.Colorful
-import io.multimoon.colorful.ThemeColor
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 
-
-class MainActivity : CAppCompatActivity() {
+class MainActivity : CyaneaAppCompatActivity() {
     @JvmField
     @BindView(R.id.profile)
     var profile: ImageView? = null
@@ -135,10 +136,15 @@ class MainActivity : CAppCompatActivity() {
     }
 
     private fun validateTheme() {
-        if (Colorful().getDarkTheme()) {
+        if (Cyanea.instance.isDark) {
             username?.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
             info?.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
             recentTracks?.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
+        }
+        if (Cyanea.instance.isActionBarDark) {
+            toolbar.setTitleTextColor(ContextCompat.getColor(applicationContext, R.color.white))
+            val colorFilter = PorterDuffColorFilter(ContextCompat.getColor(applicationContext, R.color.white), PorterDuff.Mode.MULTIPLY)
+            toolbar.overflowIcon?.let { it.colorFilter = colorFilter }
         }
     }
 
@@ -195,14 +201,15 @@ class MainActivity : CAppCompatActivity() {
                 startActivity(intent)
                 return true
             }
-            R.id.action_Logoff -> {
+            R.id.action_theme_picker -> {
+                val intent = Intent(this, CyaneaThemePickerActivity::class.java)
+                startActivity(intent)
+                return true
+            }
+            R.id.action_logoff -> {
                 SecurePreferences.clearAllValues(applicationContext)
                 applicationContext.defaultSharedPreferences.edit().clear().apply()
                 stopService()
-
-                //Volta ao tema original
-                Colorful().edit().setPrimaryColor(ThemeColor.RED).setAccentColor(ThemeColor.GREY)
-                        .setDarkTheme(false).setCustomThemeOverride(R.style.AppTheme).apply(applicationContext)
 
                 val intent = Intent(this, LoginActivity::class.java)
                 startActivity(intent)
@@ -242,7 +249,7 @@ class MainActivity : CAppCompatActivity() {
         if (artistsAlbumsSpinner != null) {
             var artistsAlbumsAdapter = ArrayAdapter<String>(this, R.layout.spinner_item_artist_album, valuesArtistsAlbums)
             artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
-            if (Colorful().getDarkTheme()) {
+            if (Cyanea.instance.isDark) {
                 artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album_dark, valuesArtistsAlbums)
                 artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
             }
@@ -265,7 +272,7 @@ class MainActivity : CAppCompatActivity() {
         if (periodSpinner != null) {
             var periodAdapter = ArrayAdapter<String>(this, R.layout.spinner_item_period, valuesPeriods)
             periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
-            if (Colorful().getDarkTheme()) {
+            if (Cyanea.instance.isDark) {
                 periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period_dark, valuesPeriods)
                 periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
             }
@@ -301,7 +308,7 @@ class MainActivity : CAppCompatActivity() {
                         var timestamp: String
                         var loved = false
                         var scrobbling = false
-                        var lastFmUrl = track.url
+                        val lastFmUrl = track.url
                         if (track.attr != null && track.attr.nowplaying.toBoolean()) {
                             imageUrl = "https://tse2.mm.bing.net/th?q=${track.artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                             timestamp = "Scrobbling now"
