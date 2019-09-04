@@ -2,6 +2,7 @@ package com.kanedasoftware.masterscrobbler.adapters
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
@@ -11,12 +12,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
+import com.jaredrummler.cyanea.Cyanea
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.RecentBean
 import com.kanedasoftware.masterscrobbler.components.SquaredImageView
 import com.squareup.picasso.Picasso
 import io.gresse.hugo.vumeterlibrary.VuMeterView
-import io.multimoon.colorful.Colorful
 import java.util.*
 
 internal class ViewHolder {
@@ -54,7 +55,7 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
         viewHolder.artist?.text = beanList[position].artist
         viewHolder.timestamp?.text = beanList[position].timestamp
 
-        if(Colorful().getDarkTheme()){
+        if(Cyanea.instance.isDark){
             viewHolder.track?.setTextColor(ContextCompat.getColor(context, R.color.white))
             viewHolder.artist?.setTextColor(ContextCompat.getColor(context, R.color.white))
             viewHolder.timestamp?.setTextColor(ContextCompat.getColor(context, R.color.white))

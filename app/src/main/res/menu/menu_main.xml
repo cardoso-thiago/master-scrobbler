@@ -9,8 +9,14 @@
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_Logoff"
+        android:id="@+id/action_theme_picker"
         android:orderInCategory="200"
+        android:title="@string/action_themes"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_logoff"
+        android:orderInCategory="300"
         android:title="@string/action_logoff"
         app:showAsAction="never" />
 </menu>

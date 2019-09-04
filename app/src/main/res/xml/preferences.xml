@@ -1,27 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <MultiSelectListPreference
         android:dialogTitle="@string/apps_to_scrobble"
         android:key="apps_to_scrobble"
         android:summary="@string/select_apps_scrobble"
         android:title="@string/apps_to_scrobble" />
-
-    <ListPreference
-        android:dialogTitle="@string/themes"
-        android:key="app_themes"
-        android:summary="@string/choose_app_theme"
-        android:title="@string/themes" />
-
-    <com.jaredrummler.android.colorpicker.ColorPreferenceCompat
-        android:defaultValue="@color/red"
-        android:key="color_picker_primary"
-        android:summary="Primario"
-        android:title="Primario"
-        app:cpv_allowCustom="false"
-        app:cpv_allowPresets="false"
-        app:cpv_colorPresets="@array/color_picker"
-        app:cpv_showAlphaSlider="false"
-        app:cpv_showColorShades="false" />
-
 </PreferenceScreen>

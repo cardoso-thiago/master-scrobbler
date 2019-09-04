@@ -43,7 +43,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="start"
             android:layout_marginBottom="5dp"
-            android:textColor="@color/gray"
+            android:textColor="@color/light_gray"
             android:textSize="12sp" />
     </LinearLayout>
 
@@ -66,7 +66,7 @@
         android:layout_height="20dp"
         android:layout_gravity="center_vertical"
         android:layout_marginEnd="16dp"
-        vumeter:vumeter_backgroundColor="@color/gray"
+        vumeter:vumeter_backgroundColor="@color/light_gray"
         vumeter:vumeter_blockNumber="3"
         vumeter:vumeter_blockSpacing="3dp"
         vumeter:vumeter_speed="5"

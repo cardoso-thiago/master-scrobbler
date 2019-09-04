@@ -28,6 +28,7 @@
     <string name="button_login">Realizar Login</string>
     <string name="album_image">Imagem do Álbum</string>
     <string name="action_logoff">Sair</string>
+    <string name="action_themes">Temas</string>
     <string name="last_fm_logo">Logotipo Last.fm</string>
     <string name="apps_to_scrobble">Apps para Fazer Scrobble</string>
     <string name="select_apps_scrobble">Selecione os apps para fazer Scrobble</string>

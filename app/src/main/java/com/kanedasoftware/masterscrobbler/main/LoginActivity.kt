@@ -15,16 +15,16 @@ import butterknife.OnClick
 import butterknife.Optional
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
+import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.model.ErrorInfo
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import de.adorsys.android.securestoragelibrary.SecurePreferences
-import io.multimoon.colorful.CAppCompatActivity
 import org.jetbrains.anko.doAsync
 
-class LoginActivity : CAppCompatActivity() {
+class LoginActivity : CyaneaAppCompatActivity() {
 
     @JvmField
     @BindView(R.id.input_login)
