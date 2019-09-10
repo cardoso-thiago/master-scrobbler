@@ -17,7 +17,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
 import com.kanedasoftware.masterscrobbler.R
-import com.kanedasoftware.masterscrobbler.model.ErrorInfo
+import com.kanedasoftware.masterscrobbler.models.ErrorInfo
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
@@ -124,9 +124,9 @@ class LoginActivity : CyaneaAppCompatActivity() {
             val params = mutableMapOf("password" to password, "username" to user)
             val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
 
-            if (Utils.isConnected(this)) {
+            if (Utils.isConnected()) {
                 doAsync {
-                    val response = RetrofitInitializer(applicationContext).lastFmSecureService().getMobileSession(password, user, Constants.API_KEY, sig, "auth.getMobileSession").execute()
+                    val response = RetrofitInitializer().lastFmSecureService().getMobileSession(password, user, Constants.API_KEY, sig, "auth.getMobileSession").execute()
 
                     if (response.isSuccessful) {
                         val sessionKey = response.body()?.session?.key.toString()

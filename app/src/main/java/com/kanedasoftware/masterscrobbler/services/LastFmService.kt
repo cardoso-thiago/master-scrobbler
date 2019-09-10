@@ -1,6 +1,6 @@
 package com.kanedasoftware.masterscrobbler.services
 
-import com.kanedasoftware.masterscrobbler.model.*
+import com.kanedasoftware.masterscrobbler.models.*
 import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.POST

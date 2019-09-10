@@ -23,6 +23,10 @@
     <string name="master_scrobbler_notifications">Notificações Master Scrobbler</string>
     <string name="service_running">Serviço Rodando</string>
     <string name="notification_scrobbling">Fazendo scrobble</string>
+    <string name="notification_scrobbling_pause">Scrobbler em pause</string>
+    <string name="notification_scrobbling_validating">Validando música</string>
+    <string name="notification_scrobbling_validation_error">Não conseguiu validar a música, não será realizado o scrobble.</string>
+    <string name="option_exit">Sair</string>
     <string name="last_fm_username">Usuário Last.fm</string>
     <string name="last_fm_password">Senha</string>
     <string name="button_login">Realizar Login</string>
@@ -36,8 +40,10 @@
     <string name="choose_app_theme">Selecione o tema do app</string>
     <string name="new_player_identified">Novo Reprodutor de Mídia Identificado</string>
     <string name="player_identified">Reprodutor de mídia %1$s identificado. Toque para configurar o app para fazer scrobble.</string>
+    <string name="no_player_identified">Nenhum Reprodutor de Mídia Identificado</string>
+    <string name="no_player_identified_text">Nenhum reprodutor de mídia identificado. Toque para configurar o app para fazer scrobble ou comece escutar música em um de seus aplicativos.</string>
     <string name="notification_access">Acesso às Notificações</string>
     <string name="question_notification_access">Para o aplicativo funcionar é necessário conceder acesso às notificações. Deseja abrir a configuração?</string>
     <string name="option_yes">Sim</string>
-    <string name="option_exit">Sair</string>
+    <string name="notification_scrobbling_offline">Fazendo scrobble offline</string>
 </resources>
