@@ -10,6 +10,7 @@ class Constants {
         const val NOTIFICATION_CHANNEL = "masterScrobblerNotificationService"
         const val NOTIFICATION_ID = 1
         const val NOTIFICATION_NEW_PLAYER_ID = 2
+        const val NOTIFICATION_NO_PLAYER_ID = 3
         const val START_SERVICE = "startService"
         const val STOP_SERVICE = "stopService"
 

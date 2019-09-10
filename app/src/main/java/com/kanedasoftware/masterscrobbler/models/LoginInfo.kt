@@ -1,4 +1,4 @@
-package com.kanedasoftware.masterscrobbler.model
+package com.kanedasoftware.masterscrobbler.models
 
 data class LoginInfo(
         val session: Session = Session()

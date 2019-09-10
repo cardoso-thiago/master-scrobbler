@@ -1,7 +1,6 @@
 package com.kanedasoftware.masterscrobbler.services
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
+import android.app.Notification
 import android.app.Service
 import android.content.ComponentName
 import android.content.Context
@@ -9,9 +8,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.graphics.drawable.Drawable
-import android.media.AudioAttributes
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
@@ -19,14 +16,13 @@ import android.media.session.PlaybackState
 import android.os.Build
 import android.os.CountDownTimer
 import android.preference.PreferenceManager
-import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
 import com.kanedasoftware.masterscrobbler.db.ScrobbleDb
 import com.kanedasoftware.masterscrobbler.main.LoginActivity
-import com.kanedasoftware.masterscrobbler.model.ErrorInfo
+import com.kanedasoftware.masterscrobbler.models.ErrorInfo
 import com.kanedasoftware.masterscrobbler.network.ConnectionLiveData
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
@@ -43,7 +39,7 @@ class MediaService : NotificationListenerService(),
         SharedPreferences.OnSharedPreferenceChangeListener {
 
     private var mediaController: MediaController? = null
-    private lateinit var mediaControllerCallback: MediaController.Callback
+    private var mediaControllerCallback: MediaController.Callback? = null
     private var connectionLiveData: ConnectionLiveData? = null
     private var playbackState = 0
     private var metadataArtist = ""
@@ -53,10 +49,12 @@ class MediaService : NotificationListenerService(),
     private var playtime = 0L
     private var preferences: SharedPreferences? = null
     private var toScrobble: ScrobbleBean? = null
-    private var isOnline = false
+    private var isOnline = true
     private var finalDuration = 0L
     private var finalAlbum = ""
     private var totalSeconds = 600L
+    private var lastNotification: Notification? = null
+    private var startedService = false
 
     private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
         override fun onFinish() {
@@ -72,6 +70,19 @@ class MediaService : NotificationListenerService(),
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        Utils.startMediaService()
+    }
+
+    override fun stopService(name: Intent?): Boolean {
+        val stopService = super.stopService(name)
+        if (stopService) {
+            Utils.startMediaService()
+        }
+        return stopService
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && !intent.action.isNullOrBlank()) {
             if (intent.action == Constants.START_SERVICE) {
@@ -83,41 +94,31 @@ class MediaService : NotificationListenerService(),
         return Service.START_STICKY
     }
 
-    override fun onCreate() {
-        startService()
-        super.onCreate()
-    }
-
     private fun startService() {
-        createCallback()
-        if (Utils.isValidSessionKey(applicationContext)) {
+        if (!startedService) {
+            startedService = true
+            createCallback()
             tryReconnectService()
             val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-            defaultSharedPreferences.registerOnSharedPreferenceChangeListener(this)
             this.preferences = defaultSharedPreferences
-
+            defaultSharedPreferences.registerOnSharedPreferenceChangeListener(this)
             observeConnection()
-            createQuietNotificationChannel()
-            createNotificationChannel()
             createNotification()
             createMediaSessionManager()
         }
     }
 
-    override fun onDestroy() {
-        stopService()
-        super.onDestroy()
-    }
-
     private fun stopService() {
-        val mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
-        mediaSessionManager.removeOnActiveSessionsChangedListener(this)
-        val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        defaultSharedPreferences.registerOnSharedPreferenceChangeListener(this)
-        createCallback()
-        unregisterCallback(mediaController)
-        stopForeground(true)
-        stopSelf()
+        if (startedService) {
+            startedService = false
+            val mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
+            mediaSessionManager.removeOnActiveSessionsChangedListener(this)
+            val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            defaultSharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
+            unregisterCallback(mediaController)
+            stopForeground(true)
+            stopSelf()
+        }
     }
 
     private fun tryReconnectService() {
@@ -136,48 +137,8 @@ class MediaService : NotificationListenerService(),
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
     }
 
-    //TODO colocar a criação dos canais de notificação no Utils
-    //TODO separar o Utils por mais modos
-    private fun createQuietNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = NotificationChannel(
-                    Constants.QUIET_NOTIFICATION_CHANNEL,
-                    getString(R.string.app_name),
-                    NotificationManager.IMPORTANCE_LOW
-            )
-            notificationChannel.description = getString(R.string.foreground_service)
-            notificationChannel.setSound(null, null)
-            notificationChannel.enableLights(true)
-            notificationChannel.lightColor = Color.WHITE
-            notificationChannel.enableVibration(false)
-            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(notificationChannel)
-        }
-    }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val audioAtt = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build()
-            val notificationChannel = NotificationChannel(
-                    Constants.NOTIFICATION_CHANNEL,
-                    getString(R.string.app_name),
-                    NotificationManager.IMPORTANCE_DEFAULT
-            )
-            notificationChannel.description = getString(R.string.master_scrobbler_notifications)
-            notificationChannel.enableLights(true)
-            notificationChannel.lightColor = Color.WHITE
-            notificationChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAtt)
-            notificationChannel.enableVibration(true)
-            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(notificationChannel)
-        }
-    }
-
     private fun createNotification() {
-        val notification = Utils.buildNotification(applicationContext, getString(R.string.app_name), getString(R.string.service_running))
+        val notification = Utils.buildNotification(getString(R.string.app_name), getString(R.string.service_running))
         startForeground(Constants.NOTIFICATION_ID, notification)
     }
 
@@ -227,6 +188,7 @@ class MediaService : NotificationListenerService(),
 
             if (playbackState == PlaybackState.STATE_PLAYING) {
                 if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2))) {
+                    lastNotification = null
                     timer.onFinish()
                     Utils.log("Duração até o momento $playtimeHolder")
                     timer.start()
@@ -246,19 +208,24 @@ class MediaService : NotificationListenerService(),
                     val postTime = System.currentTimeMillis()
                     //Cria novo bean com validação com base na informação atual
                     val scrobbleBean = ScrobbleBean(Utils.clearArtist(artist), Utils.clearTrack(track), postTime, duration)
+
+                    //Já atualiza a notificação com a informação que veio, pode mudar depois
+                    lastNotification = Utils.updateNotification(getString(R.string.notification_scrobbling), "${getString(R.string.notification_scrobbling_validating)}: ${scrobbleBean.artist} - ${scrobbleBean.track}")
+
                     //Se não estiver conectado já adiciona para realizar o scrobble
                     if (isOnline) {
                         doAsync {
                             val scrobbleValidationBean = allValidations(scrobbleBean)
                             if (scrobbleValidationBean == null) {
                                 Utils.log("Não conseguiu validar a música, não será realizado o scrobble.")
+                                Utils.updateNotification(getString(R.string.app_name), getString(R.string.notification_scrobbling_validation_error))
                             } else {
                                 if (!scrobbleBean.validationError) {
                                     uiThread {
                                         val artistImageUrl = "https://tse2.mm.bing.net/th?q=${scrobbleBean.artist} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                                         val target = object : com.squareup.picasso.Target {
                                             override fun onBitmapFailed(e: java.lang.Exception?, errorDrawable: Drawable?) {
-                                                Utils.updateNotification(applicationContext, getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}")
+                                                lastNotification = Utils.updateNotification(getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}")
                                             }
 
                                             override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
@@ -266,7 +233,7 @@ class MediaService : NotificationListenerService(),
                                             }
 
                                             override fun onBitmapLoaded(bitmap: Bitmap?, from: Picasso.LoadedFrom?) {
-                                                Utils.updateNotification(applicationContext, getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}", bitmap)
+                                                lastNotification = Utils.updateNotification(getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}", bitmap)
                                             }
                                         }
                                         Picasso.get().load(artistImageUrl).into(target)
@@ -282,6 +249,7 @@ class MediaService : NotificationListenerService(),
                             }
                         }
                     } else {
+                        Utils.updateNotification(getString(R.string.app_name), "${getString(R.string.notification_scrobbling_offline)}: ${scrobbleBean.artist} - ${scrobbleBean.track}\"")
                         Utils.log("Não está online, vai armazenar a música para o próximo scrobble (toScrobble)")
                         toScrobble = scrobbleBean
                     }
@@ -318,7 +286,7 @@ class MediaService : NotificationListenerService(),
                 //Atualiza a notificação para o padrão do serviço
                 createNotification()
             }
-            val playersMap = Utils.getPlayersMap(applicationContext)
+            val playersMap = Utils.getPlayersMap()
             val packageManager = applicationContext?.packageManager
             val packagePlayerList = Utils.getPackagePlayerList(packageManager)
 
@@ -327,11 +295,11 @@ class MediaService : NotificationListenerService(),
                     if (!playersMap.containsKey(controller.packageName)) {
                         val playerName = packageManager?.getApplicationLabel(packageManager.getApplicationInfo(controller.packageName, 0)).toString()
                         playersMap[controller.packageName] = playerName
-                        Utils.sendNewPlayerNotification(applicationContext, playerName)
+                        Utils.sendNewPlayerNotification(playerName)
                     }
                 }
             }
-            Utils.savePlayersMap(applicationContext, playersMap)
+            Utils.savePlayersMap(playersMap)
         }
 
         val activeMediaController = controllers?.firstOrNull()
@@ -351,7 +319,6 @@ class MediaService : NotificationListenerService(),
         }
     }
 
-    //TODO melhorar nível dos logs
     private fun registerCallback(newMediaController: MediaController) {
         unregisterCallback(this.mediaController)
         Utils.log("Registering callback for ${newMediaController.packageName}")
@@ -366,12 +333,14 @@ class MediaService : NotificationListenerService(),
         handleMetadataChange(newMediaController.metadata)
 
         mediaController = newMediaController
-        newMediaController.registerCallback(mediaControllerCallback)
+        if (mediaControllerCallback != null) {
+            newMediaController.registerCallback(mediaControllerCallback)
+        }
     }
 
     private fun unregisterCallback(mediaController: MediaController?) {
         Utils.log("Unregistering callback for ${mediaController?.packageName}")
-        mediaControllerCallback.let { mediaControllerCallback ->
+        if (mediaControllerCallback != null) {
             mediaController?.unregisterCallback(mediaControllerCallback)
         }
     }
@@ -397,7 +366,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun validateTrack(scrobbleBean: ScrobbleBean): ScrobbleBean? {
-        val responseArtist = RetrofitInitializer(applicationContext).lastFmService().validateArtist(scrobbleBean.artist, Constants.API_KEY).execute()
+        val responseArtist = RetrofitInitializer().lastFmService().validateArtist(scrobbleBean.artist, Constants.API_KEY).execute()
         if (responseArtist.isSuccessful) {
             val artistList = responseArtist.body()?.results?.artistmatches?.artist
             if (artistList != null) {
@@ -418,7 +387,7 @@ class MediaService : NotificationListenerService(),
             return scrobbleBean
         }
 
-        val responseTrackArtist = RetrofitInitializer(applicationContext).lastFmService().validateTrackAndArtist(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY).execute()
+        val responseTrackArtist = RetrofitInitializer().lastFmService().validateTrackAndArtist(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY).execute()
         if (responseTrackArtist.isSuccessful) {
             val artistTrackList = responseTrackArtist.body()?.results?.trackmatches?.track
             if (artistTrackList != null) {
@@ -442,7 +411,7 @@ class MediaService : NotificationListenerService(),
                 return scrobbleBean
             }
 
-            val responseTrack = RetrofitInitializer(applicationContext).lastFmService().validateTrack(scrobbleBean.track, Constants.API_KEY).execute()
+            val responseTrack = RetrofitInitializer().lastFmService().validateTrack(scrobbleBean.track, Constants.API_KEY).execute()
             if (responseTrack.isSuccessful) {
                 val trackList = responseTrack.body()?.results?.trackmatches?.track
                 if (trackList != null) {
@@ -470,7 +439,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun getFullTrackInfo(scrobbleBean: ScrobbleBean): Long {
-        val response = RetrofitInitializer(applicationContext).lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).execute()
+        val response = RetrofitInitializer().lastFmService().fullTrackInfo(scrobbleBean.mbid, Constants.API_KEY).execute()
         return if (response.isSuccessful) {
             val duration = response.body()?.track?.duration
             if (!duration.isNullOrBlank()) {
@@ -490,7 +459,7 @@ class MediaService : NotificationListenerService(),
         if (sessionKey != null) {
             val params = mutableMapOf("track" to scrobbleBean.track, "artist" to scrobbleBean.artist, "sk" to sessionKey)
             val sig = Utils.getSig(params, Constants.API_UPDATE_NOW_PLAYING)
-            val response = RetrofitInitializer(applicationContext).lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey).execute()
+            val response = RetrofitInitializer().lastFmService().updateNowPlaying(scrobbleBean.artist, scrobbleBean.track, Constants.API_KEY, sig, sessionKey).execute()
             if (!response.isSuccessful) {
                 verifySessionKey(response.errorBody())
             }
@@ -527,7 +496,7 @@ class MediaService : NotificationListenerService(),
                     val sig = Utils.getSig(paramsScrobble, Constants.API_TRACK_SCROBBLE)
                     //Tenta capturar qualquer exceção, caso a conexão caia durante o processo de scrobble e adiciona o scrobble pro cache.
                     try {
-                        val response = RetrofitInitializer(applicationContext).lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, scrobbleBean.album, Constants.API_KEY, sig, sessionKey, timestamp).execute()
+                        val response = RetrofitInitializer().lastFmService().scrobble(scrobbleBean.artist, scrobbleBean.track, scrobbleBean.album, Constants.API_KEY, sig, sessionKey, timestamp).execute()
                         if (response.isSuccessful) {
                             Utils.log("Scrobbeled: ${scrobbleBean.artist} - ${scrobbleBean.track}")
                         } else {
@@ -565,12 +534,14 @@ class MediaService : NotificationListenerService(),
 
     private fun pauseTimer() {
         Utils.logDebug("Pause timer. Duração até aqui: ${playtime + playtimeHolder}")
+        Utils.updateNotification(getString(R.string.app_name), getString(R.string.notification_scrobbling_pause))
         timer.cancel()
         paused = true
     }
 
     private fun resumeTimer() {
         Utils.logDebug("Resume timer")
+        lastNotification?.let { Utils.updateNotification(lastNotification) }
         if (paused) {
             Utils.logDebug("Resumed timer")
             playtimeHolder += playtime

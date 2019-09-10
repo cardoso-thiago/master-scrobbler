@@ -1,6 +1,6 @@
 package com.kanedasoftware.masterscrobbler.services
 
-import com.kanedasoftware.masterscrobbler.model.LoginInfo
+import com.kanedasoftware.masterscrobbler.models.LoginInfo
 import retrofit2.Call
 import retrofit2.http.POST
 import retrofit2.http.Query

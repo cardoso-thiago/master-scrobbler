@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
-import android.os.Build
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -24,7 +23,6 @@ import com.kanedasoftware.masterscrobbler.adapters.ListViewTrackAdapter
 import com.kanedasoftware.masterscrobbler.beans.RecentBean
 import com.kanedasoftware.masterscrobbler.beans.TopBean
 import com.kanedasoftware.masterscrobbler.picasso.CircleTransformation
-import com.kanedasoftware.masterscrobbler.services.MediaService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
@@ -79,6 +77,7 @@ class MainActivity : CyaneaAppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
         ButterKnife.bind(this)
         setSupportActionBar(toolbar)
 
@@ -98,7 +97,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         validateTheme()
 
         val user: String? = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_USER_TAG, "")
-        if (Utils.isValidSessionKey(applicationContext)) {
+        if (Utils.isValidSessionKey()) {
             if (user != null) {
                 initService()
                 getUserInfo(user)
@@ -111,7 +110,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         }
 
         fab.setOnClickListener {
-            if (Utils.isValidSessionKey(applicationContext)) {
+            if (Utils.isValidSessionKey()) {
                 if (user != null) {
                     getUserInfo(user)
                     initSpinners(user)
@@ -151,7 +150,7 @@ class MainActivity : CyaneaAppCompatActivity() {
     override fun onRestart() {
         super.onRestart()
         initService()
-        if (!Utils.isValidSessionKey(applicationContext)) {
+        if (!Utils.isValidSessionKey()) {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
@@ -159,33 +158,25 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!Utils.isValidSessionKey(applicationContext)) {
+        if (!Utils.isValidSessionKey()) {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
     }
 
     private fun initService() {
-        if (!Utils.verifyNotificationAccess(this)) {
-            Utils.changeNotificationAccess(this)
-        } else {
-            val i = Intent(applicationContext, MediaService::class.java)
-            i.action = Constants.START_SERVICE
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                applicationContext?.startForegroundService(i)
-            } else {
-                applicationContext?.startService(i)
-            }
-        }
-    }
+        Utils.createQuietNotificationChannel(this)
+        Utils.createNotificationChannel(this)
 
-    private fun stopService() {
-        val i = Intent(applicationContext, MediaService::class.java)
-        i.action = Constants.STOP_SERVICE
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            applicationContext?.startForegroundService(i)
+        if (Utils.verifyNotificationAccess()) {
+            val defaultSharedPreferences = android.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            if (Utils.hasAppsToScrobble(defaultSharedPreferences)) {
+                Utils.startMediaService()
+            } else {
+                Utils.sendNoPlayerNotification()
+            }
         } else {
-            applicationContext?.startService(i)
+            Utils.changeNotificationAccess(this)
         }
     }
 
@@ -209,7 +200,7 @@ class MainActivity : CyaneaAppCompatActivity() {
             R.id.action_logoff -> {
                 SecurePreferences.clearAllValues(applicationContext)
                 applicationContext.defaultSharedPreferences.edit().clear().apply()
-                stopService()
+                Utils.stopMediaService()
 
                 val intent = Intent(this, LoginActivity::class.java)
                 startActivity(intent)
@@ -221,7 +212,7 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     private fun getUserInfo(user: String) {
         doAsync {
-            val response = RetrofitInitializer(applicationContext).lastFmService().userInfo(user, Constants.API_KEY).execute()
+            val response = RetrofitInitializer().lastFmService().userInfo(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val profileUrl = response.body()?.user?.image?.last()?.text
                 val name = response.body()?.user?.name
@@ -297,7 +288,7 @@ class MainActivity : CyaneaAppCompatActivity() {
     private fun getRecentTracks(user: String) {
         doAsync {
             val recentTracksList = ArrayList<RecentBean>()
-            val response = RetrofitInitializer(applicationContext).lastFmService().recentTracks(user, Constants.API_KEY).execute()
+            val response = RetrofitInitializer().lastFmService().recentTracks(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val tracks = response.body()?.recenttracks?.track
                 if (tracks != null) {
@@ -352,8 +343,8 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     private fun getTopArtists(user: String, period: String) {
         doAsync {
-            val response = RetrofitInitializer(applicationContext).lastFmService().topArtists(user,
-                    Utils.getPeriodParameter(applicationContext, period), Constants.API_KEY).execute()
+            val response = RetrofitInitializer().lastFmService().topArtists(user,
+                    Utils.getPeriodParameter(period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val artists = response.body()?.topartists?.artist
                 val list = ArrayList<TopBean>()
@@ -375,8 +366,8 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     private fun getTopAlbums(user: String, period: String) {
         doAsync {
-            val response = RetrofitInitializer(applicationContext).lastFmService().topAlbums(user,
-                    Utils.getPeriodParameter(applicationContext, period), Constants.API_KEY).execute()
+            val response = RetrofitInitializer().lastFmService().topAlbums(user,
+                    Utils.getPeriodParameter(period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val albums = response.body()?.topalbums?.album
                 val list = ArrayList<TopBean>()

@@ -1,4 +1,4 @@
-package com.kanedasoftware.masterscrobbler.model
+package com.kanedasoftware.masterscrobbler.models
 
 data class ErrorInfo(
     val error: Int = 0,

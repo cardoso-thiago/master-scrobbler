@@ -3,6 +3,7 @@ package com.kanedasoftware.masterscrobbler.main
 import android.content.pm.ResolveInfo
 import android.os.Bundle
 import androidx.preference.MultiSelectListPreference
+import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import com.jaredrummler.cyanea.prefs.CyaneaSettingsFragment
 import com.kanedasoftware.masterscrobbler.R
@@ -10,10 +11,25 @@ import com.kanedasoftware.masterscrobbler.utils.Utils
 
 class SettingsFragment : CyaneaSettingsFragment() {
 
+    @Suppress("UNCHECKED_CAST")
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
 
         val listPreference = findPreference("apps_to_scrobble") as MultiSelectListPreference
+
+        listPreference.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
+            if(newValue is HashSet<*>){
+                val values = newValue as HashSet<String>
+                if(values.size == 0){
+                    Utils.sendNoPlayerNotification()
+                    Utils.stopMediaService()
+                } else {
+                    Utils.cancelNoPlayerNotification()
+                    Utils.startMediaService()
+                }
+            }
+            true
+        }
         setPlayers(listPreference)
     }
 
@@ -29,14 +45,13 @@ class SettingsFragment : CyaneaSettingsFragment() {
             entryValues.add(player.activityInfo.packageName)
         }
 
-        val playersMap = context?.let { Utils.getPlayersMap(it) }
-        if (playersMap != null) {
+        val playersMap = Utils.getPlayersMap()
+        if (playersMap.isNotEmpty()) {
             for (player in playersMap) {
                 entries.add(player.value)
                 entryValues.add(player.key)
             }
         }
-
         listPreference.entries = entries.toTypedArray()
         listPreference.entryValues = entryValues.toTypedArray()
     }

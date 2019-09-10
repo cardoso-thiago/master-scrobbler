@@ -1,4 +1,4 @@
-package com.kanedasoftware.masterscrobbler.model
+package com.kanedasoftware.masterscrobbler.models
 
 import com.google.gson.annotations.SerializedName
 
