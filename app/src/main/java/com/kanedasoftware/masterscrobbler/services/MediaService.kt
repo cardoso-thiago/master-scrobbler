@@ -70,19 +70,6 @@ class MediaService : NotificationListenerService(),
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        Utils.startMediaService()
-    }
-
-    override fun stopService(name: Intent?): Boolean {
-        val stopService = super.stopService(name)
-        if (stopService) {
-            Utils.startMediaService()
-        }
-        return stopService
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && !intent.action.isNullOrBlank()) {
             if (intent.action == Constants.START_SERVICE) {
@@ -218,13 +205,16 @@ class MediaService : NotificationListenerService(),
                             val scrobbleValidationBean = allValidations(scrobbleBean)
                             if (scrobbleValidationBean == null) {
                                 Utils.log("Não conseguiu validar a música, não será realizado o scrobble.")
-                                Utils.updateNotification(getString(R.string.app_name), getString(R.string.notification_scrobbling_validation_error))
+                                uiThread {
+                                    Utils.updateNotification(getString(R.string.app_name), getString(R.string.notification_scrobbling_validation_error))
+                                }
                             } else {
                                 if (!scrobbleBean.validationError) {
+                                    val artistImageUrl = "https://tse2.mm.bing.net/th?q=${scrobbleBean.artist} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                                     uiThread {
-                                        val artistImageUrl = "https://tse2.mm.bing.net/th?q=${scrobbleBean.artist} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                                         val target = object : com.squareup.picasso.Target {
                                             override fun onBitmapFailed(e: java.lang.Exception?, errorDrawable: Drawable?) {
+                                                Utils.log("Falhou ao obter a imagem do artista")
                                                 lastNotification = Utils.updateNotification(getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}")
                                             }
 
@@ -233,14 +223,15 @@ class MediaService : NotificationListenerService(),
                                             }
 
                                             override fun onBitmapLoaded(bitmap: Bitmap?, from: Picasso.LoadedFrom?) {
+                                                Utils.log("Obteve imagem do artista")
                                                 lastNotification = Utils.updateNotification(getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}", bitmap)
                                             }
                                         }
                                         Picasso.get().load(artistImageUrl).into(target)
-
-                                        Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble (toScrobble)")
-                                        toScrobble = scrobbleValidationBean
                                     }
+
+                                    Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble (toScrobble)")
+                                    toScrobble = scrobbleValidationBean
                                     updateNowPlaying(scrobbleValidationBean)
                                 } else {
                                     Utils.log("Erro de validação, vai armazenar a música  para o próximo scrobble (toScrobble)")
@@ -334,14 +325,14 @@ class MediaService : NotificationListenerService(),
 
         mediaController = newMediaController
         if (mediaControllerCallback != null) {
-            newMediaController.registerCallback(mediaControllerCallback)
+            newMediaController.registerCallback(mediaControllerCallback!!)
         }
     }
 
     private fun unregisterCallback(mediaController: MediaController?) {
         Utils.log("Unregistering callback for ${mediaController?.packageName}")
         if (mediaControllerCallback != null) {
-            mediaController?.unregisterCallback(mediaControllerCallback)
+            mediaController?.unregisterCallback(mediaControllerCallback!!)
         }
     }
 
