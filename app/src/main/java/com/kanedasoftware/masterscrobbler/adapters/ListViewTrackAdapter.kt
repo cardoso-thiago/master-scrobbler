@@ -84,12 +84,12 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
 
         //TODO colocar opção para abrir no navegador direto nas configurações
         //TODO tratamento para possível url vazia
-        rowView?.setOnClickListener(View.OnClickListener {
+        rowView?.setOnClickListener {
             val builder = CustomTabsIntent.Builder()
             val customTabsIntent = builder.build()
             customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             customTabsIntent.launchUrl(context, Uri.parse(beanList[position].lastFmUrl))
-        })
+        }
 
         return rowView
     }

@@ -351,7 +351,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                 if (artists != null) {
                     for (artist in artists) {
                         val url = "https://tse2.mm.bing.net/th?q=${artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
-                        val topBean = TopBean(url, artist.name, artist.playcount.plus(" plays"))
+                        val topBean = TopBean(url, artist.name, artist.playcount.plus(" plays"), artist.url)
                         list.add(topBean)
                     }
                 }
@@ -377,7 +377,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                         if (imageUrl.isBlank()) {
                             imageUrl = "https://tse2.mm.bing.net/th?q=${album.artist.name} ${album.name} Album&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                         }
-                        val topBean = TopBean(imageUrl, album.name, album.artist.name)
+                        val topBean = TopBean(imageUrl, album.name, album.artist.name, album.url)
                         topBean.text3 = album.playcount.plus(" plays")
                         list.add(topBean)
                     }

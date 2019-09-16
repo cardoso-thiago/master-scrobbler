@@ -118,6 +118,7 @@ object Utils {
     }
 
     private fun buildNotification(title: String, text: String, image: Bitmap?): Notification? {
+        log("Construindo notificação: $title - $text")
         val context = ScrobblerApp.getContext()
 
         val intent = Intent(context, MainActivity::class.java).apply {
