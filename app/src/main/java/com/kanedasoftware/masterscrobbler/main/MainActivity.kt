@@ -22,11 +22,9 @@ import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
 import com.kanedasoftware.masterscrobbler.adapters.ListViewTrackAdapter
 import com.kanedasoftware.masterscrobbler.beans.RecentBean
 import com.kanedasoftware.masterscrobbler.beans.TopBean
-import com.kanedasoftware.masterscrobbler.picasso.CircleTransformation
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
-import com.squareup.picasso.Picasso
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.defaultSharedPreferences
@@ -222,7 +220,9 @@ class MainActivity : CyaneaAppCompatActivity() {
                 }
                 val registered = response.body()?.user?.registered?.text
                 uiThread {
-                    Picasso.get().load(profileUrl).transform(CircleTransformation()).into(profile)
+                    if (profileUrl != null) {
+                        profile?.let { it -> Utils.getImageCache(profileUrl, it, true) }
+                    }
                     username?.text = name
                     if (registered != null) {
                         info?.text = applicationContext.getString(R.string.scrobbling_since, realName, Utils.getDateTimeFromEpoch(registered))
