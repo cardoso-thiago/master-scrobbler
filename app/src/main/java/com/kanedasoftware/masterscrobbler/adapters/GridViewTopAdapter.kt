@@ -13,7 +13,7 @@ import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.TopBean
 import com.kanedasoftware.masterscrobbler.components.SquaredImageView
 import com.kanedasoftware.masterscrobbler.utils.Constants
-import com.squareup.picasso.Picasso
+import com.kanedasoftware.masterscrobbler.utils.Utils
 import java.util.*
 
 internal class GridViewTopAdapter(private val context: Context, beanList: ArrayList<TopBean>, type: String) : BaseAdapter() {
@@ -42,7 +42,7 @@ internal class GridViewTopAdapter(private val context: Context, beanList: ArrayL
                 }
                 val url = list[position].url
                 if (!url.isBlank()) {
-                    Picasso.get().load(url).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder).fit().tag(context).into(imageViewAndroid)
+                    Utils.getImageCache(url, imageViewAndroid)
                 }
             } else {
                 gridViewAndroid = inflater.inflate(R.layout.gridview_album_layout, parent, false)
@@ -64,7 +64,7 @@ internal class GridViewTopAdapter(private val context: Context, beanList: ArrayL
                 }
                 val url = list[position].url
                 if (!url.isBlank()) {
-                    Picasso.get().load(url).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder).fit().tag(context).into(imageViewAndroid)
+                    Utils.getImageCache(url, imageViewAndroid)
                 }
             }
         } else {
