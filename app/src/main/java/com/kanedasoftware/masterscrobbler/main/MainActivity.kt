@@ -221,7 +221,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                 val registered = response.body()?.user?.registered?.text
                 uiThread {
                     if (profileUrl != null) {
-                        profile?.let { it -> Utils.getImageCache(profileUrl, it, true) }
+                        profile?.let { profileImage -> Utils.getImageCache(profileUrl, profileImage, true) }
                     }
                     username?.text = name
                     if (registered != null) {
