@@ -29,6 +29,7 @@ import com.kanedasoftware.masterscrobbler.app.ScrobblerApp
 import com.kanedasoftware.masterscrobbler.main.MainActivity
 import com.kanedasoftware.masterscrobbler.main.SettingsActivity
 import com.kanedasoftware.masterscrobbler.picasso.CircleTransformation
+import com.kanedasoftware.masterscrobbler.picasso.CustomTarget
 import com.kanedasoftware.masterscrobbler.services.MediaService
 import com.squareup.picasso.Callback
 import com.squareup.picasso.NetworkPolicy
@@ -47,6 +48,8 @@ import kotlin.collections.HashMap
 import kotlin.system.exitProcess
 
 private val metaSpam = arrayOf("downloaded", ".com", ".co.", "www.", ".br")
+
+
 
 object Utils {
 
@@ -417,5 +420,9 @@ object Utils {
                                 })
                     }
                 })
+    }
+
+    fun getNotificationImageCache(imageUrl: String, title:String, text:String) {
+        Picasso.get().load(imageUrl).into(CustomTarget(title, text))
     }
 }
