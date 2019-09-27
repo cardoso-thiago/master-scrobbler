@@ -1,14 +1,11 @@
 package com.kanedasoftware.masterscrobbler.services
 
-import android.app.Notification
 import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.drawable.Drawable
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
@@ -27,7 +24,6 @@ import com.kanedasoftware.masterscrobbler.network.ConnectionLiveData
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
-import com.squareup.picasso.Picasso
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import okhttp3.ResponseBody
 import org.jetbrains.anko.doAsync
@@ -53,7 +49,6 @@ class MediaService : NotificationListenerService(),
     private var finalDuration = 0L
     private var finalAlbum = ""
     private var totalSeconds = 600L
-    private var lastNotification: Notification? = null
     private var startedService = false
 
     private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
@@ -175,7 +170,6 @@ class MediaService : NotificationListenerService(),
 
             if (playbackState == PlaybackState.STATE_PLAYING) {
                 if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2))) {
-                    lastNotification = null
                     timer.onFinish()
                     Utils.log("Duração até o momento $playtimeHolder")
                     timer.start()
@@ -197,7 +191,7 @@ class MediaService : NotificationListenerService(),
                     val scrobbleBean = ScrobbleBean(Utils.clearArtist(artist), Utils.clearTrack(track), postTime, duration)
 
                     //Já atualiza a notificação com a informação que veio, pode mudar depois
-                    lastNotification = Utils.updateNotification(getString(R.string.notification_scrobbling), "${getString(R.string.notification_scrobbling_validating)}: ${scrobbleBean.artist} - ${scrobbleBean.track}")
+                    Utils.updateNotification(getString(R.string.notification_scrobbling), "${getString(R.string.notification_scrobbling_validating)}: ${scrobbleBean.artist} - ${scrobbleBean.track}")
 
                     //Se não estiver conectado já adiciona para realizar o scrobble
                     if (isOnline) {
@@ -210,24 +204,11 @@ class MediaService : NotificationListenerService(),
                                 }
                             } else {
                                 if (!scrobbleBean.validationError) {
+                                    Utils.log("Sem erro de validação, vai tentar obter a imagem pra montar a notificação.")
                                     val artistImageUrl = "https://tse2.mm.bing.net/th?q=${scrobbleBean.artist} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                                     uiThread {
-                                        val target = object : com.squareup.picasso.Target {
-                                            override fun onBitmapFailed(e: java.lang.Exception?, errorDrawable: Drawable?) {
-                                                Utils.log("Falhou ao obter a imagem do artista")
-                                                lastNotification = Utils.updateNotification(getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}")
-                                            }
-
-                                            override fun onPrepareLoad(placeHolderDrawable: Drawable?) {
-                                                //Do nothing
-                                            }
-
-                                            override fun onBitmapLoaded(bitmap: Bitmap?, from: Picasso.LoadedFrom?) {
-                                                Utils.log("Obteve imagem do artista")
-                                                lastNotification = Utils.updateNotification(getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}", bitmap)
-                                            }
-                                        }
-                                        Picasso.get().load(artistImageUrl).into(target)
+                                        Utils.log("Fazendo a requisição ao Picasso.")
+                                        Utils.getNotificationImageCache(artistImageUrl, getString(R.string.notification_scrobbling), "${scrobbleBean.artist} - ${scrobbleBean.track}")
                                     }
 
                                     Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble (toScrobble)")
@@ -525,14 +506,12 @@ class MediaService : NotificationListenerService(),
 
     private fun pauseTimer() {
         Utils.logDebug("Pause timer. Duração até aqui: ${playtime + playtimeHolder}")
-        Utils.updateNotification(getString(R.string.app_name), getString(R.string.notification_scrobbling_pause))
         timer.cancel()
         paused = true
     }
 
     private fun resumeTimer() {
         Utils.logDebug("Resume timer")
-        lastNotification?.let { Utils.updateNotification(lastNotification) }
         if (paused) {
             Utils.logDebug("Resumed timer")
             playtimeHolder += playtime
