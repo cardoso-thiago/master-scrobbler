@@ -17,6 +17,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.provider.Settings
+import android.widget.ImageView
 import android.widget.ListView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.NotificationCompat
@@ -27,7 +28,11 @@ import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.app.ScrobblerApp
 import com.kanedasoftware.masterscrobbler.main.MainActivity
 import com.kanedasoftware.masterscrobbler.main.SettingsActivity
+import com.kanedasoftware.masterscrobbler.picasso.CircleTransformation
 import com.kanedasoftware.masterscrobbler.services.MediaService
+import com.squareup.picasso.Callback
+import com.squareup.picasso.NetworkPolicy
+import com.squareup.picasso.Picasso
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
@@ -39,13 +44,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.system.exitProcess
 
 private val metaSpam = arrayOf("downloaded", ".com", ".co.", "www.", ".br")
 
 object Utils {
 
     fun getSig(params: Map<String, String>, method: String): String {
-        val hashmapParams = HashMap<String, String>(params)
+        val hashmapParams = HashMap(params)
         hashmapParams["api_key"] = Constants.API_KEY
         hashmapParams["method"] = method
         val sortedMap = hashmapParams.toSortedMap()
@@ -86,7 +92,7 @@ object Utils {
                     }
                     .setNegativeButton(context.getString(R.string.option_exit)) { _, _ ->
                         android.os.Process.killProcess(android.os.Process.myPid())
-                        System.exit(1)
+                        exitProcess(1)
                     }
                     .show()
         }
@@ -372,5 +378,44 @@ object Utils {
         } else {
             context.startService(i)
         }
+    }
+
+    fun getImageCache(imageUrl: String, imageView: ImageView) {
+        getImageCache(imageUrl, imageView, false)
+    }
+
+    fun getImageCache(imageUrl: String, imageView: ImageView, circleTransformation: Boolean) {
+        val picassoLoadCache = Picasso.get().load(imageUrl).tag(ScrobblerApp.getContext()).placeholder(R.drawable.ic_placeholder)
+        if (circleTransformation) {
+            picassoLoadCache.transform(CircleTransformation())
+        } else {
+            picassoLoadCache.fit()
+        }
+
+        picassoLoadCache.networkPolicy(NetworkPolicy.OFFLINE).into(imageView, object : Callback {
+                    override fun onSuccess() {
+                        logDebug("Imagem $imageUrl carregada do cache")
+                    }
+
+                    override fun onError(e: java.lang.Exception?) {
+                        logDebug("Erro ao carregar a imagem $imageUrl do cache, vai tentar baixar.")
+
+                        val picassoLoad = Picasso.get().load(imageUrl).tag(ScrobblerApp.getContext()).placeholder(R.drawable.ic_placeholder)
+                        if (circleTransformation) {
+                            picassoLoad.transform(CircleTransformation())
+                        } else {
+                            picassoLoad.fit()
+                        }
+                        picassoLoad.error(R.drawable.ic_placeholder).into(imageView, object : Callback {
+                                    override fun onSuccess() {
+                                        logDebug("Imagem $imageUrl baixada com sucesso")
+                                    }
+
+                                    override fun onError(e: java.lang.Exception) {
+                                        logDebug("Erro ao obter a imagem $imageUrl ${e.message}")
+                                    }
+                                })
+                    }
+                })
     }
 }

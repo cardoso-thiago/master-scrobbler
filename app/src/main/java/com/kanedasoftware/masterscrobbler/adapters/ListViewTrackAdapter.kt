@@ -16,6 +16,7 @@ import com.jaredrummler.cyanea.Cyanea
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.RecentBean
 import com.kanedasoftware.masterscrobbler.components.SquaredImageView
+import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.squareup.picasso.Picasso
 import io.gresse.hugo.vumeterlibrary.VuMeterView
 import java.util.*
@@ -65,7 +66,7 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
         if (albumImageUrl.isBlank()) {
             Picasso.get().load(R.drawable.ic_placeholder).fit().tag(context).into(viewHolder.image)
         } else {
-            Picasso.get().load(albumImageUrl).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder).fit().tag(context).into(viewHolder.image)
+            Utils.getImageCache(albumImageUrl, viewHolder.image as ImageView)
         }
 
         val icon = viewHolder.icon
