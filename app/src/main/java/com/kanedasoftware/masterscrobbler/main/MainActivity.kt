@@ -235,7 +235,6 @@ class MainActivity : CyaneaAppCompatActivity() {
     }
 
     private fun initSpinners(user: String) {
-        //TODO melhorar o tratamento do dark theme para mudar somente os layouts
         startFabAnimation()
         if (artistsAlbumsSpinner != null) {
             var artistsAlbumsAdapter = ArrayAdapter<String>(this, R.layout.spinner_item_artist_album, valuesArtistsAlbums)
