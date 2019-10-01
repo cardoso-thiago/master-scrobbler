@@ -48,8 +48,7 @@ import kotlin.collections.HashMap
 import kotlin.system.exitProcess
 
 private val metaSpam = arrayOf("downloaded", ".com", ".co.", "www.", ".br")
-
-
+val target:CustomTarget = CustomTarget()
 
 object Utils {
 
@@ -115,11 +114,6 @@ object Utils {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(Constants.NOTIFICATION_ID, notification)
         return notification
-    }
-
-    fun updateNotification(notification: Notification?) {
-        val notificationManager = ScrobblerApp.getContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(Constants.NOTIFICATION_ID, notification)
     }
 
     fun buildNotification(title: String, text: String): Notification? {
@@ -388,7 +382,7 @@ object Utils {
     }
 
     fun getImageCache(imageUrl: String, imageView: ImageView, circleTransformation: Boolean) {
-        val picassoLoadCache = Picasso.get().load(imageUrl).tag(ScrobblerApp.getContext()).placeholder(R.drawable.ic_placeholder)
+        val picassoLoadCache = Picasso.get().load(imageUrl).tag(ScrobblerApp.getContext()).stableKey(imageUrl).placeholder(R.drawable.ic_placeholder)
         if (circleTransformation) {
             picassoLoadCache.transform(CircleTransformation())
         } else {
@@ -403,7 +397,7 @@ object Utils {
                     override fun onError(e: java.lang.Exception?) {
                         logDebug("Erro ao carregar a imagem $imageUrl do cache, vai tentar baixar.")
 
-                        val picassoLoad = Picasso.get().load(imageUrl).tag(ScrobblerApp.getContext()).placeholder(R.drawable.ic_placeholder)
+                        val picassoLoad = Picasso.get().load(imageUrl).tag(ScrobblerApp.getContext()).stableKey(imageUrl).placeholder(R.drawable.ic_placeholder)
                         if (circleTransformation) {
                             picassoLoad.transform(CircleTransformation())
                         } else {
@@ -423,6 +417,8 @@ object Utils {
     }
 
     fun getNotificationImageCache(imageUrl: String, title:String, text:String) {
-        Picasso.get().load(imageUrl).into(CustomTarget(title, text))
+        target.title = title
+        target.text = text
+        Picasso.get().load(imageUrl).stableKey(imageUrl).into(target)
     }
 }

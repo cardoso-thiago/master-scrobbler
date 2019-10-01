@@ -25,9 +25,10 @@ class RetrofitInitializer {
                     request.newBuilder().header("Cache-Control", "public, only-if-cached, max-stale=" + 60 * 60 * 24 * 7).build()
                 chain.proceed(request)
             }
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .cache(Cache(ScrobblerApp.getContext().cacheDir, Long.MAX_VALUE))
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
             .build()
 
     private val lastFm = Retrofit.Builder()
