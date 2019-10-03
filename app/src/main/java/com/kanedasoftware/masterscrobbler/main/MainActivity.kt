@@ -16,6 +16,7 @@ import butterknife.BindView
 import butterknife.ButterKnife
 import com.jaredrummler.cyanea.Cyanea
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
+import com.jaredrummler.cyanea.prefs.CyaneaTheme
 import com.jaredrummler.cyanea.prefs.CyaneaThemePickerActivity
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
@@ -237,7 +238,7 @@ class MainActivity : CyaneaAppCompatActivity() {
     private fun initSpinners(user: String) {
         startFabAnimation()
         if (artistsAlbumsSpinner != null) {
-            var artistsAlbumsAdapter = ArrayAdapter<String>(this, R.layout.spinner_item_artist_album, valuesArtistsAlbums)
+            var artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album, valuesArtistsAlbums)
             artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
             if (Cyanea.instance.isDark) {
                 artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album_dark, valuesArtistsAlbums)
@@ -260,7 +261,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         }
 
         if (periodSpinner != null) {
-            var periodAdapter = ArrayAdapter<String>(this, R.layout.spinner_item_period, valuesPeriods)
+            var periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period, valuesPeriods)
             periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
             if (Cyanea.instance.isDark) {
                 periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period_dark, valuesPeriods)
@@ -327,9 +328,14 @@ class MainActivity : CyaneaAppCompatActivity() {
     }
 
     private fun searchImages(user: String, artistAlbum: String, period: String) {
-        if (artistAlbum == lastArtistsAlbumsSpinner && period == lastPeriodSpinner) {
+        var count = 0
+        if(gridView?.adapter != null) {
+            count = gridView?.adapter?.count!!
+        }
+        if (artistAlbum == lastArtistsAlbumsSpinner && period == lastPeriodSpinner && count > 0) {
             Utils.log("Não houve mudança, não vai carregar de novo o grid")
         } else {
+            Utils.log("Carregando a grid. Spinner: $artistAlbum - Period: $period - Count: $count")
             lastArtistsAlbumsSpinner = artistAlbum
             lastPeriodSpinner = period
             if (artistAlbum == topArtists) {
