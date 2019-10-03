@@ -2,6 +2,7 @@ package com.kanedasoftware.masterscrobbler.app
 
 import android.content.Context
 import com.jaredrummler.cyanea.CyaneaApp
+import com.jaredrummler.cyanea.prefs.CyaneaTheme
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.squareup.picasso.OkHttp3Downloader
 import com.squareup.picasso.Picasso
@@ -12,10 +13,13 @@ import java.util.concurrent.TimeUnit
 class ScrobblerApp: CyaneaApp() {
 
     private lateinit var okHttpClient:OkHttpClient
-
+    private val themesJsonAssetPath get() = "themes/cyanea_themes.json"
 
     override fun onCreate() {
         super.onCreate()
+
+        val theme = CyaneaTheme.from(this.assets, themesJsonAssetPath)[0]
+        theme.apply(cyanea)
 
         okHttpClient = OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
