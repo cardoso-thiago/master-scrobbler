@@ -46,4 +46,5 @@
     <string name="question_notification_access">Para o aplicativo funcionar é necessário conceder acesso às notificações. Deseja abrir a configuração?</string>
     <string name="option_yes">Sim</string>
     <string name="notification_scrobbling_offline">Fazendo scrobble offline</string>
+    <string name="no_connection">Sem conexão, por favor verifique a rede.</string>
 </resources>
