@@ -168,85 +168,89 @@ class MediaService : NotificationListenerService(),
             val duration = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
             var album = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM)
 
-            if (playbackState != PlaybackState.STATE_PAUSED) {
-                if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2))) {
-                    timer.onFinish()
-                    Utils.log("Duração até o momento $playtimeHolder")
-                    timer.start()
+            if(artist.isNullOrEmpty() || track.isNullOrEmpty()) {
+                Utils.log("Não conseguiu obter o artista ou música do metadata, não irá realizar a validação.")
+            } else {
+                if (playbackState != PlaybackState.STATE_PAUSED) {
+                    if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2))) {
+                        timer.onFinish()
+                        Utils.log("Duração até o momento $playtimeHolder")
+                        timer.start()
 
-                    Utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState")
-                    if (album == null) {
-                        album = ""
-                    }
-                    finalAlbum = album
-                    finalDuration = duration
-                    metadataArtist = artist
-                    metadataTrack = track
+                        Utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState")
+                        if (album == null) {
+                            album = ""
+                        }
+                        finalAlbum = album
+                        finalDuration = duration
+                        metadataArtist = artist
+                        metadataTrack = track
 
-                    //Valida qualquer música que estiver pendente
-                    validateAndScrobblePending()
+                        //Valida qualquer música que estiver pendente
+                        validateAndScrobblePending()
 
-                    val postTime = System.currentTimeMillis()
-                    //Cria novo bean com validação com base na informação atual
-                    val scrobbleBean = ScrobbleBean(Utils.clearArtist(artist), Utils.clearTrack(track), postTime, duration)
-                    //Seta o artista e música originais por questões de histórico e comparação com o artista em validação atual
-                    scrobbleBean.originalArtist = artist
-                    scrobbleBean.originalTrack = track
+                        val postTime = System.currentTimeMillis()
+                        //Cria novo bean com validação com base na informação atual
+                        val scrobbleBean = ScrobbleBean(Utils.clearArtist(artist), Utils.clearTrack(track), postTime, duration)
+                        //Seta o artista e música originais por questões de histórico e comparação com o artista em validação atual
+                        scrobbleBean.originalArtist = artist
+                        scrobbleBean.originalTrack = track
 
-                    //Já atualiza a notificação com a informação que veio, pode mudar depois
-                    Utils.updateNotification(getString(R.string.notification_scrobbling), "${getString(R.string.notification_scrobbling_validating)}: ${scrobbleBean.artist} - ${scrobbleBean.track}")
+                        //Já atualiza a notificação com a informação que veio, pode mudar depois
+                        Utils.updateNotification(getString(R.string.notification_scrobbling), "${getString(R.string.notification_scrobbling_validating)}: ${scrobbleBean.artist} - ${scrobbleBean.track}")
 
-                    //Se não estiver conectado já adiciona para realizar o scrobble offline
-                    if (isOnline) {
-                        doAsync {
-                            val scrobbleValidationBean = allValidations(scrobbleBean)
-                            if(scrobbleBean.originalArtist != metadataArtist && scrobbleBean.originalTrack != metadataTrack) {
-                                Utils.log("Não é a mesma música em execução, não prossegue com a validação")
-                            } else {
-                                if (scrobbleValidationBean == null) {
-                                    Utils.log("Não conseguiu validar a música, não será realizado o scrobble.")
-                                    uiThread {
-                                        Utils.updateNotification(getString(R.string.app_name), getString(R.string.notification_scrobbling_validation_error))
-                                    }
+                        //Se não estiver conectado já adiciona para realizar o scrobble offline
+                        if (isOnline) {
+                            doAsync {
+                                val scrobbleValidationBean = allValidations(scrobbleBean)
+                                if(scrobbleBean.originalArtist != metadataArtist && scrobbleBean.originalTrack != metadataTrack) {
+                                    Utils.log("Não é a mesma música em execução, não prossegue com a validação")
                                 } else {
-                                    if (!scrobbleValidationBean.validationError) {
-                                        Utils.log("Sem erro de validação, vai tentar obter a imagem pra montar a notificação.")
-                                        val artistImageUrl = "https://tse2.mm.bing.net/th?q=${scrobbleValidationBean.artist} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
+                                    if (scrobbleValidationBean == null) {
+                                        Utils.log("Não conseguiu validar a música, não será realizado o scrobble.")
                                         uiThread {
-                                            val title = getString(R.string.notification_scrobbling)
-                                            val text = "${scrobbleValidationBean.artist} - ${scrobbleValidationBean.track}"
-                                            Utils.updateNotification(title, text)
-                                            Utils.log("Fazendo a requisição ao Picasso.")
-                                            Utils.getNotificationImageCache(artistImageUrl, title, text)
+                                            Utils.updateNotification(getString(R.string.app_name), getString(R.string.notification_scrobbling_validation_error))
                                         }
-
-                                        Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble (toScrobble)")
-                                        toScrobble = scrobbleValidationBean
-                                        updateNowPlaying(scrobbleValidationBean)
                                     } else {
-                                        Utils.log("Erro de validação, vai armazenar a música  para o próximo scrobble (toScrobble)")
-                                        toScrobble = scrobbleBean
+                                        if (!scrobbleValidationBean.validationError) {
+                                            Utils.log("Sem erro de validação, vai tentar obter a imagem pra montar a notificação.")
+                                            val artistImageUrl = "https://tse2.mm.bing.net/th?q=${scrobbleValidationBean.artist} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
+                                            uiThread {
+                                                val title = getString(R.string.notification_scrobbling)
+                                                val text = "${scrobbleValidationBean.artist} - ${scrobbleValidationBean.track}"
+                                                Utils.updateNotification(title, text)
+                                                Utils.log("Fazendo a requisição ao Picasso.")
+                                                Utils.getNotificationImageCache(artistImageUrl, title, text)
+                                            }
+
+                                            Utils.log("Vai atualizar o NowPlaying e gravar a música para o scrobble (toScrobble)")
+                                            toScrobble = scrobbleValidationBean
+                                            updateNowPlaying(scrobbleValidationBean)
+                                        } else {
+                                            Utils.log("Erro de validação, vai armazenar a música  para o próximo scrobble (toScrobble)")
+                                            toScrobble = scrobbleBean
+                                        }
                                     }
                                 }
                             }
+                        } else {
+                            Utils.updateNotification(getString(R.string.app_name), "${getString(R.string.notification_scrobbling_offline)}: ${scrobbleBean.artist} - ${scrobbleBean.track}\"")
+                            Utils.log("Não está online, vai armazenar a música para o próximo scrobble (toScrobble)")
+                            toScrobble = scrobbleBean
                         }
                     } else {
-                        Utils.updateNotification(getString(R.string.app_name), "${getString(R.string.notification_scrobbling_offline)}: ${scrobbleBean.artist} - ${scrobbleBean.track}\"")
-                        Utils.log("Não está online, vai armazenar a música para o próximo scrobble (toScrobble)")
-                        toScrobble = scrobbleBean
-                    }
-                } else {
-                    Utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata, mas será atualizada a duração da música e o álbum.")
-                    if (finalDuration != duration) {
-                        finalDuration = duration
-                        Utils.log("Duração Atualizada - Em milisegundos: $duration - " +
-                                "Em segundos: ${TimeUnit.MILLISECONDS.toSeconds(duration)} - " +
-                                "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(duration)}")
-                    }
-                    if (album != null) {
-                        if (finalAlbum != Utils.clearAlbum(album)) {
-                            Utils.log("Album atualizado de $finalAlbum para $album")
-                            finalAlbum = Utils.clearAlbum(album)
+                        Utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata, mas será atualizada a duração da música e o álbum.")
+                        if (finalDuration != duration) {
+                            finalDuration = duration
+                            Utils.log("Duração Atualizada - Em milisegundos: $duration - " +
+                                    "Em segundos: ${TimeUnit.MILLISECONDS.toSeconds(duration)} - " +
+                                    "Em minutos: ${TimeUnit.MILLISECONDS.toMinutes(duration)}")
+                        }
+                        if (album != null) {
+                            if (finalAlbum != Utils.clearAlbum(album)) {
+                                Utils.log("Album atualizado de $finalAlbum para $album")
+                                finalAlbum = Utils.clearAlbum(album)
+                            }
                         }
                     }
                 }

@@ -31,6 +31,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
+import com.google.android.material.snackbar.Snackbar
 
 class MainActivity : CyaneaAppCompatActivity() {
     @JvmField
@@ -109,6 +110,10 @@ class MainActivity : CyaneaAppCompatActivity() {
         }
 
         fab.setOnClickListener {
+            if(!Utils.isConnected()) {
+                val parentLayout = findViewById<View>(android.R.id.content)
+                Snackbar.make(parentLayout, getString(R.string.no_connection), Snackbar.LENGTH_LONG).show()
+            }
             if (Utils.isValidSessionKey()) {
                 if (user != null) {
                     getUserInfo(user)
