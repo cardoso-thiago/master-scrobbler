@@ -12,11 +12,14 @@ import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.media.AudioAttributes
+import android.media.session.MediaSession
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.provider.Settings
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaSessionCompat
 import android.widget.ImageView
 import android.widget.ListView
 import androidx.appcompat.app.AlertDialog
@@ -135,9 +138,17 @@ object Utils {
                 .setSmallIcon(R.drawable.ic_stat_cassette)
                 .setContentIntent(pendingIntent)
                 .setVibrate(longArrayOf(0L))
+                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
         if (image != null) {
-            notif.setStyle(androidx.media.app.NotificationCompat.MediaStyle()).setColorized(true)
+            val mediaSession = MediaSessionCompat(ScrobblerApp.getContext(), Constants.LOG_TAG)
+            val builder = MediaMetadataCompat.Builder()
+            builder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1)
+            mediaSession.setMetadata(builder.build())
+
             notif.setLargeIcon(image)
+            notif.setStyle(androidx.media.app.NotificationCompat.MediaStyle()
+                    .setMediaSession(mediaSession.sessionToken))
+                    .setColorized(true)
         }
         return notif.build()
     }
@@ -158,6 +169,7 @@ object Utils {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(R.string.player_identified, player)))
                 .setAutoCancel(true)
                 .build()
         notificationManager.notify(Constants.NOTIFICATION_NEW_PLAYER_ID, notif)
@@ -178,6 +190,7 @@ object Utils {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(R.string.no_player_identified_text)))
                 .setAutoCancel(true)
                 .build()
         notificationManager.notify(Constants.NOTIFICATION_NO_PLAYER_ID, notif)
