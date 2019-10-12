@@ -14,50 +14,52 @@ import android.widget.*
 import androidx.core.content.ContextCompat
 import butterknife.BindView
 import butterknife.ButterKnife
+import com.google.android.material.snackbar.Snackbar
 import com.jaredrummler.cyanea.Cyanea
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
-import com.jaredrummler.cyanea.prefs.CyaneaTheme
 import com.jaredrummler.cyanea.prefs.CyaneaThemePickerActivity
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.adapters.GridViewTopAdapter
 import com.kanedasoftware.masterscrobbler.adapters.ListViewTrackAdapter
-import com.kanedasoftware.masterscrobbler.beans.RecentBean
-import com.kanedasoftware.masterscrobbler.beans.TopBean
+import com.kanedasoftware.masterscrobbler.beans.Recent
+import com.kanedasoftware.masterscrobbler.beans.TopInfo
+import com.kanedasoftware.masterscrobbler.services.LastFmService
 import com.kanedasoftware.masterscrobbler.utils.Constants
+import com.kanedasoftware.masterscrobbler.utils.ImageUtils
+import com.kanedasoftware.masterscrobbler.utils.NotificationUtils
 import com.kanedasoftware.masterscrobbler.utils.Utils
-import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
-import com.google.android.material.snackbar.Snackbar
+import org.koin.android.ext.android.inject
 
 class MainActivity : CyaneaAppCompatActivity() {
-    @JvmField
+
+    //Koin
+    private val utils: Utils by inject()
+    private val imageUtils: ImageUtils by inject()
+    private val notificationUtils: NotificationUtils by inject()
+    private val lastFmService: LastFmService by inject()
+
+    //ButterKnife
     @BindView(R.id.profile)
-    var profile: ImageView? = null
-    @JvmField
+    lateinit var profile: ImageView
     @BindView(R.id.username)
-    var username: TextView? = null
-    @JvmField
+    lateinit var username: TextView
     @BindView(R.id.info)
-    var info: TextView? = null
-    @JvmField
+    lateinit var info: TextView
     @BindView(R.id.list_tracks)
-    var listTracks: ListView? = null
-    @JvmField
+    lateinit var listTracks: ListView
     @BindView(R.id.grid_view)
-    var gridView: GridView? = null
-    @JvmField
+    lateinit var gridView: GridView
     @BindView(R.id.top_artists_albuns)
-    var artistsAlbumsSpinner: Spinner? = null
-    @JvmField
+    lateinit var artistsAlbumsSpinner: Spinner
     @BindView(R.id.period)
-    var periodSpinner: Spinner? = null
-    @JvmField
+    lateinit var periodSpinner: Spinner
     @BindView(R.id.text_recent_tracks)
-    var recentTracks: TextView? = null
+    lateinit var recentTracks: TextView
 
     private var lastArtistsAlbumsSpinner = ""
     private var lastPeriodSpinner = ""
@@ -97,7 +99,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         validateTheme()
 
         val user: String? = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_USER_TAG, "")
-        if (Utils.isValidSessionKey()) {
+        if (utils.isValidSessionKey()) {
             if (user != null) {
                 initService()
                 getUserInfo(user)
@@ -110,11 +112,15 @@ class MainActivity : CyaneaAppCompatActivity() {
         }
 
         fab.setOnClickListener {
-            if(!Utils.isConnected()) {
+            lastArtistsAlbumsSpinner = ""
+            lastPeriodSpinner = ""
+
+            if(!utils.isConnected()) {
                 val parentLayout = findViewById<View>(android.R.id.content)
                 Snackbar.make(parentLayout, getString(R.string.no_connection), Snackbar.LENGTH_LONG).show()
             }
-            if (Utils.isValidSessionKey()) {
+
+            if (utils.isValidSessionKey()) {
                 if (user != null) {
                     getUserInfo(user)
                     initSpinners(user)
@@ -140,9 +146,9 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     private fun validateTheme() {
         if (Cyanea.instance.isDark) {
-            username?.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
-            info?.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
-            recentTracks?.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
+            username.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
+            info.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
+            recentTracks.setTextColor(ContextCompat.getColor(applicationContext, R.color.white))
         }
         if (Cyanea.instance.isActionBarDark) {
             toolbar.setTitleTextColor(ContextCompat.getColor(applicationContext, R.color.white))
@@ -154,7 +160,7 @@ class MainActivity : CyaneaAppCompatActivity() {
     override fun onRestart() {
         super.onRestart()
         initService()
-        if (!Utils.isValidSessionKey()) {
+        if (!utils.isValidSessionKey()) {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
@@ -162,25 +168,25 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!Utils.isValidSessionKey()) {
+        if (!utils.isValidSessionKey()) {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
     }
 
     private fun initService() {
-        Utils.createQuietNotificationChannel(this)
-        Utils.createNotificationChannel(this)
+        notificationUtils.createQuietNotificationChannel(this)
+        notificationUtils.createNotificationChannel(this)
 
-        if (Utils.verifyNotificationAccess()) {
+        if (notificationUtils.verifyNotificationAccess()) {
             val defaultSharedPreferences = android.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
-            if (Utils.hasAppsToScrobble(defaultSharedPreferences)) {
-                Utils.startMediaService()
+            if (utils.hasAppsToScrobble(defaultSharedPreferences)) {
+                utils.startMediaService()
             } else {
-                Utils.sendNoPlayerNotification()
+                notificationUtils.sendNoPlayerNotification()
             }
         } else {
-            Utils.changeNotificationAccess(this)
+            notificationUtils.changeNotificationAccess(this)
         }
     }
 
@@ -204,7 +210,7 @@ class MainActivity : CyaneaAppCompatActivity() {
             R.id.action_logoff -> {
                 SecurePreferences.clearAllValues(applicationContext)
                 applicationContext.defaultSharedPreferences.edit().clear().apply()
-                Utils.stopMediaService()
+                utils.stopMediaService()
 
                 val intent = Intent(this, LoginActivity::class.java)
                 startActivity(intent)
@@ -216,7 +222,7 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     private fun getUserInfo(user: String) {
         doAsync {
-            val response = RetrofitInitializer().lastFmService().userInfo(user, Constants.API_KEY).execute()
+            val response = lastFmService.userInfo(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val profileUrl = response.body()?.user?.image?.last()?.text
                 val name = response.body()?.user?.name
@@ -227,13 +233,13 @@ class MainActivity : CyaneaAppCompatActivity() {
                 val registered = response.body()?.user?.registered?.text
                 uiThread {
                     if (profileUrl != null) {
-                        profile?.let { profileImage -> Utils.getImageCache(profileUrl, profileImage, true) }
+                        profile.let { profileImage -> imageUtils.getImageCache(profileUrl, profileImage, true) }
                     }
-                    username?.text = name
+                    username.text = name
                     if (registered != null) {
-                        info?.text = applicationContext.getString(R.string.scrobbling_since, realName, Utils.getDateTimeFromEpoch(registered))
+                        info.text = applicationContext.getString(R.string.scrobbling_since, realName, utils.getDateTimeFromEpoch(registered))
                     } else {
-                        info?.text = realName
+                        info.text = realName
                     }
                 }
             }
@@ -242,58 +248,54 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     private fun initSpinners(user: String) {
         startFabAnimation()
-        if (artistsAlbumsSpinner != null) {
-            var artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album, valuesArtistsAlbums)
-            artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
-            if (Cyanea.instance.isDark) {
-                artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album_dark, valuesArtistsAlbums)
-                artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
+        var artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album, valuesArtistsAlbums)
+        artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+        if (Cyanea.instance.isDark) {
+            artistsAlbumsAdapter = ArrayAdapter(this, R.layout.spinner_item_artist_album_dark, valuesArtistsAlbums)
+            artistsAlbumsAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
+        }
+        artistsAlbumsSpinner.adapter = artistsAlbumsAdapter
+        artistsAlbumsSpinner.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("artistsAlbums", 0))
+
+        artistsAlbumsSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                //Do nothing
             }
-            artistsAlbumsSpinner!!.adapter = artistsAlbumsAdapter
-            artistsAlbumsSpinner!!.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("artistsAlbums", 0))
 
-            artistsAlbumsSpinner!!.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onNothingSelected(parent: AdapterView<*>?) {
-                    //Do nothing
-                }
-
-                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("artistsAlbums", position).apply()
-                    val artistImage = parent?.getItemAtPosition(position).toString()
-                    searchImages(user, artistImage, periodSpinner?.selectedItem.toString())
-                }
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("artistsAlbums", position).apply()
+                val artistImage = parent?.getItemAtPosition(position).toString()
+                searchImages(user, artistImage, periodSpinner.selectedItem.toString())
             }
         }
 
-        if (periodSpinner != null) {
-            var periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period, valuesPeriods)
-            periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
-            if (Cyanea.instance.isDark) {
-                periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period_dark, valuesPeriods)
-                periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
+        var periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period, valuesPeriods)
+        periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+        if (Cyanea.instance.isDark) {
+            periodAdapter = ArrayAdapter(this, R.layout.spinner_item_period_dark, valuesPeriods)
+            periodAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
+        }
+        periodSpinner.adapter = periodAdapter
+        periodSpinner.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("period", 0))
+
+
+        periodSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                //Do nothing
             }
-            periodSpinner!!.adapter = periodAdapter
-            periodSpinner!!.setSelection(getSharedPreferences("Spinners", Context.MODE_PRIVATE).getInt("period", 0))
 
-
-            periodSpinner!!.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onNothingSelected(parent: AdapterView<*>?) {
-                    //Do nothing
-                }
-
-                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("period", position).apply()
-                    val period = parent?.getItemAtPosition(position).toString()
-                    searchImages(user, artistsAlbumsSpinner?.selectedItem.toString(), period)
-                }
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                getSharedPreferences("Spinners", Context.MODE_PRIVATE).edit().putInt("period", position).apply()
+                val period = parent?.getItemAtPosition(position).toString()
+                searchImages(user, artistsAlbumsSpinner.selectedItem.toString(), period)
             }
         }
     }
 
     private fun getRecentTracks(user: String) {
         doAsync {
-            val recentTracksList = ArrayList<RecentBean>()
-            val response = RetrofitInitializer().lastFmService().recentTracks(user, Constants.API_KEY).execute()
+            val recentTracksList = ArrayList<Recent>()
+            val response = lastFmService.recentTracks(user, Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val tracks = response.body()?.recenttracks?.track
                 if (tracks != null) {
@@ -314,33 +316,31 @@ class MainActivity : CyaneaAppCompatActivity() {
                             if (imageUrl.isBlank()) {
                                 imageUrl = "https://tse2.mm.bing.net/th?q=${track.artist.name} ${track.name} Album&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                             }
-                            timestamp = Utils.convertUTCToLocal(track.date.text)
+                            timestamp = utils.convertUTCToLocal(track.date.text)
                             loved = track.loved == "1"
                         }
-                        recentTracksList.add(RecentBean(imageUrl, name, artist, timestamp, loved, scrobbling, lastFmUrl))
+                        recentTracksList.add(Recent(imageUrl, name, artist, timestamp, loved, scrobbling, lastFmUrl))
                     }
                 }
             }
             uiThread {
-                if (listTracks != null) {
-                    val listAdapter = ListViewTrackAdapter(applicationContext, recentTracksList)
-                    listTracks!!.adapter = listAdapter
-                    Utils.setListViewHeightBasedOnItems(listTracks!!)
-                    stopFabAnimation()
-                }
+                val listAdapter = ListViewTrackAdapter(applicationContext, recentTracksList)
+                listTracks.adapter = listAdapter
+                utils.setListViewHeightBasedOnItems(listTracks)
+                stopFabAnimation()
             }
         }
     }
 
     private fun searchImages(user: String, artistAlbum: String, period: String) {
         var count = 0
-        if(gridView?.adapter != null) {
-            count = gridView?.adapter?.count!!
+        if(gridView.adapter != null) {
+            count = gridView.adapter?.count!!
         }
         if (artistAlbum == lastArtistsAlbumsSpinner && period == lastPeriodSpinner && count > 0) {
-            Utils.log("Não houve mudança, não vai carregar de novo o grid")
+            utils.log("Não houve mudança, não vai carregar de novo o grid")
         } else {
-            Utils.log("Carregando a grid. Spinner: $artistAlbum - Period: $period - Count: $count")
+            utils.log("Carregando a grid. Spinner: $artistAlbum - Period: $period - Count: $count")
             lastArtistsAlbumsSpinner = artistAlbum
             lastPeriodSpinner = period
             if (artistAlbum == topArtists) {
@@ -353,22 +353,20 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     private fun getTopArtists(user: String, period: String) {
         doAsync {
-            val response = RetrofitInitializer().lastFmService().topArtists(user,
-                    Utils.getPeriodParameter(period), Constants.API_KEY).execute()
+            val response = lastFmService.topArtists(user,
+                    utils.getPeriodParameter(period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val artists = response.body()?.topartists?.artist
-                val list = ArrayList<TopBean>()
+                val list = ArrayList<TopInfo>()
                 if (artists != null) {
                     for (artist in artists) {
                         val url = "https://tse2.mm.bing.net/th?q=${artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
-                        val topBean = TopBean(url, artist.name, artist.playcount.plus(" plays"), artist.url)
+                        val topBean = TopInfo(url, artist.name, artist.playcount.plus(" plays"), artist.url)
                         list.add(topBean)
                     }
                 }
                 uiThread {
-                    if (gridView != null) {
-                        gridView!!.adapter = GridViewTopAdapter(applicationContext, list, Constants.ARTISTS)
-                    }
+                    gridView.adapter = GridViewTopAdapter(applicationContext, list, Constants.ARTISTS)
                 }
             }
         }
@@ -376,26 +374,24 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     private fun getTopAlbums(user: String, period: String) {
         doAsync {
-            val response = RetrofitInitializer().lastFmService().topAlbums(user,
-                    Utils.getPeriodParameter(period), Constants.API_KEY).execute()
+            val response = lastFmService.topAlbums(user,
+                    utils.getPeriodParameter(period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val albums = response.body()?.topalbums?.album
-                val list = ArrayList<TopBean>()
+                val list = ArrayList<TopInfo>()
                 if (albums != null) {
                     for (album in albums) {
                         var imageUrl = album.image.last().text
                         if (imageUrl.isBlank()) {
                             imageUrl = "https://tse2.mm.bing.net/th?q=${album.artist.name} ${album.name} Album&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                         }
-                        val topBean = TopBean(imageUrl, album.name, album.artist.name, album.url)
+                        val topBean = TopInfo(imageUrl, album.name, album.artist.name, album.url)
                         topBean.text3 = album.playcount.plus(" plays")
                         list.add(topBean)
                     }
                 }
                 uiThread {
-                    if (gridView != null) {
-                        gridView!!.adapter = GridViewTopAdapter(applicationContext, list, Constants.ALBUMS)
-                    }
+                    gridView.adapter = GridViewTopAdapter(applicationContext, list, Constants.ALBUMS)
                 }
             }
         }

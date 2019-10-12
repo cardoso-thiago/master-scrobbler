@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 import java.io.Serializable
 
 @Entity
-class ScrobbleBean(var artist: String, var track: String, var postTime: Long, var duration: Long) : Serializable {
+class Scrobble(var artist: String, var track: String, var postTime: Long, var duration: Long) : Serializable {
     @PrimaryKey(autoGenerate = true)
     var id: Long = 0
     var mbid = ""

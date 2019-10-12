@@ -18,11 +18,12 @@ import com.google.gson.Gson
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.models.ErrorInfo
+import com.kanedasoftware.masterscrobbler.services.LastFmSecureService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.Utils
-import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import org.jetbrains.anko.doAsync
+import org.koin.android.ext.android.inject
 
 class LoginActivity : CyaneaAppCompatActivity() {
 
@@ -38,6 +39,9 @@ class LoginActivity : CyaneaAppCompatActivity() {
     @JvmField
     @BindView(R.id.horizontal_progress_toolbar)
     var toolbarHorizontalProgress: ProgressBar? = null
+
+    private val utils: Utils by inject()
+    private val lastFmSecureService: LastFmSecureService by inject()
 
     private val handler = Handler()
 
@@ -122,11 +126,11 @@ class LoginActivity : CyaneaAppCompatActivity() {
     private fun getSessionKey(user: String, password: String) {
         if (SecurePreferences.getStringValue(applicationContext, Constants.SECURE_SESSION_TAG, "").isNullOrBlank()) {
             val params = mutableMapOf("password" to password, "username" to user)
-            val sig = Utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
+            val sig = utils.getSig(params, Constants.API_GET_MOBILE_SESSION)
 
-            if (Utils.isConnected()) {
+            if (utils.isConnected()) {
                 doAsync {
-                    val response = RetrofitInitializer().lastFmSecureService().getMobileSession(password, user, Constants.API_KEY, sig, "auth.getMobileSession").execute()
+                    val response = lastFmSecureService.getMobileSession(password, user, Constants.API_KEY, sig, "auth.getMobileSession").execute()
 
                     if (response.isSuccessful) {
                         val sessionKey = response.body()?.session?.key.toString()

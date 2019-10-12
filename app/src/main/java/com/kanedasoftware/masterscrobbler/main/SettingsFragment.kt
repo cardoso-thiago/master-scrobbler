@@ -7,9 +7,14 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import com.jaredrummler.cyanea.prefs.CyaneaSettingsFragment
 import com.kanedasoftware.masterscrobbler.R
+import com.kanedasoftware.masterscrobbler.utils.NotificationUtils
 import com.kanedasoftware.masterscrobbler.utils.Utils
+import org.koin.android.ext.android.inject
 
 class SettingsFragment : CyaneaSettingsFragment() {
+
+    private val utils: Utils by inject()
+    private val notificationUtils: NotificationUtils by inject()
 
     @Suppress("UNCHECKED_CAST")
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -21,11 +26,11 @@ class SettingsFragment : CyaneaSettingsFragment() {
             if(newValue is HashSet<*>){
                 val values = newValue as HashSet<String>
                 if(values.size == 0){
-                    Utils.sendNoPlayerNotification()
-                    Utils.stopMediaService()
+                    notificationUtils.sendNoPlayerNotification()
+                    utils.stopMediaService()
                 } else {
-                    Utils.cancelNoPlayerNotification()
-                    Utils.startMediaService()
+                    notificationUtils.cancelNoPlayerNotification()
+                    utils.startMediaService()
                 }
             }
             true
@@ -35,7 +40,7 @@ class SettingsFragment : CyaneaSettingsFragment() {
 
     private fun setPlayers(listPreference: MultiSelectListPreference) {
         val packageManager = context?.packageManager
-        val playerList: List<ResolveInfo> = Utils.getPlayerList(packageManager)
+        val playerList: List<ResolveInfo> = utils.getPlayerList(packageManager)
 
         val entries: MutableList<String> = mutableListOf()
         val entryValues: MutableList<String> = mutableListOf()
@@ -45,7 +50,7 @@ class SettingsFragment : CyaneaSettingsFragment() {
             entryValues.add(player.activityInfo.packageName)
         }
 
-        val playersMap = Utils.getPlayersMap()
+        val playersMap = utils.getPlayersMap()
         if (playersMap.isNotEmpty()) {
             for (player in playersMap) {
                 entries.add(player.value)
