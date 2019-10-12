@@ -3,24 +3,33 @@ package com.kanedasoftware.masterscrobbler.receivers
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.kanedasoftware.masterscrobbler.utils.ImageUtils
+import com.kanedasoftware.masterscrobbler.utils.NotificationUtils
 import com.kanedasoftware.masterscrobbler.utils.Utils
+import org.koin.android.ext.android.inject
+import org.koin.core.KoinComponent
+import org.koin.core.inject
 
-class BootUpReceiver : BroadcastReceiver() {
+class BootUpReceiver : BroadcastReceiver(), KoinComponent {
+
+    private val utils: Utils by inject()
+    private val notificationUtils: NotificationUtils by inject()
+
     override fun onReceive(context: Context, intent: Intent?) {
-        Utils.createQuietNotificationChannel(context)
-        Utils.createNotificationChannel(context)
+        notificationUtils.createQuietNotificationChannel(context)
+        notificationUtils.createNotificationChannel(context)
 
-        val notificationAccessValidation = Utils.verifyNotificationAccess()
+        val notificationAccessValidation = notificationUtils.verifyNotificationAccess()
         //Não inicia o serviço se não tiver acesso às notificações
         if (notificationAccessValidation) {
             //Não inicia o serviço se não tiver feito o login
-            if (Utils.isValidSessionKey()) {
+            if (utils.isValidSessionKey()) {
                 if (intent?.action.equals(Intent.ACTION_BOOT_COMPLETED)) {
                     val defaultSharedPreferences = android.preference.PreferenceManager.getDefaultSharedPreferences(context)
-                    if (!Utils.hasAppsToScrobble(defaultSharedPreferences)) {
-                        Utils.sendNoPlayerNotification()
+                    if (!utils.hasAppsToScrobble(defaultSharedPreferences)) {
+                        notificationUtils.sendNoPlayerNotification()
                     } else {
-                        Utils.startMediaService()
+                        utils.startMediaService()
                     }
                 }
             }

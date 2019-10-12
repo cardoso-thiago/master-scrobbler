@@ -1,42 +1,19 @@
 package com.kanedasoftware.masterscrobbler.utils
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
-import android.graphics.Bitmap
-import android.graphics.Color
-import android.media.AudioAttributes
-import android.media.session.MediaSession
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import android.provider.Settings
-import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.session.MediaSessionCompat
-import android.widget.ImageView
 import android.widget.ListView
-import androidx.appcompat.app.AlertDialog
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
 import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.R
-import com.kanedasoftware.masterscrobbler.app.ScrobblerApp
-import com.kanedasoftware.masterscrobbler.main.MainActivity
-import com.kanedasoftware.masterscrobbler.main.SettingsActivity
-import com.kanedasoftware.masterscrobbler.picasso.CircleTransformation
-import com.kanedasoftware.masterscrobbler.picasso.CustomTarget
 import com.kanedasoftware.masterscrobbler.services.MediaService
-import com.squareup.picasso.Callback
-import com.squareup.picasso.NetworkPolicy
-import com.squareup.picasso.Picasso
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
@@ -48,12 +25,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import kotlin.system.exitProcess
 
-private val metaSpam = arrayOf("downloaded", ".com", ".co.", "www.", ".br")
-val target:CustomTarget = CustomTarget()
+class Utils constructor(appContext: Context){
 
-object Utils {
+    private val metaSpam = arrayOf("downloaded", ".com", ".co.", "www.", ".br")
+    private val context = appContext
 
     fun getSig(params: Map<String, String>, method: String): String {
         val hashmapParams = HashMap(params)
@@ -69,178 +45,14 @@ object Utils {
         return String.format("%032x", BigInteger(1, MessageDigest.getInstance("MD5").digest(sigFormat.toByteArray(Charsets.UTF_8))))
     }
 
-    fun logDebug(message: String) {
-        val log = AnkoLogger(Constants.LOG_TAG)
-        log.debug(message)
-    }
+    fun logDebug(message: String) = AnkoLogger(Constants.LOG_TAG).debug(message)
 
+    fun log(message: String) = AnkoLogger(Constants.LOG_TAG).info(message)
 
-    fun log(message: String) {
-        val log = AnkoLogger(Constants.LOG_TAG)
-        log.info(message)
-    }
-
-    fun logError(message: String) {
-        val log = AnkoLogger(Constants.LOG_TAG)
-        log.error(message)
-    }
-
-    fun verifyNotificationAccess() = NotificationManagerCompat.getEnabledListenerPackages(ScrobblerApp.getContext()).contains("com.kanedasoftware.masterscrobbler")
-
-    fun changeNotificationAccess(context: Context) {
-        if (!verifyNotificationAccess()) {
-            AlertDialog.Builder(context)
-                    .setTitle(context.getString(R.string.notification_access))
-                    .setMessage(context.getString(R.string.question_notification_access))
-                    .setPositiveButton(context.getString(R.string.option_yes)) { _, _ ->
-                        context.startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
-                    }
-                    .setNegativeButton(context.getString(R.string.option_exit)) { _, _ ->
-                        android.os.Process.killProcess(android.os.Process.myPid())
-                        exitProcess(1)
-                    }
-                    .show()
-        }
-    }
-
-    fun updateNotification(title: String, text: String): Notification? {
-        val context = ScrobblerApp.getContext()
-        val notification = buildNotification(title, text)
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(Constants.NOTIFICATION_ID, notification)
-        return notification
-    }
-
-    fun updateNotification(title: String, text: String, image: Bitmap?): Notification? {
-        val context = ScrobblerApp.getContext()
-        val notification = buildNotification(title, text, image)
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(Constants.NOTIFICATION_ID, notification)
-        return notification
-    }
-
-    fun buildNotification(title: String, text: String): Notification? {
-        return buildNotification(title, text, null)
-    }
-
-    private fun buildNotification(title: String, text: String, image: Bitmap?): Notification? {
-        log("Construindo notificação: $title - $text")
-        val context = ScrobblerApp.getContext()
-
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(context, 0, intent, 0)
-
-        val notif = NotificationCompat.Builder(context, Constants.QUIET_NOTIFICATION_CHANNEL)
-                .setContentTitle(title)
-                .setContentText(text)
-                .setSmallIcon(R.drawable.ic_stat_cassette)
-                .setContentIntent(pendingIntent)
-                .setVibrate(longArrayOf(0L))
-                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-        if (image != null) {
-            val mediaSession = MediaSessionCompat(ScrobblerApp.getContext(), Constants.LOG_TAG)
-            val builder = MediaMetadataCompat.Builder()
-            builder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1)
-            mediaSession.setMetadata(builder.build())
-
-            notif.setLargeIcon(image)
-            notif.setStyle(androidx.media.app.NotificationCompat.MediaStyle()
-                    .setMediaSession(mediaSession.sessionToken))
-                    .setColorized(true)
-        }
-        return notif.build()
-    }
-
-    fun sendNewPlayerNotification(player: String) {
-        val context = ScrobblerApp.getContext()
-
-        val intent = Intent(context, SettingsActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(context, 0, intent, 0)
-
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val notif = NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
-                .setContentTitle(context.getString(R.string.new_player_identified))
-                .setContentText(context.getString(R.string.player_identified, player))
-                .setSmallIcon(R.drawable.ic_stat_cassette)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(pendingIntent)
-                .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(R.string.player_identified, player)))
-                .setAutoCancel(true)
-                .build()
-        notificationManager.notify(Constants.NOTIFICATION_NEW_PLAYER_ID, notif)
-    }
-
-    fun sendNoPlayerNotification() {
-        val context = ScrobblerApp.getContext()
-        val intent = Intent(context, SettingsActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(context, 0, intent, 0)
-
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val notif = NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
-                .setContentTitle(context.getString(R.string.no_player_identified))
-                .setContentText(context.getString(R.string.no_player_identified_text))
-                .setSmallIcon(R.drawable.ic_stat_cassette)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(pendingIntent)
-                .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(R.string.no_player_identified_text)))
-                .setAutoCancel(true)
-                .build()
-        notificationManager.notify(Constants.NOTIFICATION_NO_PLAYER_ID, notif)
-    }
-
-    fun createQuietNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = NotificationChannel(
-                    Constants.QUIET_NOTIFICATION_CHANNEL,
-                    context.getString(R.string.app_name),
-                    NotificationManager.IMPORTANCE_LOW
-            )
-            notificationChannel.description = context.getString(R.string.foreground_service)
-            notificationChannel.setSound(null, null)
-            notificationChannel.enableLights(true)
-            notificationChannel.lightColor = Color.WHITE
-            notificationChannel.enableVibration(false)
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(notificationChannel)
-        }
-    }
-
-    fun createNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val audioAtt = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build()
-            val notificationChannel = NotificationChannel(
-                    Constants.NOTIFICATION_CHANNEL,
-                    context.getString(R.string.app_name),
-                    NotificationManager.IMPORTANCE_DEFAULT
-            )
-            notificationChannel.description = context.getString(R.string.master_scrobbler_notifications)
-            notificationChannel.enableLights(true)
-            notificationChannel.lightColor = Color.WHITE
-            notificationChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAtt)
-            notificationChannel.enableVibration(true)
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(notificationChannel)
-        }
-    }
-
-    fun cancelNoPlayerNotification() {
-        val notificationManager = ScrobblerApp.getContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancel(Constants.NOTIFICATION_NO_PLAYER_ID)
-    }
+    fun logError(message: String) = AnkoLogger(Constants.LOG_TAG).error(message)
 
     fun isConnected(): Boolean {
-        val cm = ScrobblerApp.getContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val activeNetwork = cm.activeNetworkInfo
         return activeNetwork != null
     }
@@ -298,13 +110,13 @@ object Utils {
     }
 
     fun savePlayersMap(map: Map<String, String>) {
-        val editor = PreferenceManager.getDefaultSharedPreferences(ScrobblerApp.getContext()).edit()
+        val editor = PreferenceManager.getDefaultSharedPreferences(context).edit()
         val mapPlayers = Gson().toJson(map)
         editor.putString("players_map", mapPlayers).apply()
     }
 
     fun getPlayersMap(): MutableMap<String, String> {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(ScrobblerApp.getContext())
+        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
         val playersMap = preferences.getString("players_map", "")
         if (!playersMap.isNullOrBlank()) {
             return Gson().fromJson(playersMap, HashMap<String, String>()::class.java)
@@ -349,12 +161,10 @@ object Utils {
     }
 
     fun isValidSessionKey(): Boolean {
-        return !SecurePreferences.getStringValue(ScrobblerApp.getContext(), Constants.SECURE_SESSION_TAG, "").isNullOrBlank()
+        return !SecurePreferences.getStringValue(context, Constants.SECURE_SESSION_TAG, "").isNullOrBlank()
     }
 
     fun getPeriodParameter(value: String): String {
-        val context = ScrobblerApp.getContext()
-
         return when (value) {
             context.getString(R.string.period_7day) -> "7day"
             context.getString(R.string.period_1month) -> "1month"
@@ -366,7 +176,6 @@ object Utils {
     }
 
     fun startMediaService() {
-        val context = ScrobblerApp.getContext()
         if (isValidSessionKey()) {
             val i = Intent(context, MediaService::class.java)
             i.action = Constants.START_SERVICE
@@ -380,7 +189,6 @@ object Utils {
     }
 
     fun stopMediaService() {
-        val context = ScrobblerApp.getContext()
         val i = Intent(context, MediaService::class.java)
         i.action = Constants.STOP_SERVICE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -390,48 +198,5 @@ object Utils {
         }
     }
 
-    fun getImageCache(imageUrl: String, imageView: ImageView) {
-        getImageCache(imageUrl, imageView, false)
-    }
-
-    fun getImageCache(imageUrl: String, imageView: ImageView, circleTransformation: Boolean) {
-        val picassoLoadCache = Picasso.get().load(imageUrl).tag(ScrobblerApp.getContext()).stableKey(imageUrl).placeholder(R.drawable.ic_placeholder)
-        if (circleTransformation) {
-            picassoLoadCache.transform(CircleTransformation())
-        } else {
-            picassoLoadCache.fit()
-        }
-
-        picassoLoadCache.networkPolicy(NetworkPolicy.OFFLINE).into(imageView, object : Callback {
-                    override fun onSuccess() {
-                        logDebug("Imagem $imageUrl carregada do cache")
-                    }
-
-                    override fun onError(e: java.lang.Exception?) {
-                        logDebug("Erro ao carregar a imagem $imageUrl do cache, vai tentar baixar.")
-
-                        val picassoLoad = Picasso.get().load(imageUrl).tag(ScrobblerApp.getContext()).stableKey(imageUrl).placeholder(R.drawable.ic_placeholder)
-                        if (circleTransformation) {
-                            picassoLoad.transform(CircleTransformation())
-                        } else {
-                            picassoLoad.fit()
-                        }
-                        picassoLoad.error(R.drawable.ic_placeholder).into(imageView, object : Callback {
-                                    override fun onSuccess() {
-                                        logDebug("Imagem $imageUrl baixada com sucesso")
-                                    }
-
-                                    override fun onError(e: java.lang.Exception) {
-                                        logDebug("Erro ao obter a imagem $imageUrl ${e.message}")
-                                    }
-                                })
-                    }
-                })
-    }
-
-    fun getNotificationImageCache(imageUrl: String, title:String, text:String) {
-        target.title = title
-        target.text = text
-        Picasso.get().load(imageUrl).stableKey(imageUrl).into(target)
-    }
+    fun getAppContext() = context
 }
