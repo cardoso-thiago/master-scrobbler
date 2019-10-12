@@ -1,13 +1,21 @@
 package com.kanedasoftware.masterscrobbler.app
 
-import android.content.Context
+import androidx.room.Room
 import com.jaredrummler.cyanea.CyaneaApp
 import com.jaredrummler.cyanea.prefs.CyaneaTheme
+import com.kanedasoftware.masterscrobbler.db.ScrobbleDb
+import com.kanedasoftware.masterscrobbler.utils.ImageUtils
+import com.kanedasoftware.masterscrobbler.utils.NotificationUtils
 import com.kanedasoftware.masterscrobbler.utils.Utils
+import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
 import com.squareup.picasso.OkHttp3Downloader
 import com.squareup.picasso.Picasso
 import okhttp3.Cache
 import okhttp3.OkHttpClient
+import org.koin.android.ext.android.inject
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.startKoin
+import org.koin.dsl.module
 import java.util.concurrent.TimeUnit
 
 class ScrobblerApp: CyaneaApp() {
@@ -15,8 +23,31 @@ class ScrobblerApp: CyaneaApp() {
     private lateinit var okHttpClient:OkHttpClient
     private val themesJsonAssetPath get() = "themes/cyanea_themes.json"
 
+    private val applicationModules = module(override = true) {
+        single {
+            Room.databaseBuilder(androidContext(),
+                    ScrobbleDb::class.java, "MasterScrobbler.db")
+                    .allowMainThreadQueries()
+                    .fallbackToDestructiveMigration()
+                    .build()
+        }
+        single { get<ScrobbleDb>().scrobbleDao() }
+        single {Utils(androidContext())}
+        single {NotificationUtils(androidContext())}
+        single {ImageUtils(androidContext())}
+        single {RetrofitInitializer().lastFmService()}
+        single {RetrofitInitializer().lastFmSecureService()}
+    }
+
+    private val utils: Utils by inject()
+
     override fun onCreate() {
         super.onCreate()
+
+        startKoin {
+            androidContext(this@ScrobblerApp)
+            modules(listOf(applicationModules))
+        }
 
         val theme = CyaneaTheme.from(this.assets, themesJsonAssetPath)[0]
         theme.apply(cyanea)
@@ -27,7 +58,7 @@ class ScrobblerApp: CyaneaApp() {
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .addInterceptor { chain ->
                     var request = chain.request()
-                    request = if (Utils.isConnected())
+                    request = if (utils.isConnected())
                         request.newBuilder().header("Cache-Control", "public, max-age=" + 5).build()
                     else
                         request.newBuilder().header("Cache-Control", "public, only-if-cached, max-stale=" + 60 * 60 * 24 * 7).build()
@@ -42,19 +73,5 @@ class ScrobblerApp: CyaneaApp() {
         built.setIndicatorsEnabled(true)
         built.isLoggingEnabled = true
         Picasso.setSingletonInstance(built)
-
-        setContext(this)
-    }
-
-    companion object {
-        private lateinit var mContext: ScrobblerApp
-
-        fun setContext(context: ScrobblerApp) {
-            mContext = context
-        }
-
-        fun getContext(): Context {
-            return mContext.applicationContext
-        }
     }
 }

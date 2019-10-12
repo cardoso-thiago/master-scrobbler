@@ -4,17 +4,17 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
-import com.kanedasoftware.masterscrobbler.beans.ScrobbleBean
+import com.kanedasoftware.masterscrobbler.beans.Scrobble
 
 @Dao
 interface ScrobbleDao {
 
     @Insert
-    fun add(vararg scrobble: ScrobbleBean)
+    fun add(vararg scrobble: Scrobble)
 
     @Delete
-    fun delete(vararg scrobbleBean: ScrobbleBean)
+    fun delete(vararg scrobble: Scrobble)
 
-    @Query("SELECT * FROM ScrobbleBean")
-    fun getAll(): Array<ScrobbleBean>
+    @Query("SELECT * FROM Scrobble")
+    fun getAll(): Array<Scrobble>
 }

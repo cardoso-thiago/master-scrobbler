@@ -2,7 +2,6 @@ package com.kanedasoftware.masterscrobbler.adapters
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
@@ -14,11 +13,13 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import com.jaredrummler.cyanea.Cyanea
 import com.kanedasoftware.masterscrobbler.R
-import com.kanedasoftware.masterscrobbler.beans.RecentBean
+import com.kanedasoftware.masterscrobbler.beans.Recent
 import com.kanedasoftware.masterscrobbler.components.SquaredImageView
-import com.kanedasoftware.masterscrobbler.utils.Utils
+import com.kanedasoftware.masterscrobbler.utils.ImageUtils
 import com.squareup.picasso.Picasso
 import io.gresse.hugo.vumeterlibrary.VuMeterView
+import org.koin.core.KoinComponent
+import org.koin.core.inject
 import java.util.*
 
 internal class ViewHolder {
@@ -30,8 +31,10 @@ internal class ViewHolder {
     var equalizer: VuMeterView? = null
 }
 
-class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<RecentBean>) :
-        ArrayAdapter<RecentBean>(context, R.layout.list_recent_tracks, beanList) {
+class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>) :
+        ArrayAdapter<Recent>(context, R.layout.list_recent_tracks, list), KoinComponent {
+
+    private val imageUtils: ImageUtils by inject()
 
     override fun getView(position: Int, view: View?, parent: ViewGroup): View? {
         var rowView = view
@@ -52,9 +55,9 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
             viewHolder = rowView.tag as ViewHolder
         }
 
-        viewHolder.track?.text = beanList[position].track
-        viewHolder.artist?.text = beanList[position].artist
-        viewHolder.timestamp?.text = beanList[position].timestamp
+        viewHolder.track?.text = list[position].track
+        viewHolder.artist?.text = list[position].artist
+        viewHolder.timestamp?.text = list[position].timestamp
 
         if(Cyanea.instance.isDark){
             viewHolder.track?.setTextColor(ContextCompat.getColor(context, R.color.white))
@@ -62,18 +65,18 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
             viewHolder.timestamp?.setTextColor(ContextCompat.getColor(context, R.color.white))
         }
 
-        val albumImageUrl = beanList[position].imageUrl
+        val albumImageUrl = list[position].imageUrl
         if (albumImageUrl.isBlank()) {
             Picasso.get().load(R.drawable.ic_placeholder).fit().tag(context).into(viewHolder.image)
         } else {
-            Utils.getImageCache(albumImageUrl, viewHolder.image as ImageView)
+            imageUtils.getImageCache(albumImageUrl, viewHolder.image as ImageView)
         }
 
         val icon = viewHolder.icon
         val equalizer = viewHolder.equalizer
         when {
-            beanList[position].scrobbling -> icon?.visibility = View.GONE
-            beanList[position].loved -> {
+            list[position].scrobbling -> icon?.visibility = View.GONE
+            list[position].loved -> {
                 equalizer?.visibility = View.GONE
                 icon?.setImageResource(R.drawable.ic_heart)
             }
@@ -89,7 +92,7 @@ class ListViewTrackAdapter(context: Context, private val beanList: ArrayList<Rec
             val builder = CustomTabsIntent.Builder()
             val customTabsIntent = builder.build()
             customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            customTabsIntent.launchUrl(context, Uri.parse(beanList[position].lastFmUrl))
+            customTabsIntent.launchUrl(context, Uri.parse(list[position].lastFmUrl))
         }
 
         return rowView

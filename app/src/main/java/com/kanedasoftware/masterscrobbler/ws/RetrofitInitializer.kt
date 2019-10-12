@@ -1,31 +1,34 @@
 package com.kanedasoftware.masterscrobbler.ws
 
-import com.kanedasoftware.masterscrobbler.app.ScrobblerApp
 import com.kanedasoftware.masterscrobbler.services.LastFmSecureService
 import com.kanedasoftware.masterscrobbler.services.LastFmService
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import okhttp3.Cache
 import okhttp3.OkHttpClient
+import org.koin.core.KoinComponent
+import org.koin.core.inject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-class RetrofitInitializer {
+class RetrofitInitializer : KoinComponent {
+
+    private val utils: Utils by inject()
 
     private val cacheSize = (5 * 1024 * 1024).toLong()
-    private val myCache = Cache(ScrobblerApp.getContext().cacheDir, cacheSize)
+    private val myCache = Cache(utils.getAppContext().cacheDir, cacheSize)
 
     private val okHttpClient = OkHttpClient.Builder()
             .cache(myCache)
             .addInterceptor { chain ->
                 var request = chain.request()
-                request = if (Utils.isConnected())
+                request = if (utils.isConnected())
                     request.newBuilder().header("Cache-Control", "public, max-age=" + 5).build()
                 else
                     request.newBuilder().header("Cache-Control", "public, only-if-cached, max-stale=" + 60 * 60 * 24 * 7).build()
                 chain.proceed(request)
             }
-            .cache(Cache(ScrobblerApp.getContext().cacheDir, Long.MAX_VALUE))
+            .cache(Cache(utils.getAppContext().cacheDir, Long.MAX_VALUE))
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
