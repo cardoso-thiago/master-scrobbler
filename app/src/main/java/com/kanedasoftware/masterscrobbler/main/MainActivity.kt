@@ -46,18 +46,25 @@ class MainActivity : CyaneaAppCompatActivity() {
     //ButterKnife
     @BindView(R.id.profile)
     lateinit var profile: ImageView
+
     @BindView(R.id.username)
     lateinit var username: TextView
+
     @BindView(R.id.info)
     lateinit var info: TextView
+
     @BindView(R.id.list_tracks)
     lateinit var listTracks: ListView
+
     @BindView(R.id.grid_view)
     lateinit var gridView: GridView
+
     @BindView(R.id.top_artists_albuns)
     lateinit var artistsAlbumsSpinner: Spinner
+
     @BindView(R.id.period)
     lateinit var periodSpinner: Spinner
+
     @BindView(R.id.text_recent_tracks)
     lateinit var recentTracks: TextView
 

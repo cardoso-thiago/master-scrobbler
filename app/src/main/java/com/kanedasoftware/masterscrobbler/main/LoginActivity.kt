@@ -27,18 +27,18 @@ import org.koin.android.ext.android.inject
 
 class LoginActivity : CyaneaAppCompatActivity() {
 
-    @JvmField
+    //ButterKnife
     @BindView(R.id.input_login)
-    var loginText: EditText? = null
-    @JvmField
+    lateinit var loginText: EditText
+
     @BindView(R.id.input_password)
-    var passwordText: EditText? = null
-    @JvmField
+    lateinit var passwordText: EditText
+
     @BindView(R.id.btn_login)
-    var loginButton: Button? = null
-    @JvmField
+    lateinit var loginButton: Button
+
     @BindView(R.id.horizontal_progress_toolbar)
-    var toolbarHorizontalProgress: ProgressBar? = null
+    lateinit var toolbarHorizontalProgress: ProgressBar
 
     private val utils: Utils by inject()
     private val lastFmSecureService: LastFmSecureService by inject()
