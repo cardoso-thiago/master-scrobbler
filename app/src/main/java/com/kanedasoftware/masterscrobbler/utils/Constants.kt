@@ -19,6 +19,8 @@ class Constants {
 
         const val API_GET_MOBILE_SESSION = "auth.getMobileSession"
         const val API_UPDATE_NOW_PLAYING = "track.updateNowPlaying"
+        const val API_TRACK_LOVE = "track.love"
+        const val API_TRACK_UNLOVE = "track.unlove"
         const val API_TRACK_SCROBBLE = "track.scrobble"
         const val SECURE_SESSION_TAG = "session"
         const val SECURE_USER_TAG = "user"
