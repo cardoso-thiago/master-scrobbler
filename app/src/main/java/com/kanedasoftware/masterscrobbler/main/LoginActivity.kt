@@ -49,7 +49,7 @@ class LoginActivity : CyaneaAppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
         ButterKnife.bind(this)
-        toolbarHorizontalProgress?.visibility = View.INVISIBLE
+        toolbarHorizontalProgress.visibility = View.INVISIBLE
     }
 
     @Optional
@@ -67,9 +67,9 @@ class LoginActivity : CyaneaAppCompatActivity() {
         if (!validate()) {
             return
         }
-        loginButton?.isEnabled = false
-        toolbarHorizontalProgress?.visibility = View.VISIBLE
-        getSessionKey(loginText?.text.toString(), passwordText?.text.toString())
+        loginButton.isEnabled = false
+        toolbarHorizontalProgress.visibility = View.VISIBLE
+        getSessionKey(loginText.text.toString(), passwordText.text.toString())
 
     }
 
@@ -80,21 +80,21 @@ class LoginActivity : CyaneaAppCompatActivity() {
     private fun validate(): Boolean {
         var valid = true
 
-        val login = loginText?.text.toString()
-        val password = passwordText?.text.toString()
+        val login = loginText.text.toString()
+        val password = passwordText.text.toString()
 
         if (login.isEmpty()) {
-            loginText?.error = getString(R.string.error_username)
+            loginText.error = getString(R.string.error_username)
             valid = false
         } else {
-            loginText?.error = null
+            loginText.error = null
         }
 
         if (password.isEmpty()) {
-            passwordText?.error = getString(R.string.error_password)
+            passwordText.error = getString(R.string.error_password)
             valid = false
         } else {
-            passwordText?.error = null
+            passwordText.error = null
         }
         return valid
     }
@@ -102,7 +102,7 @@ class LoginActivity : CyaneaAppCompatActivity() {
     private fun onLoginSuccess() {
         val runnable = Runnable {
             handler.post {
-                loginButton?.isEnabled = true
+                loginButton.isEnabled = true
             }
         }
         Thread(runnable).start()
@@ -115,8 +115,8 @@ class LoginActivity : CyaneaAppCompatActivity() {
 
         val runnable = Runnable {
             handler.post {
-                loginButton?.isEnabled = true
-                toolbarHorizontalProgress?.visibility = View.INVISIBLE
+                loginButton.isEnabled = true
+                toolbarHorizontalProgress.visibility = View.INVISIBLE
             }
         }
         Thread(runnable).start()
@@ -156,7 +156,7 @@ class LoginActivity : CyaneaAppCompatActivity() {
     }
 
     private fun showErrorMessage(message: String) {
-        loginButton?.rootView?.let {
+        loginButton.rootView?.let {
             Snackbar.make(it, message, Snackbar.LENGTH_SHORT).show()
         }
     }
