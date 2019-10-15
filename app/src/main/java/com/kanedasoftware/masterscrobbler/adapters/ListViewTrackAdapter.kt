@@ -13,13 +13,20 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import butterknife.BindView
 import butterknife.ButterKnife
+import com.google.android.material.snackbar.Snackbar
 import com.jaredrummler.cyanea.Cyanea
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.Recent
 import com.kanedasoftware.masterscrobbler.components.SquaredImageView
+import com.kanedasoftware.masterscrobbler.services.LastFmService
+import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.ImageUtils
+import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.squareup.picasso.Picasso
+import de.adorsys.android.securestoragelibrary.SecurePreferences
 import io.gresse.hugo.vumeterlibrary.VuMeterView
+import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.uiThread
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 import java.util.*
@@ -52,7 +59,9 @@ internal class ViewHolder(view: View) {
 class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>) :
         ArrayAdapter<Recent>(context, R.layout.list_recent_tracks, list), KoinComponent {
 
+    private val utils: Utils by inject()
     private val imageUtils: ImageUtils by inject()
+    private val lastFmService: LastFmService by inject()
 
     override fun getView(position: Int, view: View?, parent: ViewGroup): View? {
         var rowView = view
@@ -94,13 +103,54 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
             }
             else -> {
                 equalizer.visibility = View.GONE
-                icon.visibility = View.GONE
+                icon.setImageResource(R.drawable.ic_empty_heart)
+            }
+        }
+
+        rowView?.setOnClickListener{
+            val listItem = list[position]
+            if(!listItem.scrobbling){
+                if(listItem.loved){
+                    doAsync {
+                        val sessionKey = SecurePreferences.getStringValue(context, Constants.SECURE_SESSION_TAG, "")
+                        if (sessionKey != null) {
+                            val params = mutableMapOf("track" to listItem.track, "artist" to listItem.artist, "sk" to sessionKey)
+                            val sig = utils.getSig(params, Constants.API_TRACK_UNLOVE)
+                            val response = lastFmService.unlove(listItem.artist, listItem.track, Constants.API_KEY, sig, sessionKey).execute()
+                            uiThread {
+                                if (response.isSuccessful) {
+                                    viewHolder.icon.setImageResource(R.drawable.ic_empty_heart)
+                                    listItem.loved = false
+                                } else {
+                                    Snackbar.make(rowView, "Não foi possível realizar essa ação.", Snackbar.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    doAsync {
+                        val sessionKey = SecurePreferences.getStringValue(context, Constants.SECURE_SESSION_TAG, "")
+                        if (sessionKey != null) {
+                            val params = mutableMapOf("track" to listItem.track, "artist" to listItem.artist, "sk" to sessionKey)
+                            val sig = utils.getSig(params, Constants.API_TRACK_LOVE)
+                            val response = lastFmService.love(listItem.artist, listItem.track, Constants.API_KEY, sig, sessionKey).execute()
+                            uiThread {
+                                if (response.isSuccessful) {
+                                    viewHolder.icon.setImageResource(R.drawable.ic_heart)
+                                    listItem.loved = true
+                                } else {
+                                    Snackbar.make(rowView, context.getString(R.string.error_love_unlove_action), Snackbar.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
         //TODO colocar opção para abrir no navegador direto nas configurações
         //TODO tratamento para possível url vazia
-        rowView?.setOnClickListener {
+        viewHolder.image.setOnClickListener {
             val builder = CustomTabsIntent.Builder()
             val customTabsIntent = builder.build()
             customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

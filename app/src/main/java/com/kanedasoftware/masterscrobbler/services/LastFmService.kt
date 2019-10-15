@@ -1,6 +1,7 @@
 package com.kanedasoftware.masterscrobbler.services
 
 import com.kanedasoftware.masterscrobbler.models.*
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -46,4 +47,14 @@ interface LastFmService {
 
     @GET("?method=user.getRecentTracks&extended=1&limit=20&format=json")
     fun recentTracks(@Query("username") username: String, @Query("api_key") apiKey: String): Call<RecentTracksInfo>
+
+    @POST("?method=track.love&format=json")
+    fun love(@Query("artist") artist: String, @Query("track") track: String,
+                         @Query("api_key") apiKey: String, @Query("api_sig") sig: String,
+                         @Query("sk") sessionKey: String): Call<ResponseBody>
+
+    @POST("?method=track.unlove&format=json")
+    fun unlove(@Query("artist") artist: String, @Query("track") track: String,
+             @Query("api_key") apiKey: String, @Query("api_sig") sig: String,
+             @Query("sk") sessionKey: String): Call<ResponseBody>
 }
