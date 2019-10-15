@@ -23,6 +23,25 @@ import java.util.*
 
 internal class GridViewTopAdapter(private val context: Context, infoList: ArrayList<TopInfo>, type: String) : BaseAdapter(), KoinComponent {
 
+    internal class ViewHolder(view: View) {
+        //ButterKnife
+        @BindView(R.id.gridview_image_top)
+        lateinit var imageViewAndroid: SquaredImageView
+
+        @BindView(R.id.gridview_album)
+        lateinit var textAlbum: TextView
+
+        @BindView(R.id.gridview_artist)
+        lateinit var textArtist: TextView
+
+        @BindView(R.id.gridview_plays)
+        lateinit var textPlays: TextView
+
+        init {
+            ButterKnife.bind(this, view)
+        }
+    }
+
     //Koin
     private val imageUtils: ImageUtils by inject()
 
@@ -78,24 +97,5 @@ internal class GridViewTopAdapter(private val context: Context, infoList: ArrayL
 
     override fun getItemId(position: Int): Long {
         return position.toLong()
-    }
-
-    internal class ViewHolder(view: View) {
-        //ButterKnife
-        @BindView(R.id.gridview_image_top)
-        lateinit var imageViewAndroid: SquaredImageView
-
-        @BindView(R.id.gridview_album)
-        lateinit var textAlbum: TextView
-
-        @BindView(R.id.gridview_artist)
-        lateinit var textArtist: TextView
-
-        @BindView(R.id.gridview_plays)
-        lateinit var textPlays: TextView
-
-        init {
-            ButterKnife.bind(this, view)
-        }
     }
 }
