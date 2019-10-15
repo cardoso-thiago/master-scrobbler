@@ -20,7 +20,6 @@ import java.util.concurrent.TimeUnit
 
 class ScrobblerApp: CyaneaApp() {
 
-    private lateinit var okHttpClient:OkHttpClient
     private val themesJsonAssetPath get() = "themes/cyanea_themes.json"
 
     private val applicationModules = module(override = true) {
@@ -32,6 +31,23 @@ class ScrobblerApp: CyaneaApp() {
                     .build()
         }
         single { get<ScrobbleDb>().scrobbleDao() }
+        single {
+                OkHttpClient.Builder()
+                    .cache(Cache(applicationContext.cacheDir, Long.MAX_VALUE))
+                    .addInterceptor { chain ->
+                        var request = chain.request()
+                        request = if (utils.isConnected())
+                            request.newBuilder().header("Cache-Control", "public, max-age=" + 5).build()
+                        else
+                            request.newBuilder().header("Cache-Control", "public, only-if-cached, max-stale=" + 60 * 60 * 24 * 7).build()
+                        chain.proceed(request)
+                    }
+                    .cache(Cache(utils.getAppContext().cacheDir, Long.MAX_VALUE))
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .readTimeout(10, TimeUnit.SECONDS)
+                    .writeTimeout(10, TimeUnit.SECONDS)
+                    .build()
+        }
         single {Utils(androidContext())}
         single {NotificationUtils(androidContext())}
         single {ImageUtils(androidContext())}
@@ -39,6 +55,7 @@ class ScrobblerApp: CyaneaApp() {
         single {RetrofitInitializer().lastFmSecureService()}
     }
 
+    private val okHttpClient:OkHttpClient by inject()
     private val utils: Utils by inject()
 
     override fun onCreate() {
@@ -49,29 +66,7 @@ class ScrobblerApp: CyaneaApp() {
             modules(listOf(applicationModules))
         }
 
-        val theme = CyaneaTheme.from(this.assets, themesJsonAssetPath)[0]
-        theme.apply(cyanea)
-
-        okHttpClient = OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
-                .writeTimeout(10, TimeUnit.SECONDS)
-                .addInterceptor { chain ->
-                    var request = chain.request()
-                    request = if (utils.isConnected())
-                        request.newBuilder().header("Cache-Control", "public, max-age=" + 5).build()
-                    else
-                        request.newBuilder().header("Cache-Control", "public, only-if-cached, max-stale=" + 60 * 60 * 24 * 7).build()
-                    chain.proceed(request)
-                }
-                .cache(Cache(applicationContext.cacheDir, Long.MAX_VALUE))
-                .build()
-
-        val builder = Picasso.Builder(this)
-        builder.downloader(OkHttp3Downloader(okHttpClient))
-        val built = builder.build()
-        built.setIndicatorsEnabled(true)
-        built.isLoggingEnabled = true
-        Picasso.setSingletonInstance(built)
+        CyaneaTheme.from(this.assets, themesJsonAssetPath)[0].apply(cyanea)
+        Picasso.setSingletonInstance(Picasso.Builder(this).downloader(OkHttp3Downloader(okHttpClient)).build())
     }
 }
