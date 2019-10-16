@@ -1,7 +1,9 @@
 package com.kanedasoftware.masterscrobbler.main
 
+import android.app.WallpaperManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.os.Bundle
@@ -34,6 +36,7 @@ import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import org.koin.android.ext.android.inject
+
 
 class MainActivity : CyaneaAppCompatActivity() {
 
@@ -82,6 +85,7 @@ class MainActivity : CyaneaAppCompatActivity() {
     private var oneYear: String = ""
     private var overall: String = ""
     private lateinit var valuesPeriods: List<String>
+    private var listTopInfo = ArrayList<TopInfo>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -133,6 +137,21 @@ class MainActivity : CyaneaAppCompatActivity() {
                     initSpinners(user)
                     getRecentTracks(user)
                 }
+            }
+        }
+
+        fab_wall.setOnClickListener{
+            doAsync {
+                val listBitmaps = mutableListOf<Bitmap>()
+                for(item in listTopInfo) {
+                    listBitmaps.add(imageUtils.resizeImage(item.url))
+                }
+
+                val finalBitmap = imageUtils.mergeMultiple(listBitmaps)
+
+                val wallManager = WallpaperManager.getInstance(applicationContext)
+                wallManager.setBitmap(finalBitmap)
+                finalBitmap.recycle()
             }
         }
     }
@@ -363,17 +382,17 @@ class MainActivity : CyaneaAppCompatActivity() {
             val response = lastFmService.topArtists(user,
                     utils.getPeriodParameter(period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
+                listTopInfo = ArrayList()
                 val artists = response.body()?.topartists?.artist
-                val list = ArrayList<TopInfo>()
                 if (artists != null) {
                     for (artist in artists) {
                         val url = "https://tse2.mm.bing.net/th?q=${artist.name} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                         val topBean = TopInfo(url, artist.name, artist.playcount.plus(" plays"), artist.url)
-                        list.add(topBean)
+                        listTopInfo.add(topBean)
                     }
                 }
                 uiThread {
-                    gridView.adapter = GridViewTopAdapter(applicationContext, list, Constants.ARTISTS)
+                    gridView.adapter = GridViewTopAdapter(applicationContext, listTopInfo, Constants.ARTISTS)
                 }
             }
         }
@@ -385,7 +404,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                     utils.getPeriodParameter(period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val albums = response.body()?.topalbums?.album
-                val list = ArrayList<TopInfo>()
+                listTopInfo = ArrayList()
                 if (albums != null) {
                     for (album in albums) {
                         var imageUrl = album.image.last().text
@@ -394,11 +413,11 @@ class MainActivity : CyaneaAppCompatActivity() {
                         }
                         val topBean = TopInfo(imageUrl, album.name, album.artist.name, album.url)
                         topBean.text3 = album.playcount.plus(" plays")
-                        list.add(topBean)
+                        listTopInfo.add(topBean)
                     }
                 }
                 uiThread {
-                    gridView.adapter = GridViewTopAdapter(applicationContext, list, Constants.ALBUMS)
+                    gridView.adapter = GridViewTopAdapter(applicationContext, listTopInfo, Constants.ALBUMS)
                 }
             }
         }
