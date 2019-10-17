@@ -11,7 +11,7 @@ import com.squareup.picasso.Target
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 
-class CustomTarget :Target, KoinComponent {
+class CustomTarget : Target, KoinComponent {
 
     private val utils: Utils by inject()
     private val notificationUtils: NotificationUtils by inject()

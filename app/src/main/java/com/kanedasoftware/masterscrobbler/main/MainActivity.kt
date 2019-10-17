@@ -122,7 +122,9 @@ class MainActivity : CyaneaAppCompatActivity() {
             startActivity(intent)
         }
 
-        fab.setOnClickListener {
+        fab_menu.setClosedOnTouchOutside(true)
+
+        fab_update.setOnClickListener {
             lastArtistsAlbumsSpinner = ""
             lastPeriodSpinner = ""
 
@@ -140,15 +142,18 @@ class MainActivity : CyaneaAppCompatActivity() {
             }
         }
 
+        //TODO verificar se é a melhor maneira de obter a lista de imagens
+        //TODO Verificar para obter a lista das imagens já baixadas cache do Picasso
+        //TODO Se não, tratamento para offline
+        //TODO Snack pra sucesso ou erro
         fab_wall.setOnClickListener{
+            fab_menu.close(true)
             doAsync {
                 val listBitmaps = mutableListOf<Bitmap>()
                 for(item in listTopInfo) {
                     listBitmaps.add(imageUtils.resizeImage(item.url))
                 }
-
                 val finalBitmap = imageUtils.mergeMultiple(listBitmaps)
-
                 val wallManager = WallpaperManager.getInstance(applicationContext)
                 wallManager.setBitmap(finalBitmap)
                 finalBitmap.recycle()
@@ -157,17 +162,20 @@ class MainActivity : CyaneaAppCompatActivity() {
     }
 
     private fun startFabAnimation() {
-        val rotate = RotateAnimation(0f, 360f,
-                Animation.RELATIVE_TO_SELF, 0.5f,
-                Animation.RELATIVE_TO_SELF, 0.5f
-        )
-        rotate.duration = 900
-        rotate.repeatCount = Animation.INFINITE
-        fab.startAnimation(rotate)
+        if(fab_menu.isOpened){
+            val rotate = RotateAnimation(0f, 360f,
+                    Animation.RELATIVE_TO_SELF, 0.5f,
+                    Animation.RELATIVE_TO_SELF, 0.5f
+            )
+            rotate.duration = 900
+            rotate.repeatCount = Animation.INFINITE
+            fab_update.startAnimation(rotate)
+        }
     }
 
     private fun stopFabAnimation() {
-        fab.clearAnimation()
+        fab_update.clearAnimation()
+        fab_menu.close(true)
     }
 
     private fun validateTheme() {
