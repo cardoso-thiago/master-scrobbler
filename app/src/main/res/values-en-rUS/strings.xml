@@ -48,4 +48,6 @@
     <string name="top_artists">Artists</string>
     <string name="try_again">Temporary error processing login, please try again</string>
     <string name="error_love_unlove_action">Could not perform this action.</string>
+    <string name="fab_update">Update</string>
+    <string name="fab_set_wall">Set as wallpaper</string>
 </resources>

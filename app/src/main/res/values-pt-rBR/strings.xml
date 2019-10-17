@@ -47,4 +47,6 @@
     <string name="notification_scrobbling_offline">Fazendo scrobble offline</string>
     <string name="no_connection">Sem conexão, por favor verifique a rede.</string>
     <string name="error_love_unlove_action">Não foi possível realizar essa ação.</string>
+    <string name="fab_update">Atualizar</string>
+    <string name="fab_set_wall">Definir como papel de parede</string>
 </resources>
