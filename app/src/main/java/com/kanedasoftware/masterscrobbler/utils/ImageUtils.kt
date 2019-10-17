@@ -13,7 +13,6 @@ import com.kanedasoftware.masterscrobbler.picasso.CustomTarget
 import com.squareup.picasso.Callback
 import com.squareup.picasso.NetworkPolicy
 import com.squareup.picasso.Picasso
-import com.squareup.picasso.Target
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 import java.net.URL
