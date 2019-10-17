@@ -11,4 +11,14 @@
     <style name="spinnerItemStyle" parent="android:Widget.TextView.SpinnerItem" />
 
     <style name="spinnerDropDownItemStyle" parent="android:TextAppearance.Widget.TextView.SpinnerItem" />
+
+    <style name="MenuButtonsStyle">
+        <item name="fab_size">mini</item>
+        <item name="fab_showAnimation">@anim/jump_from_down</item>
+        <item name="fab_hideAnimation">@anim/jump_to_down</item>
+        <item name="fab_shadowColor">#444</item>
+        <item name="fab_colorNormal">?colorAccent</item>
+        <item name="fab_colorPressed">?colorAccent</item>
+        <item name="fab_colorRipple">?colorAccent</item>
+    </style>
 </resources>

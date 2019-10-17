@@ -103,7 +103,11 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
             }
             else -> {
                 equalizer.visibility = View.GONE
-                icon.setImageResource(R.drawable.ic_empty_heart)
+                if (Cyanea.instance.isDark) {
+                    icon.setImageResource(R.drawable.ic_empty_heart_white)
+                } else {
+                    icon.setImageResource(R.drawable.ic_empty_heart)
+                }
             }
         }
 
@@ -119,7 +123,11 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
                             val response = lastFmService.unlove(listItem.artist, listItem.track, Constants.API_KEY, sig, sessionKey).execute()
                             uiThread {
                                 if (response.isSuccessful) {
-                                    viewHolder.icon.setImageResource(R.drawable.ic_empty_heart)
+                                    if (Cyanea.instance.isDark) {
+                                        viewHolder.icon.setImageResource(R.drawable.ic_empty_heart_white)
+                                    } else {
+                                        viewHolder.icon.setImageResource(R.drawable.ic_empty_heart)
+                                    }
                                     listItem.loved = false
                                 } else {
                                     Snackbar.make(rowView, "Não foi possível realizar essa ação.", Snackbar.LENGTH_SHORT).show()

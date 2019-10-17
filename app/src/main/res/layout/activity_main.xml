@@ -22,22 +22,39 @@
 
     <include layout="@layout/content_main" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_wall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginBottom="80dp"
-        android:src="@android:drawable/ic_menu_gallery"
-        app:layout_anchor="@id/fab"
-        app:layout_anchorGravity="top" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab"
+    <com.github.clans.fab.FloatingActionMenu
+        android:id="@+id/fab_menu"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="@dimen/fab_margin"
-        app:srcCompat="@android:drawable/ic_popup_sync" />
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
+        app:menu_animationDelayPerItem="0"
+        app:menu_colorNormal="?colorAccent"
+        app:menu_colorPressed="?colorAccent"
+        app:menu_colorRipple="?colorAccent"
+        app:menu_labels_hideAnimation="@anim/hide_to_bottom"
+        app:menu_labels_showAnimation="@anim/show_from_bottom"
+        app:menu_shadowColor="#444">
+
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/fab_wall"
+            style="@style/MenuButtonsStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_wall"
+            app:fab_label="@string/fab_set_wall"
+            app:fab_shadowRadius="0dp" />
+
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/fab_update"
+            style="@style/MenuButtonsStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_sync"
+            app:fab_label="@string/fab_update"
+            app:fab_shadowRadius="0dp" />
+
+    </com.github.clans.fab.FloatingActionMenu>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
