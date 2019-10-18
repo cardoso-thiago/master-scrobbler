@@ -14,6 +14,7 @@ import android.view.animation.Animation
 import android.view.animation.RotateAnimation
 import android.widget.*
 import androidx.core.content.ContextCompat
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import butterknife.BindView
 import butterknife.ButterKnife
 import com.google.android.material.snackbar.Snackbar
@@ -71,6 +72,9 @@ class MainActivity : CyaneaAppCompatActivity() {
     @BindView(R.id.text_recent_tracks)
     lateinit var recentTracks: TextView
 
+    @BindView(R.id.swipe_container)
+    lateinit var swipeRefreshLayout: SwipeRefreshLayout
+
     private var lastArtistsAlbumsSpinner = ""
     private var lastPeriodSpinner = ""
 
@@ -113,13 +117,16 @@ class MainActivity : CyaneaAppCompatActivity() {
         if (utils.isValidSessionKey()) {
             if (user != null) {
                 initService()
-                getUserInfo(user)
-                initSpinners(user)
-                getRecentTracks(user)
+                updateData(user)
             }
         } else {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
+        }
+
+        swipeRefreshLayout.setOnRefreshListener {
+            updateData(user)
+            swipeRefreshLayout.isRefreshing = false
         }
 
         fab_menu.setClosedOnTouchOutside(true)
@@ -132,14 +139,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                 val parentLayout = findViewById<View>(android.R.id.content)
                 Snackbar.make(parentLayout, getString(R.string.no_connection), Snackbar.LENGTH_LONG).show()
             }
-
-            if (utils.isValidSessionKey()) {
-                if (user != null) {
-                    getUserInfo(user)
-                    initSpinners(user)
-                    getRecentTracks(user)
-                }
-            }
+            updateData(user)
         }
 
         //TODO verificar se é a melhor maneira de obter a lista de imagens
@@ -157,6 +157,16 @@ class MainActivity : CyaneaAppCompatActivity() {
                 val wallManager = WallpaperManager.getInstance(applicationContext)
                 wallManager.setBitmap(finalBitmap)
                 finalBitmap.recycle()
+            }
+        }
+    }
+
+    private fun updateData(user: String?) {
+        if (utils.isValidSessionKey()) {
+            if (user != null) {
+                getUserInfo(user)
+                initSpinners(user)
+                getRecentTracks(user)
             }
         }
     }
@@ -267,7 +277,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                 val registered = response.body()?.user?.registered?.text
                 uiThread {
                     if (profileUrl != null) {
-                        profile.let { profileImage -> imageUtils.getImageCache(profileUrl, profileImage, true) }
+                        profile.let { profileImage -> imageUtils.getAvatarImage(profileUrl, profileImage) }
                     }
                     username.text = name
                     if (registered != null) {
