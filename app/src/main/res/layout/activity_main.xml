@@ -54,7 +54,5 @@
             android:src="@drawable/ic_sync"
             app:fab_label="@string/fab_update"
             app:fab_shadowRadius="0dp" />
-
     </com.github.clans.fab.FloatingActionMenu>
-
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
