@@ -3,6 +3,7 @@ package com.kanedasoftware.masterscrobbler.main
 import android.app.WallpaperManager
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
@@ -37,7 +38,6 @@ import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import org.koin.android.ext.android.inject
-
 
 class MainActivity : CyaneaAppCompatActivity() {
 
@@ -75,6 +75,9 @@ class MainActivity : CyaneaAppCompatActivity() {
     @BindView(R.id.swipe_container)
     lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
+    @BindView(android.R.id.content)
+    lateinit var parentLayout: View
+
     private var lastArtistsAlbumsSpinner = ""
     private var lastPeriodSpinner = ""
 
@@ -89,7 +92,6 @@ class MainActivity : CyaneaAppCompatActivity() {
     private var oneYear: String = ""
     private var overall: String = ""
     private lateinit var valuesPeriods: List<String>
-    private var listTopInfo = ArrayList<TopInfo>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -136,26 +138,29 @@ class MainActivity : CyaneaAppCompatActivity() {
             lastPeriodSpinner = ""
 
             if(!utils.isConnected()) {
-                val parentLayout = findViewById<View>(android.R.id.content)
                 Snackbar.make(parentLayout, getString(R.string.no_connection), Snackbar.LENGTH_LONG).show()
             }
             updateData(user)
         }
 
-        //TODO verificar se é a melhor maneira de obter a lista de imagens
-        //TODO Verificar para obter a lista das imagens já baixadas cache do Picasso
-        //TODO Se não, tratamento para offline
-        //TODO Snack pra sucesso ou erro
         fab_wall.setOnClickListener{
             fab_menu.close(true)
             doAsync {
+                val destSize = Resources.getSystem().displayMetrics.widthPixels / 3
                 val listBitmaps = mutableListOf<Bitmap>()
-                for(item in listTopInfo) {
-                    listBitmaps.add(imageUtils.resizeImage(item.url))
+                val topAdapter = gridView.adapter as GridViewTopAdapter
+
+                for(item in topAdapter.getList()) {
+                    val futureBitmap = imageUtils.getBitmapSync(item.url, destSize)
+                    listBitmaps.add(futureBitmap.get())
                 }
+
                 val finalBitmap = imageUtils.mergeMultiple(listBitmaps)
                 val wallManager = WallpaperManager.getInstance(applicationContext)
                 wallManager.setBitmap(finalBitmap)
+
+                Snackbar.make(parentLayout, getString(R.string.applied_wallpaper), Snackbar.LENGTH_LONG).show()
+
                 finalBitmap.recycle()
             }
         }
@@ -400,7 +405,7 @@ class MainActivity : CyaneaAppCompatActivity() {
             val response = lastFmService.topArtists(user,
                     utils.getPeriodParameter(period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
-                listTopInfo = ArrayList()
+                val listTopInfo = ArrayList<TopInfo>()
                 val artists = response.body()?.topartists?.artist
                 if (artists != null) {
                     for (artist in artists) {
@@ -412,6 +417,8 @@ class MainActivity : CyaneaAppCompatActivity() {
                 uiThread {
                     gridView.adapter = GridViewTopAdapter(applicationContext, listTopInfo, Constants.ARTISTS)
                 }
+            } else {
+                snackDataError()
             }
         }
     }
@@ -422,7 +429,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                     utils.getPeriodParameter(period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
                 val albums = response.body()?.topalbums?.album
-                listTopInfo = ArrayList()
+                val listTopInfo = ArrayList<TopInfo>()
                 if (albums != null) {
                     for (album in albums) {
                         var imageUrl = album.image.last().text
@@ -437,7 +444,17 @@ class MainActivity : CyaneaAppCompatActivity() {
                 uiThread {
                     gridView.adapter = GridViewTopAdapter(applicationContext, listTopInfo, Constants.ALBUMS)
                 }
+            } else {
+                snackDataError()
             }
         }
+    }
+
+    private fun snackDataError() {
+        var snackMessage = R.string.error_loading_data
+        if (!utils.isConnected()) {
+            snackMessage = R.string.no_connection
+        }
+        Snackbar.make(parentLayout, getString(snackMessage), Snackbar.LENGTH_LONG).show()
     }
 }

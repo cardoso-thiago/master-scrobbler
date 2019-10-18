@@ -91,6 +91,11 @@ internal class GridViewTopAdapter(private val context: Context, infoList: ArrayL
         return list.size
     }
 
+    fun getList(): ArrayList<TopInfo> {
+        return list
+    }
+
+
     override fun getItem(position: Int): String? {
         return null
     }

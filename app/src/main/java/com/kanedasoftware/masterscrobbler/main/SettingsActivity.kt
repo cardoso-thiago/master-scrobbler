@@ -1,8 +1,8 @@
 package com.kanedasoftware.masterscrobbler.main
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
-import androidx.core.app.NavUtils
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
 
 class SettingsActivity : CyaneaAppCompatActivity() {
@@ -23,10 +23,20 @@ class SettingsActivity : CyaneaAppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             android.R.id.home -> {
-                NavUtils.navigateUpFromSameTask(this)
+                startMainActivity()
                 return true
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    override fun onBackPressed() {
+        startMainActivity()
+    }
+
+    private fun startMainActivity() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
     }
 }
