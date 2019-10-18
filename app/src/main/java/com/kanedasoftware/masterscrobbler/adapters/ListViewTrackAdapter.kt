@@ -13,6 +13,7 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import butterknife.BindView
 import butterknife.ButterKnife
+import com.bumptech.glide.Glide
 import com.google.android.material.snackbar.Snackbar
 import com.jaredrummler.cyanea.Cyanea
 import com.kanedasoftware.masterscrobbler.R
@@ -22,7 +23,6 @@ import com.kanedasoftware.masterscrobbler.services.LastFmService
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.ImageUtils
 import com.kanedasoftware.masterscrobbler.utils.Utils
-import com.squareup.picasso.Picasso
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import io.gresse.hugo.vumeterlibrary.VuMeterView
 import org.jetbrains.anko.doAsync
@@ -88,7 +88,7 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
 
         val albumImageUrl = list[position].imageUrl
         if (albumImageUrl.isBlank()) {
-            Picasso.get().load(R.drawable.ic_placeholder).fit().tag(context).into(viewHolder.image)
+            Glide.with(context).load(R.drawable.ic_placeholder).fitCenter().into(viewHolder.image)
         } else {
             imageUtils.getImageCache(albumImageUrl, viewHolder.image as ImageView)
         }

@@ -8,8 +8,6 @@ import com.kanedasoftware.masterscrobbler.utils.ImageUtils
 import com.kanedasoftware.masterscrobbler.utils.NotificationUtils
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.kanedasoftware.masterscrobbler.ws.RetrofitInitializer
-import com.squareup.picasso.OkHttp3Downloader
-import com.squareup.picasso.Picasso
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import org.koin.android.ext.android.inject
@@ -67,6 +65,5 @@ class ScrobblerApp: CyaneaApp() {
         }
 
         CyaneaTheme.from(this.assets, themesJsonAssetPath)[0].apply(cyanea)
-        Picasso.setSingletonInstance(Picasso.Builder(this).downloader(OkHttp3Downloader(okHttpClient)).build())
     }
 }

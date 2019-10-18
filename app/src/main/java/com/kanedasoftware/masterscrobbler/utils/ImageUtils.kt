@@ -7,67 +7,58 @@ import android.graphics.Matrix.ScaleToFit
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import android.widget.ImageView
+import androidx.annotation.Nullable
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.RequestOptions
+import com.bumptech.glide.request.target.Target
 import com.kanedasoftware.masterscrobbler.R
-import com.kanedasoftware.masterscrobbler.picasso.CircleTransformation
-import com.kanedasoftware.masterscrobbler.picasso.CustomTarget
-import com.squareup.picasso.Callback
-import com.squareup.picasso.NetworkPolicy
-import com.squareup.picasso.Picasso
+import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.uiThread
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 import java.net.URL
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-class ImageUtils constructor(appContext: Context):KoinComponent{
+class ImageUtils constructor(appContext: Context) : KoinComponent {
 
     private val utils: Utils by inject()
-    private val target: CustomTarget = CustomTarget()
+    private val notificationUtils: NotificationUtils by inject()
     private val context = appContext
 
     fun getImageCache(imageUrl: String, imageView: ImageView) {
-        getImageCache(imageUrl, imageView, false)
+        Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_placeholder).fitCenter().into(imageView)
     }
 
-    fun getImageCache(imageUrl: String, imageView: ImageView, circleTransformation: Boolean) {
-        val picassoLoadCache = Picasso.get().load(imageUrl).tag(context).stableKey(imageUrl).placeholder(R.drawable.ic_placeholder)
-        if (circleTransformation) {
-            picassoLoadCache.transform(CircleTransformation())
-        } else {
-            picassoLoadCache.fit()
-        }
-
-        picassoLoadCache.networkPolicy(NetworkPolicy.OFFLINE).into(imageView, object : Callback {
-            override fun onSuccess() {
-                utils.logDebug("Imagem $imageUrl carregada do cache")
-            }
-
-            override fun onError(e: java.lang.Exception?) {
-                utils.logDebug("Erro ao carregar a imagem $imageUrl do cache, vai tentar baixar.")
-
-                val picassoLoad = Picasso.get().load(imageUrl).tag(context).stableKey(imageUrl).placeholder(R.drawable.ic_placeholder)
-                if (circleTransformation) {
-                    picassoLoad.transform(CircleTransformation())
-                } else {
-                    picassoLoad.fit()
-                }
-                picassoLoad.error(R.drawable.ic_placeholder).into(imageView, object : Callback {
-                    override fun onSuccess() {
-                        utils.logDebug("Imagem $imageUrl baixada com sucesso")
-                    }
-
-                    override fun onError(e: java.lang.Exception) {
-                        utils.logDebug("Erro ao obter a imagem $imageUrl ${e.message}")
-                    }
-                })
-            }
-        })
+    fun getAvatarImage(imageUrl: String, imageView: ImageView) {
+        Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_placeholder).fitCenter().apply(RequestOptions.circleCropTransform()).into(imageView)
     }
 
     fun getNotificationImageCache(imageUrl: String, title: String, text: String) {
-        target.title = title
-        target.text = text
-        Picasso.get().load(imageUrl).stableKey(imageUrl).into(target)
+        doAsync {
+            Glide.with(context).asBitmap().load(imageUrl).listener(object : RequestListener<Bitmap> {
+                override fun onLoadFailed(@Nullable e: GlideException?, o: Any, target: Target<Bitmap>, b: Boolean): Boolean {
+                    utils.log("Bitmap falhou")
+                    val errorImage = BitmapFactory.decodeResource(utils.getAppContext().resources, R.drawable.ic_placeholder)
+                    uiThread {
+                        notificationUtils.updateNotification(title, text, errorImage)
+                    }
+                    return false
+                }
+
+                override fun onResourceReady(bitmap: Bitmap, o: Any, target: Target<Bitmap>, dataSource: DataSource, b: Boolean): Boolean {
+                    utils.log("Bitmap carregado")
+                    uiThread {
+                        notificationUtils.updateNotification(title, text, bitmap)
+                    }
+                    return false
+                }
+            }
+            ).submit()
+        }
     }
 
     fun mergeMultiple(listBitmaps: MutableList<Bitmap>): Bitmap {
@@ -76,7 +67,7 @@ class ImageUtils constructor(appContext: Context):KoinComponent{
         windowManager.defaultDisplay.getRealMetrics(metrics)
 
         val result = Bitmap.createBitmap(listBitmaps[0].width * 3, metrics.heightPixels, Bitmap.Config.ARGB_8888)
-        val space = (metrics.heightPixels - listBitmaps[0].height * 3)/2
+        val space = (metrics.heightPixels - listBitmaps[0].height * 3) / 2
         val canvas = Canvas(result)
         val paint = Paint()
         for (i in listBitmaps.indices) {
@@ -86,8 +77,8 @@ class ImageUtils constructor(appContext: Context):KoinComponent{
         return result
     }
 
-    fun resizeImage(origin:String): Bitmap {
-        val destSize = (Resources.getSystem().displayMetrics.widthPixels/3).toFloat()
+    fun resizeImage(origin: String): Bitmap {
+        val destSize = (Resources.getSystem().displayMetrics.widthPixels / 3).toFloat()
         var options = BitmapFactory.Options()
         options.inJustDecodeBounds = true
         var openStream = URL(origin).openStream()
