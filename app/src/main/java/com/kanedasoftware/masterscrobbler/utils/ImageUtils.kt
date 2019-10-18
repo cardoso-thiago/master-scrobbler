@@ -11,10 +11,12 @@ import androidx.annotation.Nullable
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.FutureTarget
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
 import com.kanedasoftware.masterscrobbler.R
+import com.kanedasoftware.masterscrobbler.beans.TopInfo
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import org.koin.core.KoinComponent
@@ -77,30 +79,9 @@ class ImageUtils constructor(appContext: Context) : KoinComponent {
         return result
     }
 
-    fun resizeImage(origin: String): Bitmap {
-        val destSize = (Resources.getSystem().displayMetrics.widthPixels / 3).toFloat()
-        var options = BitmapFactory.Options()
-        options.inJustDecodeBounds = true
-        var openStream = URL(origin).openStream()
-        BitmapFactory.decodeStream(openStream, null, options)
-        openStream.close()
-
-        val inWidth = options.outWidth
-        val inHeight = options.outHeight
-
-        options = BitmapFactory.Options()
-        options.inSampleSize = max(inWidth / destSize, inHeight / destSize).roundToInt()
-        openStream = URL(origin).openStream()
-        val roughBitmap = BitmapFactory.decodeStream(openStream, null, options)
-        openStream.close()
-
-        val m = Matrix()
-        val inRect = RectF(0f, 0f, roughBitmap!!.width.toFloat(), roughBitmap.height.toFloat())
-        val outRect = RectF(0f, 0f, destSize, destSize)
-        m.setRectToRect(inRect, outRect, ScaleToFit.CENTER)
-        val values = FloatArray(9)
-        m.getValues(values)
-
-        return Bitmap.createScaledBitmap(roughBitmap, (roughBitmap.width * values[0]).toInt(), (roughBitmap.height * values[4]).toInt(), true)
+    fun getBitmapSync(url:String, destSize: Int): FutureTarget<Bitmap> {
+        return Glide.with(context)
+                .asBitmap().placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder)
+                .load(url).apply(RequestOptions().override(destSize, destSize)).submit()
     }
 }
