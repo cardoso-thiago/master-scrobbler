@@ -242,7 +242,7 @@ class MediaService : NotificationListenerService(),
                                 }
                             }
                         } else {
-                            notificationUtils.updateNotification(getString(R.string.app_name), "${getString(R.string.notification_scrobbling_offline)}: ${scrobbleBean.artist} - ${scrobbleBean.track}\"")
+                            notificationUtils.updateNotification(getString(R.string.app_name), "${getString(R.string.notification_scrobbling_offline)}: ${scrobbleBean.artist} - ${scrobbleBean.track}")
                             utils.log("Não está online, vai armazenar a música para o próximo scrobble (toScrobble)")
                             toScrobble = scrobbleBean
                         }
