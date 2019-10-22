@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import butterknife.BindView
 import butterknife.ButterKnife
 import com.bumptech.glide.Glide
+import com.github.ybq.android.spinkit.SpinKitView
 import com.google.android.material.snackbar.Snackbar
 import com.jaredrummler.cyanea.Cyanea
 import com.kanedasoftware.masterscrobbler.R
@@ -50,6 +51,9 @@ internal class ViewHolder(view: View) {
 
     @BindView(R.id.item_list_equalizer)
     lateinit var equalizer: VuMeterView
+
+    @BindView(R.id.list_item_spin)
+    lateinit var spin: SpinKitView
 
     init {
         ButterKnife.bind(this, view)
@@ -95,6 +99,9 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
 
         val icon = viewHolder.icon
         val equalizer = viewHolder.equalizer
+        val spin = viewHolder.spin
+        spin.visibility = View.GONE
+
         when {
             list[position].scrobbling -> icon.visibility = View.GONE
             list[position].loved -> {
@@ -112,6 +119,9 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
         }
 
         rowView?.setOnClickListener{
+            icon.visibility = View.GONE
+            spin.visibility = View.VISIBLE
+
             val listItem = list[position]
             if(!listItem.scrobbling){
                 if(listItem.loved){
@@ -122,6 +132,9 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
                             val sig = utils.getSig(params, Constants.API_TRACK_UNLOVE)
                             val response = lastFmService.unlove(listItem.artist, listItem.track, Constants.API_KEY, sig, sessionKey).execute()
                             uiThread {
+                                icon.visibility = View.VISIBLE
+                                spin.visibility = View.GONE
+
                                 if (response.isSuccessful) {
                                     if (Cyanea.instance.isDark) {
                                         viewHolder.icon.setImageResource(R.drawable.ic_empty_heart_white)
@@ -130,7 +143,7 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
                                     }
                                     listItem.loved = false
                                 } else {
-                                    Snackbar.make(rowView, "Não foi possível realizar essa ação.", Snackbar.LENGTH_SHORT).show()
+                                    Snackbar.make(rowView, context.getString(R.string.error_love_unlove_action), Snackbar.LENGTH_SHORT).show()
                                 }
                             }
                         }
@@ -143,6 +156,9 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
                             val sig = utils.getSig(params, Constants.API_TRACK_LOVE)
                             val response = lastFmService.love(listItem.artist, listItem.track, Constants.API_KEY, sig, sessionKey).execute()
                             uiThread {
+                                icon.visibility = View.VISIBLE
+                                spin.visibility = View.GONE
+
                                 if (response.isSuccessful) {
                                     viewHolder.icon.setImageResource(R.drawable.ic_heart)
                                     listItem.loved = true
