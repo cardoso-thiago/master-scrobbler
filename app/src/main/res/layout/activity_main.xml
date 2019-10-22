@@ -28,6 +28,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="20dp"
+        android:contentDescription="@string/floating_action_button_description"
         android:layout_marginBottom="20dp"
         app:menu_animationDelayPerItem="0"
         app:menu_colorNormal="?colorAccent"
@@ -42,6 +43,7 @@
             style="@style/MenuButtonsStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:contentDescription="@string/change_wallpaper_description"
             android:src="@drawable/ic_wall"
             app:fab_label="@string/fab_set_wall"
             app:fab_shadowRadius="0dp" />
@@ -50,6 +52,7 @@
             android:id="@+id/fab_update"
             style="@style/MenuButtonsStyle"
             android:layout_width="wrap_content"
+            android:contentDescription="@string/action_update_description"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_sync"
             app:fab_label="@string/fab_update"
