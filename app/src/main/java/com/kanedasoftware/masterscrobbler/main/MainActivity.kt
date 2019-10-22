@@ -7,6 +7,7 @@ import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -14,6 +15,7 @@ import android.view.View
 import android.view.animation.Animation
 import android.view.animation.RotateAnimation
 import android.widget.*
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import butterknife.BindView
@@ -118,6 +120,12 @@ class MainActivity : CyaneaAppCompatActivity() {
         val user: String? = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_USER_TAG, "")
         if (utils.isValidSessionKey()) {
             if (user != null) {
+                profile.setOnClickListener{
+                    val builder = CustomTabsIntent.Builder()
+                    val customTabsIntent = builder.build()
+                    customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    customTabsIntent.launchUrl(applicationContext, Uri.parse("https://www.last.fm/user/$user"))
+                }
                 initService()
                 updateData(user)
             }
