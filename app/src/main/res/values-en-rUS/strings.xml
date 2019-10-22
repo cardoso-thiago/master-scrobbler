@@ -52,4 +52,7 @@
     <string name="fab_set_wall">Set as wallpaper</string>
     <string name="error_loading_data">Error loading data, please try again.</string>
     <string name="applied_wallpaper">" The wallpaper has been applied"</string>
+    <string name="floating_action_button_description">Floating action button with actions</string>
+    <string name="change_wallpaper_description">Action to change the wallpaper with the current image grid</string>
+    <string name="action_update_description">Action to update the screen information</string>
 </resources>
