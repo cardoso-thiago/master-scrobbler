@@ -3,6 +3,7 @@ package com.kanedasoftware.masterscrobbler.receivers
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import androidx.preference.PreferenceManager
 import com.kanedasoftware.masterscrobbler.utils.ImageUtils
 import com.kanedasoftware.masterscrobbler.utils.NotificationUtils
 import com.kanedasoftware.masterscrobbler.utils.Utils
@@ -25,7 +26,7 @@ class BootUpReceiver : BroadcastReceiver(), KoinComponent {
             //Não inicia o serviço se não tiver feito o login
             if (utils.isValidSessionKey()) {
                 if (intent?.action.equals(Intent.ACTION_BOOT_COMPLETED)) {
-                    val defaultSharedPreferences = android.preference.PreferenceManager.getDefaultSharedPreferences(context)
+                    val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
                     if (!utils.hasAppsToScrobble(defaultSharedPreferences)) {
                         notificationUtils.sendNoPlayerNotification()
                     } else {

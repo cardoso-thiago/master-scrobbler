@@ -67,7 +67,7 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
     private val imageUtils: ImageUtils by inject()
     private val lastFmService: LastFmService by inject()
 
-    override fun getView(position: Int, view: View?, parent: ViewGroup): View? {
+    override fun getView(position: Int, view: View?, parent: ViewGroup): View {
         var rowView = view
         val viewHolder: ViewHolder
         if (rowView == null) {
@@ -181,6 +181,6 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
             customTabsIntent.launchUrl(context, Uri.parse(list[position].lastFmUrl))
         }
 
-        return rowView
+        return rowView!!
     }
 }
