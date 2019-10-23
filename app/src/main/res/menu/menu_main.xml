@@ -15,8 +15,14 @@
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_logoff"
+        android:id="@+id/action_about"
         android:orderInCategory="300"
+        android:title="@string/action_about"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_logoff"
+        android:orderInCategory="400"
         android:title="@string/action_logoff"
         app:showAsAction="never" />
 </menu>

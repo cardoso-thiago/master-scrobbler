@@ -5,12 +5,16 @@ import android.content.Context
 import android.content.Context.CONNECTIVITY_SERVICE
 import android.net.ConnectivityManager
 import android.net.Network
-import android.net.NetworkInfo
 import android.net.NetworkRequest
 import android.os.Build
 import androidx.lifecycle.LiveData
+import com.kanedasoftware.masterscrobbler.utils.Utils
+import org.koin.core.KoinComponent
+import org.koin.core.inject
 
-class ConnectionLiveData(context: Context) : LiveData<Boolean>() {
+class ConnectionLiveData(context: Context) : LiveData<Boolean>(), KoinComponent {
+
+    private val utils: Utils by inject()
 
     private var connectivityManager: ConnectivityManager = context.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
     private lateinit var connectivityManagerCallback: ConnectivityManager.NetworkCallback
@@ -51,7 +55,6 @@ class ConnectionLiveData(context: Context) : LiveData<Boolean>() {
     }
 
     private fun updateConnection() {
-        val activeNetwork: NetworkInfo? = connectivityManager.activeNetworkInfo
-        postValue(activeNetwork?.isConnected == true)
+        postValue(utils.isConnected())
     }
 }

@@ -32,6 +32,7 @@
     <string name="album_image">Imagem do Álbum</string>
     <string name="action_logoff">Sair</string>
     <string name="action_themes">Temas</string>
+    <string name="action_about">Sobre</string>
     <string name="last_fm_logo">Logotipo Last.fm</string>
     <string name="apps_to_scrobble">Apps para Fazer Scrobble</string>
     <string name="select_apps_scrobble">Selecione os apps para fazer Scrobble</string>
@@ -54,4 +55,11 @@
     <string name="floating_action_button_description">Botão flutuante com ações</string>
     <string name="change_wallpaper_description">Ação para alterar o papel de parede com o grid de imagens atual</string>
     <string name="action_update_description">Ação para atualizar as informações da tela</string>
+    <string name="about_description"><![CDATA[Um app simples para Scrobble com validações das músicas utilizando a própria API do Last.fm.<br/>
+    <div>Ícones de <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> utilizando a licença <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+    <div>Ícone do Last.fm feito por <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a></div>
+    <div>Ícones de coração feitos por <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a></div>
+    <div>Ícones do aplicativo e notificação feitos por <a href="https://www.flaticon.com/authors/xnimrodx" title="xnimrodx">xnimrodx</a></div><br>
+    <div>Para sugestões, dúvidas ou bugs, me envie um <a href="mailto:kaneda.software@gmail.com?subject=Master%20Scrobbler" target="_top">email.</a></div>
+    ]]></string>
 </resources>
