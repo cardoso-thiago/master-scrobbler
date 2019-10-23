@@ -17,6 +17,7 @@ import android.view.animation.RotateAnimation
 import android.widget.*
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
+import androidx.preference.PreferenceManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import butterknife.BindView
 import butterknife.ButterKnife
@@ -34,6 +35,8 @@ import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.ImageUtils
 import com.kanedasoftware.masterscrobbler.utils.NotificationUtils
 import com.kanedasoftware.masterscrobbler.utils.Utils
+import com.mikepenz.aboutlibraries.Libs
+import com.mikepenz.aboutlibraries.LibsBuilder
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.defaultSharedPreferences
@@ -136,7 +139,6 @@ class MainActivity : CyaneaAppCompatActivity() {
 
         swipeRefreshLayout.setOnRefreshListener {
             updateData(user)
-            swipeRefreshLayout.isRefreshing = false
         }
 
         fab_menu.setClosedOnTouchOutside(true)
@@ -196,9 +198,10 @@ class MainActivity : CyaneaAppCompatActivity() {
         }
     }
 
-    private fun stopFabAnimation() {
+    private fun stopAnimations() {
         fab_update.clearAnimation()
         fab_menu.close(true)
+        swipeRefreshLayout.isRefreshing = false
     }
 
     private fun validateTheme() {
@@ -236,7 +239,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         notificationUtils.createNotificationChannel(this)
 
         if (notificationUtils.verifyNotificationAccess()) {
-            val defaultSharedPreferences = android.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
             if (utils.hasAppsToScrobble(defaultSharedPreferences)) {
                 utils.startMediaService()
             } else {
@@ -262,6 +265,14 @@ class MainActivity : CyaneaAppCompatActivity() {
             R.id.action_theme_picker -> {
                 val intent = Intent(this, CyaneaThemePickerActivity::class.java)
                 startActivity(intent)
+                return true
+            }
+            R.id.action_about -> {
+                LibsBuilder().withActivityStyle(Libs.ActivityStyle.LIGHT_DARK_TOOLBAR)
+                        .withAboutIconShown(true)
+                        .withAboutVersionShown(true)
+                        .withAboutDescription(getString(R.string.about_description))
+                        .start(this)
                 return true
             }
             R.id.action_logoff -> {
@@ -384,7 +395,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                 val listAdapter = ListViewTrackAdapter(applicationContext, recentTracksList)
                 listTracks.adapter = listAdapter
                 utils.setListViewHeightBasedOnItems(listTracks)
-                stopFabAnimation()
+                stopAnimations()
             }
         }
     }

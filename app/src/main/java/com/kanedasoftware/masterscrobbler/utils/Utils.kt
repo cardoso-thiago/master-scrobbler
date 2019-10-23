@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -51,10 +52,22 @@ class Utils constructor(appContext: Context){
 
     fun logError(message: String) = AnkoLogger(Constants.LOG_TAG).error(message)
 
+    @Suppress("DEPRECATION")
     fun isConnected(): Boolean {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetwork = cm.activeNetworkInfo
-        return activeNetwork != null
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val nw      = connectivityManager.activeNetwork ?: return false
+            val actNw = connectivityManager.getNetworkCapabilities(nw) ?: return false
+            return when {
+                actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+                actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+                actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+                else -> false
+            }
+        } else {
+            val nwInfo = connectivityManager.activeNetworkInfo ?: return false
+            return nwInfo.isConnected
+        }
     }
 
     fun getDateTimeFromEpoch(timestamp: Int): String? {
@@ -72,7 +85,10 @@ class Utils constructor(appContext: Context){
         simpleDateFormat.timeZone = TimeZone.getTimeZone("UTC")
         val outputSdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
         val localDate = simpleDateFormat.parse(date)
-        return outputSdf.format(localDate)
+        if(localDate != null) {
+            return outputSdf.format(localDate)
+        }
+        return ""
     }
 
     fun setListViewHeightBasedOnItems(listView: ListView) {

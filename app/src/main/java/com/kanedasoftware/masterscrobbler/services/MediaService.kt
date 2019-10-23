@@ -12,8 +12,8 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.Build
 import android.os.CountDownTimer
-import android.preference.PreferenceManager
 import android.service.notification.NotificationListenerService
+import androidx.preference.PreferenceManager
 import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.Scrobble

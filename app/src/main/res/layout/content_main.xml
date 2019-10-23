@@ -25,17 +25,18 @@
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp">
 
                 <ImageView
                     android:id="@+id/profile"
                     android:layout_width="80dp"
                     android:layout_height="80dp"
-                    android:layout_marginStart="16dp"
                     android:layout_marginTop="16dp"
+                    android:contentDescription="@string/profile_picture"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    android:contentDescription="@string/profile_picture" />
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <TextView
                     android:id="@+id/username"
@@ -60,7 +61,6 @@
                     android:id="@+id/top_artists_albuns"
                     android:layout_width="200dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
                     android:layout_marginTop="16dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/info" />
@@ -69,7 +69,6 @@
                     android:id="@+id/period"
                     android:layout_width="170dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="10dp"
                     android:layout_marginTop="18dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/info" />
@@ -78,9 +77,7 @@
                     android:id="@+id/grid_view"
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
                     android:layout_marginTop="10dp"
-                    android:layout_marginEnd="10dp"
                     android:listSelector="@null"
                     android:numColumns="3"
                     android:scrollbarStyle="insideOverlay"
@@ -103,9 +100,7 @@
                     android:id="@+id/list_tracks"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
                     android:layout_marginTop="10dp"
-                    android:layout_marginEnd="10dp"
                     app:layout_constraintStart_toStartOf="@+id/text_recent_tracks"
                     app:layout_constraintTop_toBottomOf="@+id/text_recent_tracks"
                     tools:ignore="NestedScrolling" />

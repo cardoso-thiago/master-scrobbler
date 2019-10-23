@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "1085645458167",
+    "firebase_url": "https://master-scrobbler.firebaseio.com",
+    "project_id": "master-scrobbler",
+    "storage_bucket": "master-scrobbler.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085645458167:android:f6e33815b8da3f8de0a1f2",
+        "android_client_info": {
+          "package_name": "com.kanedasoftware.masterscrobbler"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1085645458167-57jvn9nhd29gjrm005mt51kq2t9ijmt8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBv0dVb9qEymi0JmmkY9MZShsNbqWr0zdc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1085645458167-57jvn9nhd29gjrm005mt51kq2t9ijmt8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
