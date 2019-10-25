@@ -58,9 +58,13 @@
     <string name="action_update_description">Action to update the screen information</string>
     <string name="about_description"><![CDATA[A simple Scrobble app with music validations using the Last.fm API itself.<br/>
     <div>Icons from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> and licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-    <div>Last.fm icon made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a></div>
-    <div>Heart icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a></div>
-    <div>Application and notification icons made by <a href="https://www.flaticon.com/authors/xnimrodx" title="xnimrodx">xnimrodx</a></div><br>
-    <div>For suggestions, questions or bugs, send me an <a href="mailto:kaneda.software@gmail.com?subject=Master%20Scrobbler" target="_top">email.</a></div>
+    Last.fm and notification icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a>
+    <br>Heart icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a>
+    <br>Application icon made by <a href="https://www.flaticon.com/authors/xnimrodx" title="xnimrodx">xnimrodx</a></div><br>
+    <div>For suggestions, questions or bugs, send me an <a href="mailto:kaneda.software@gmail.com?subject=Master%20Scrobbler" target="_top">email.</a></div><br>
+    <div>Check our <a href="https://master-scrobbler.flycricket.io/privacy.html" title="Privacy Policy">Privacy Policy</div>
     ]]></string>
+    <string name="warning_title">Warning</string>
+    <string name="warning_message">Last.fm does not return artist images via its API. An image search method was used which may bring the incorrect image corresponding to the artist.</string>
+    <string name="dont_show_this_message_again">Don\'t show this message again</string>
 </resources>

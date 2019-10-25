@@ -1,9 +1,10 @@
 package com.kanedasoftware.masterscrobbler.utils
 
 import android.content.Context
-import android.content.res.Resources
-import android.graphics.*
-import android.graphics.Matrix.ScaleToFit
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import android.widget.ImageView
@@ -16,14 +17,10 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
 import com.kanedasoftware.masterscrobbler.R
-import com.kanedasoftware.masterscrobbler.beans.TopInfo
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import org.koin.core.KoinComponent
 import org.koin.core.inject
-import java.net.URL
-import kotlin.math.max
-import kotlin.math.roundToInt
 
 class ImageUtils constructor(appContext: Context) : KoinComponent {
 
