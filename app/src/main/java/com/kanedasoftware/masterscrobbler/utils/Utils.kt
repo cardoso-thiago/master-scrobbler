@@ -214,5 +214,9 @@ class Utils constructor(appContext: Context){
         }
     }
 
+    fun setNotFirstExecution() = PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean("first_execution", false).apply()
+
+    fun isFirstExecution() = PreferenceManager.getDefaultSharedPreferences(context).getBoolean("first_execution", true)
+
     fun getAppContext() = context
 }

@@ -15,6 +15,7 @@ import android.view.View
 import android.view.animation.Animation
 import android.view.animation.RotateAnimation
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
@@ -108,7 +109,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         //Obtém os resources
         topArtists = getString(R.string.top_artists)
         topAlbums = getString(R.string.top_albums)
-        valuesArtistsAlbums = mutableListOf(topArtists, topAlbums)
+        valuesArtistsAlbums = mutableListOf(topAlbums, topArtists)
 
         sevenDays = getString(R.string.period_7day)
         oneMonth = getString(R.string.period_1month)
@@ -116,14 +117,14 @@ class MainActivity : CyaneaAppCompatActivity() {
         sixMonths = getString(R.string.period_6month)
         oneYear = getString(R.string.period_12month)
         overall = getString(R.string.period_overall)
-        valuesPeriods = mutableListOf(sevenDays, oneMonth, threeMonths, sixMonths, oneYear, overall)
+        valuesPeriods = mutableListOf(overall, oneYear, sixMonths, threeMonths, oneMonth, sevenDays)
 
         validateTheme()
 
         val user: String? = SecurePreferences.getStringValue(applicationContext, Constants.SECURE_USER_TAG, "")
         if (utils.isValidSessionKey()) {
             if (user != null) {
-                profile.setOnClickListener{
+                profile.setOnClickListener {
                     val builder = CustomTabsIntent.Builder()
                     val customTabsIntent = builder.build()
                     customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -147,20 +148,20 @@ class MainActivity : CyaneaAppCompatActivity() {
             lastArtistsAlbumsSpinner = ""
             lastPeriodSpinner = ""
 
-            if(!utils.isConnected()) {
+            if (!utils.isConnected()) {
                 Snackbar.make(parentLayout, getString(R.string.no_connection), Snackbar.LENGTH_LONG).show()
             }
             updateData(user)
         }
 
-        fab_wall.setOnClickListener{
+        fab_wall.setOnClickListener {
             fab_menu.close(true)
             doAsync {
                 val destSize = Resources.getSystem().displayMetrics.widthPixels / 3
                 val listBitmaps = mutableListOf<Bitmap>()
                 val topAdapter = gridView.adapter as GridViewTopAdapter
 
-                for(item in topAdapter.getList()) {
+                for (item in topAdapter.getList()) {
                     val futureBitmap = imageUtils.getBitmapSync(item.url, destSize)
                     listBitmaps.add(futureBitmap.get())
                 }
@@ -187,7 +188,7 @@ class MainActivity : CyaneaAppCompatActivity() {
     }
 
     private fun startFabAnimation() {
-        if(fab_menu.isOpened){
+        if (fab_menu.isOpened) {
             val rotate = RotateAnimation(0f, 360f,
                     Animation.RELATIVE_TO_SELF, 0.5f,
                     Animation.RELATIVE_TO_SELF, 0.5f
@@ -278,9 +279,11 @@ class MainActivity : CyaneaAppCompatActivity() {
             R.id.action_logoff -> {
                 SecurePreferences.clearAllValues(applicationContext)
                 applicationContext.defaultSharedPreferences.edit().clear().apply()
+                utils.setNotFirstExecution()
                 utils.stopMediaService()
 
                 val intent = Intent(this, LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
                 return true
             }
@@ -401,14 +404,10 @@ class MainActivity : CyaneaAppCompatActivity() {
     }
 
     private fun searchImages(user: String, artistAlbum: String, period: String) {
-        var count = 0
-        if(gridView.adapter != null) {
-            count = gridView.adapter?.count!!
-        }
-        if (artistAlbum == lastArtistsAlbumsSpinner && period == lastPeriodSpinner && count > 0) {
+        if (artistAlbum == lastArtistsAlbumsSpinner && period == lastPeriodSpinner) {
             utils.log("Não houve mudança, não vai carregar de novo o grid")
         } else {
-            utils.log("Carregando a grid. Spinner: $artistAlbum - Period: $period - Count: $count")
+            utils.log("Carregando a grid. Spinner: $artistAlbum - Period: $period")
             lastArtistsAlbumsSpinner = artistAlbum
             lastPeriodSpinner = period
             if (artistAlbum == topArtists) {
@@ -434,6 +433,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                     }
                 }
                 uiThread {
+                    showArtistWarningDialog()
                     gridView.adapter = GridViewTopAdapter(applicationContext, listTopInfo, Constants.ARTISTS)
                 }
             } else {
@@ -441,6 +441,33 @@ class MainActivity : CyaneaAppCompatActivity() {
             }
         }
     }
+
+    private fun showArtistWarningDialog() {
+        if (showDialog()) {
+            var style = R.style.Cyanea_AlertDialog_Theme_Light
+            if (Cyanea.instance.isDark) {
+                style = R.style.Cyanea_AlertDialog_Theme_Dark
+            }
+            val builder = AlertDialog.Builder(this@MainActivity, style)
+            val view = View.inflate(this@MainActivity, R.layout.dialog_artists, null)
+            val checkBox = view.findViewById<CheckBox>(R.id.checkBox)
+            builder.setTitle(getString(R.string.warning_title))
+            builder.setMessage(getString(R.string.warning_message))
+            builder.setView(view)
+            builder.setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            builder.create().show()
+            checkBox.setOnCheckedChangeListener { buttonView, _ ->
+                if (buttonView.isChecked) {
+                    setShowDialog(!buttonView.isChecked)
+                }
+            }
+        }
+    }
+
+    private fun setShowDialog(showDialog: Boolean) = PreferenceManager.getDefaultSharedPreferences(applicationContext).edit().putBoolean("show_dialog", showDialog).apply()
+
+    private fun showDialog() = PreferenceManager.getDefaultSharedPreferences(applicationContext).getBoolean("show_dialog", true)
+
 
     private fun getTopAlbums(user: String, period: String) {
         doAsync {

@@ -1,7 +1,10 @@
 package com.kanedasoftware.masterscrobbler.app
 
+import androidx.preference.PreferenceManager
 import androidx.room.Room
+import com.jaredrummler.cyanea.Cyanea
 import com.jaredrummler.cyanea.CyaneaApp
+import com.jaredrummler.cyanea.CyaneaThemes
 import com.jaredrummler.cyanea.prefs.CyaneaTheme
 import com.kanedasoftware.masterscrobbler.db.ScrobbleDb
 import com.kanedasoftware.masterscrobbler.utils.ImageUtils
@@ -16,7 +19,7 @@ import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import java.util.concurrent.TimeUnit
 
-class ScrobblerApp: CyaneaApp() {
+class ScrobblerApp : CyaneaApp() {
 
     private val themesJsonAssetPath get() = "themes/cyanea_themes.json"
 
@@ -30,7 +33,7 @@ class ScrobblerApp: CyaneaApp() {
         }
         single { get<ScrobbleDb>().scrobbleDao() }
         single {
-                OkHttpClient.Builder()
+            OkHttpClient.Builder()
                     .cache(Cache(applicationContext.cacheDir, Long.MAX_VALUE))
                     .addInterceptor { chain ->
                         var request = chain.request()
@@ -46,14 +49,13 @@ class ScrobblerApp: CyaneaApp() {
                     .writeTimeout(10, TimeUnit.SECONDS)
                     .build()
         }
-        single {Utils(androidContext())}
-        single {NotificationUtils(androidContext())}
-        single {ImageUtils(androidContext())}
-        single {RetrofitInitializer().lastFmService()}
-        single {RetrofitInitializer().lastFmSecureService()}
+        single { Utils(androidContext()) }
+        single { NotificationUtils(androidContext()) }
+        single { ImageUtils(androidContext()) }
+        single { RetrofitInitializer().lastFmService() }
+        single { RetrofitInitializer().lastFmSecureService() }
     }
 
-    private val okHttpClient:OkHttpClient by inject()
     private val utils: Utils by inject()
 
     override fun onCreate() {
@@ -64,6 +66,9 @@ class ScrobblerApp: CyaneaApp() {
             modules(listOf(applicationModules))
         }
 
-        CyaneaTheme.from(this.assets, themesJsonAssetPath)[0].apply(cyanea)
+        if(utils.isFirstExecution()){
+            CyaneaTheme.from(this.assets, themesJsonAssetPath)[0].apply(cyanea)
+            utils.setNotFirstExecution()
+        }
     }
 }
