@@ -29,11 +29,11 @@ class ImageUtils constructor(appContext: Context) : KoinComponent {
     private val context = appContext
 
     fun getImageCache(imageUrl: String, imageView: ImageView) {
-        Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_placeholder).fitCenter().into(imageView)
+        Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_image_error).error(R.drawable.ic_image_error).fitCenter().into(imageView)
     }
 
     fun getAvatarImage(imageUrl: String, imageView: ImageView) {
-        Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_placeholder).fitCenter().apply(RequestOptions.circleCropTransform()).into(imageView)
+        Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_image_error).error(R.drawable.ic_image_error).fitCenter().apply(RequestOptions.circleCropTransform()).into(imageView)
     }
 
     fun getNotificationImageCache(imageUrl: String, title: String, text: String) {
@@ -41,7 +41,7 @@ class ImageUtils constructor(appContext: Context) : KoinComponent {
             Glide.with(context).asBitmap().load(imageUrl).listener(object : RequestListener<Bitmap> {
                 override fun onLoadFailed(@Nullable e: GlideException?, o: Any, target: Target<Bitmap>, b: Boolean): Boolean {
                     utils.log("Bitmap falhou")
-                    val errorImage = BitmapFactory.decodeResource(utils.getAppContext().resources, R.drawable.ic_placeholder)
+                    val errorImage = BitmapFactory.decodeResource(utils.getAppContext().resources, R.drawable.ic_image_error)
                     uiThread {
                         notificationUtils.updateNotification(title, text, errorImage)
                     }
@@ -60,6 +60,10 @@ class ImageUtils constructor(appContext: Context) : KoinComponent {
         }
     }
 
+    fun getErrorImage(image: ImageView) {
+        Glide.with(context).load(R.drawable.ic_image_error).fitCenter().into(image)
+    }
+
     fun mergeMultiple(listBitmaps: MutableList<Bitmap>): Bitmap {
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val metrics = DisplayMetrics()
@@ -76,9 +80,8 @@ class ImageUtils constructor(appContext: Context) : KoinComponent {
         return result
     }
 
-    fun getBitmapSync(url:String, destSize: Int): FutureTarget<Bitmap> {
-        return Glide.with(context)
-                .asBitmap().placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_placeholder)
-                .load(url).apply(RequestOptions().override(destSize, destSize)).submit()
+    fun getBitmapSync(url: String, destSize: Int): FutureTarget<Bitmap> {
+        return Glide.with(context).asBitmap().load(url).apply(RequestOptions()
+                .override(destSize, destSize)).submit()
     }
 }

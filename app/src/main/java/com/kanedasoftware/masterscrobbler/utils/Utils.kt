@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.widget.ListView
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.preference.PreferenceManager
 import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.R
@@ -20,14 +21,16 @@ import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.debug
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
+import org.ocpsoft.prettytime.PrettyTime
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import androidx.core.content.ContextCompat.startActivity
 
-class Utils constructor(appContext: Context){
+class Utils constructor(appContext: Context) {
 
     private val metaSpam = arrayOf("downloaded", ".com", ".co.", "www.", ".br")
     private val context = appContext
@@ -56,7 +59,7 @@ class Utils constructor(appContext: Context){
     fun isConnected(): Boolean {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val nw      = connectivityManager.activeNetwork ?: return false
+            val nw = connectivityManager.activeNetwork ?: return false
             val actNw = connectivityManager.getNetworkCapabilities(nw) ?: return false
             return when {
                 actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
@@ -80,15 +83,12 @@ class Utils constructor(appContext: Context){
         }
     }
 
-    fun convertUTCToLocal(date: String): String {
+    fun convertUTCToLocalPretty(date: String): String {
         val simpleDateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.US)
         simpleDateFormat.timeZone = TimeZone.getTimeZone("UTC")
-        val outputSdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
         val localDate = simpleDateFormat.parse(date)
-        if(localDate != null) {
-            return outputSdf.format(localDate)
-        }
-        return ""
+        val prettyTime = PrettyTime(Locale.getDefault())
+        return prettyTime.format(localDate)
     }
 
     fun setListViewHeightBasedOnItems(listView: ListView) {
@@ -214,9 +214,37 @@ class Utils constructor(appContext: Context){
         }
     }
 
+    fun scrobblePendingMediaService() {
+        val i = Intent(context, MediaService::class.java)
+        i.action = Constants.SCROBBLE_PENDING_SERVICE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(i)
+        } else {
+            context.startService(i)
+        }
+    }
+
+    fun openUrl(url: String) {
+        val openInternally = PreferenceManager.getDefaultSharedPreferences(context).getBoolean("browser_option", true)
+        if(openInternally) {
+            val builder = CustomTabsIntent.Builder()
+            val customTabsIntent = builder.build()
+            customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            customTabsIntent.launchUrl(context, Uri.parse(url))
+        } else {
+            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(browserIntent)
+        }
+    }
+
     fun setNotFirstExecution() = PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean("first_execution", false).apply()
 
     fun isFirstExecution() = PreferenceManager.getDefaultSharedPreferences(context).getBoolean("first_execution", true)
+
+    fun setStartedService(startedService: Boolean) = PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean("started_service", startedService).apply()
+
+    fun isStartedService() = PreferenceManager.getDefaultSharedPreferences(context).getBoolean("started_service", false)
 
     fun getAppContext() = context
 }

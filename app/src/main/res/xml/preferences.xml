@@ -5,4 +5,11 @@
         android:key="apps_to_scrobble"
         android:summary="@string/select_apps_scrobble"
         android:title="@string/apps_to_scrobble" />
+
+    <CheckBoxPreference
+        android:title="@string/open_links"
+        android:key="browser_option"
+        android:summary="@string/open_links_internally"
+        android:defaultValue="true"
+        />
 </PreferenceScreen>
