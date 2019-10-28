@@ -52,7 +52,8 @@
     <string name="fab_update">Update</string>
     <string name="fab_set_wall">Set as wallpaper</string>
     <string name="error_loading_data">Error loading data, please try again.</string>
-    <string name="applied_wallpaper">" The wallpaper has been applied"</string>
+    <string name="applied_wallpaper">"The wallpaper has been applied"</string>
+    <string name="error_wallpaper">"Error applying wallpaper"</string>
     <string name="floating_action_button_description">Floating action button with actions</string>
     <string name="change_wallpaper_description">Action to change the wallpaper with the current image grid</string>
     <string name="action_update_description">Action to update the screen information</string>
@@ -61,10 +62,12 @@
     Last.fm and notification icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a>
     <br>Heart icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a>
     <br>Application icon made by <a href="https://www.flaticon.com/authors/xnimrodx" title="xnimrodx">xnimrodx</a></div><br>
-    <div>For suggestions, questions or bugs, send me an <a href="mailto:kaneda.software@gmail.com?subject=Master%20Scrobbler" target="_top">email.</a></div><br>
+    <div>For suggestions, questions or bugs, send me an <a href="mailto:kaneda.software@gmail.com?subject=Master%20Scrobbler" target="_top">email.</a></div>
     <div>Check our <a href="https://master-scrobbler.flycricket.io/privacy.html" title="Privacy Policy">Privacy Policy</div>
     ]]></string>
     <string name="warning_title">Warning</string>
     <string name="warning_message">Last.fm does not return artist images via its API. An image search method was used which may bring the incorrect image corresponding to the artist.</string>
     <string name="dont_show_this_message_again">Don\'t show this message again</string>
+    <string name="open_links">Open Links</string>
+    <string name="open_links_internally">Open links internally</string>
 </resources>

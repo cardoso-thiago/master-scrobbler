@@ -13,6 +13,7 @@ class Constants {
         const val NOTIFICATION_NO_PLAYER_ID = 3
         const val START_SERVICE = "startService"
         const val STOP_SERVICE = "stopService"
+        const val SCROBBLE_PENDING_SERVICE = "scrobblePending"
 
         const val ARTISTS = "artists"
         const val ALBUMS = "albums"

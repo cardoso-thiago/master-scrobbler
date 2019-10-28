@@ -1,15 +1,12 @@
 package com.kanedasoftware.masterscrobbler.adapters
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.Typeface
-import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
-import androidx.browser.customtabs.CustomTabsIntent
 import butterknife.BindView
 import butterknife.ButterKnife
 import com.kanedasoftware.masterscrobbler.R
@@ -17,6 +14,7 @@ import com.kanedasoftware.masterscrobbler.beans.TopInfo
 import com.kanedasoftware.masterscrobbler.components.SquaredImageView
 import com.kanedasoftware.masterscrobbler.utils.Constants
 import com.kanedasoftware.masterscrobbler.utils.ImageUtils
+import com.kanedasoftware.masterscrobbler.utils.Utils
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 import java.util.*
@@ -44,6 +42,7 @@ internal class GridViewTopAdapter(private val context: Context, infoList: ArrayL
 
     //Koin
     private val imageUtils: ImageUtils by inject()
+    private val utils: Utils by inject()
 
     private val list = infoList
     private val gridType = type
@@ -74,11 +73,9 @@ internal class GridViewTopAdapter(private val context: Context, infoList: ArrayL
         }
 
         viewHolder.imageViewAndroid.setOnClickListener {
-            val builder = CustomTabsIntent.Builder()
-            val customTabsIntent = builder.build()
-            customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            customTabsIntent.launchUrl(context, Uri.parse(list[position].lastFmUrl))
+            utils.openUrl(list[position].lastFmUrl)
         }
+
         val url = list[position].url
         if (!url.isBlank()) {
             imageUtils.getImageCache(url, viewHolder.imageViewAndroid)

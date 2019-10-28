@@ -52,6 +52,7 @@
     <string name="fab_set_wall">Definir como papel de parede</string>
     <string name="error_loading_data">Erro ao carregar os dados, por favor tente novamente.</string>
     <string name="applied_wallpaper">Papel de parede aplicado</string>
+    <string name="error_wallpaper">"Erro ao aplicar papel de parede"</string>
     <string name="floating_action_button_description">Botão flutuante com ações</string>
     <string name="change_wallpaper_description">Ação para alterar o papel de parede com o grid de imagens atual</string>
     <string name="action_update_description">Ação para atualizar as informações da tela</string>
@@ -66,4 +67,6 @@
     <string name="warning_title">Aviso</string>
     <string name="warning_message">O Last.fm não retorna as imagens dos artistas através da sua API. Foi utilizado um método de busca de imagens o que nem sempre pode trazer a imagem correta correspondente ao artista.</string>
     <string name="dont_show_this_message_again">Não mostrar essa mensagem novamente</string>
+    <string name="open_links">Abrir Links</string>
+    <string name="open_links_internally">Abrir links internamente</string>
 </resources>

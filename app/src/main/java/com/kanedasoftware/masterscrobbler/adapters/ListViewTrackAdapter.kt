@@ -1,19 +1,15 @@
 package com.kanedasoftware.masterscrobbler.adapters
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import butterknife.BindView
 import butterknife.ButterKnife
-import com.bumptech.glide.Glide
 import com.github.ybq.android.spinkit.SpinKitView
 import com.google.android.material.snackbar.Snackbar
 import com.jaredrummler.cyanea.Cyanea
@@ -92,7 +88,7 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
 
         val albumImageUrl = list[position].imageUrl
         if (albumImageUrl.isBlank()) {
-            Glide.with(context).load(R.drawable.ic_placeholder).fitCenter().into(viewHolder.image)
+            imageUtils.getErrorImage(viewHolder.image)
         } else {
             imageUtils.getImageCache(albumImageUrl, viewHolder.image as ImageView)
         }
@@ -172,13 +168,8 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
             }
         }
 
-        //TODO colocar opção para abrir no navegador direto nas configurações
-        //TODO tratamento para possível url vazia
         viewHolder.image.setOnClickListener {
-            val builder = CustomTabsIntent.Builder()
-            val customTabsIntent = builder.build()
-            customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            customTabsIntent.launchUrl(context, Uri.parse(list[position].lastFmUrl))
+            utils.openUrl(list[position].lastFmUrl)
         }
 
         return rowView!!

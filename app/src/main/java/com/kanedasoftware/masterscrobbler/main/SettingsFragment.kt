@@ -27,10 +27,14 @@ class SettingsFragment : CyaneaSettingsFragment() {
                 val values = newValue as HashSet<String>
                 if(values.size == 0){
                     notificationUtils.sendNoPlayerNotification()
-                    utils.stopMediaService()
+                    if(utils.isStartedService()) {
+                        utils.stopMediaService()
+                    }
                 } else {
                     notificationUtils.cancelNoPlayerNotification()
-                    utils.startMediaService()
+                    if(!utils.isStartedService()){
+                        utils.startMediaService()
+                    }
                 }
             }
             true
