@@ -1,10 +1,7 @@
 package com.kanedasoftware.masterscrobbler.app
 
-import androidx.preference.PreferenceManager
 import androidx.room.Room
-import com.jaredrummler.cyanea.Cyanea
 import com.jaredrummler.cyanea.CyaneaApp
-import com.jaredrummler.cyanea.CyaneaThemes
 import com.jaredrummler.cyanea.prefs.CyaneaTheme
 import com.kanedasoftware.masterscrobbler.db.ScrobbleDb
 import com.kanedasoftware.masterscrobbler.utils.ImageUtils

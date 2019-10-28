@@ -7,7 +7,6 @@ import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
-import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -16,7 +15,6 @@ import android.view.animation.Animation
 import android.view.animation.RotateAnimation
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -125,10 +123,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         if (utils.isValidSessionKey()) {
             if (user != null) {
                 profile.setOnClickListener {
-                    val builder = CustomTabsIntent.Builder()
-                    val customTabsIntent = builder.build()
-                    customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    customTabsIntent.launchUrl(applicationContext, Uri.parse("https://www.last.fm/user/$user"))
+                    utils.openUrl("https://www.last.fm/user/$user")
                 }
                 initService()
                 updateData(user)
@@ -147,42 +142,51 @@ class MainActivity : CyaneaAppCompatActivity() {
         fab_update.setOnClickListener {
             lastArtistsAlbumsSpinner = ""
             lastPeriodSpinner = ""
-
-            if (!utils.isConnected()) {
-                Snackbar.make(parentLayout, getString(R.string.no_connection), Snackbar.LENGTH_LONG).show()
-            }
             updateData(user)
         }
 
         fab_wall.setOnClickListener {
             fab_menu.close(true)
             doAsync {
-                val destSize = Resources.getSystem().displayMetrics.widthPixels / 3
-                val listBitmaps = mutableListOf<Bitmap>()
-                val topAdapter = gridView.adapter as GridViewTopAdapter
+                try{
+                    val destSize = Resources.getSystem().displayMetrics.widthPixels / 3
+                    val listBitmaps = mutableListOf<Bitmap>()
+                    val topAdapter = gridView.adapter as GridViewTopAdapter
 
-                for (item in topAdapter.getList()) {
-                    val futureBitmap = imageUtils.getBitmapSync(item.url, destSize)
-                    listBitmaps.add(futureBitmap.get())
+                    for (item in topAdapter.getList()) {
+                        val futureBitmap = imageUtils.getBitmapSync(item.url, destSize)
+                        listBitmaps.add(futureBitmap.get())
+                    }
+
+                    val finalBitmap = imageUtils.mergeMultiple(listBitmaps)
+                    val wallManager = WallpaperManager.getInstance(applicationContext)
+                    wallManager.setBitmap(finalBitmap)
+
+                    uiThread {
+                        Snackbar.make(parentLayout, getString(R.string.applied_wallpaper), Snackbar.LENGTH_LONG).show()
+                    }
+
+                    finalBitmap.recycle()
+                } catch (e:Exception) {
+                    uiThread {
+                        Snackbar.make(parentLayout, getString(R.string.error_wallpaper), Snackbar.LENGTH_LONG).show()
+                    }
                 }
-
-                val finalBitmap = imageUtils.mergeMultiple(listBitmaps)
-                val wallManager = WallpaperManager.getInstance(applicationContext)
-                wallManager.setBitmap(finalBitmap)
-
-                Snackbar.make(parentLayout, getString(R.string.applied_wallpaper), Snackbar.LENGTH_LONG).show()
-
-                finalBitmap.recycle()
             }
         }
     }
 
     private fun updateData(user: String?) {
-        if (utils.isValidSessionKey()) {
-            if (user != null) {
-                getUserInfo(user)
-                initSpinners(user)
-                getRecentTracks(user)
+        if (!utils.isConnected()) {
+            Snackbar.make(parentLayout, getString(R.string.no_connection), Snackbar.LENGTH_LONG).show()
+        } else {
+            if (utils.isValidSessionKey()) {
+                if (user != null) {
+                    utils.scrobblePendingMediaService()
+                    getUserInfo(user)
+                    initSpinners(user)
+                    getRecentTracks(user)
+                }
             }
         }
     }
@@ -277,10 +281,13 @@ class MainActivity : CyaneaAppCompatActivity() {
                 return true
             }
             R.id.action_logoff -> {
+                notificationUtils.cancelNoPlayerNotification()
+                if (utils.isStartedService()) {
+                    utils.stopMediaService()
+                }
                 SecurePreferences.clearAllValues(applicationContext)
                 applicationContext.defaultSharedPreferences.edit().clear().apply()
                 utils.setNotFirstExecution()
-                utils.stopMediaService()
 
                 val intent = Intent(this, LoginActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -387,7 +394,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                             if (imageUrl.isBlank()) {
                                 imageUrl = "https://tse2.mm.bing.net/th?q=${track.artist.name} ${track.name} Album&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                             }
-                            timestamp = utils.convertUTCToLocal(track.date.text)
+                            timestamp = utils.convertUTCToLocalPretty(track.date.text)
                             loved = track.loved == "1"
                         }
                         recentTracksList.add(Recent(imageUrl, name, artist, timestamp, loved, scrobbling, lastFmUrl))

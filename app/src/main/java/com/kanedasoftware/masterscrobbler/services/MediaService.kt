@@ -57,7 +57,7 @@ class MediaService : NotificationListenerService(),
     private var finalDuration = 0L
     private var finalAlbum = ""
     private var totalSeconds = 600L
-    private var startedService = false
+    private var startedServiceLocal = false
 
     private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
         override fun onFinish() {
@@ -75,18 +75,19 @@ class MediaService : NotificationListenerService(),
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && !intent.action.isNullOrBlank()) {
-            if (intent.action == Constants.START_SERVICE) {
-                startService()
-            } else if (intent.action == Constants.STOP_SERVICE) {
-                stopService()
+            when {
+                intent.action == Constants.START_SERVICE -> startService()
+                intent.action == Constants.STOP_SERVICE -> stopService()
+                intent.action == Constants.SCROBBLE_PENDING_SERVICE -> validateAndScrobblePending()
             }
         }
         return Service.START_STICKY
     }
 
     private fun startService() {
-        if (!startedService) {
-            startedService = true
+        if (!startedServiceLocal) {
+            utils.setStartedService(true)
+            startedServiceLocal = true
             createCallback()
             tryReconnectService()
             val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
@@ -99,8 +100,9 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun stopService() {
-        if (startedService) {
-            startedService = false
+        if (startedServiceLocal) {
+            utils.setStartedService(false)
+            startedServiceLocal = false
             val mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
             mediaSessionManager.removeOnActiveSessionsChangedListener(this)
             val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
