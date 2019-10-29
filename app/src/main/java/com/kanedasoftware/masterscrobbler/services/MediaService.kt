@@ -13,7 +13,6 @@ import android.media.session.PlaybackState
 import android.os.Build
 import android.os.CountDownTimer
 import android.service.notification.NotificationListenerService
-import androidx.preference.PreferenceManager
 import com.google.gson.Gson
 import com.kanedasoftware.masterscrobbler.R
 import com.kanedasoftware.masterscrobbler.beans.Scrobble
@@ -51,7 +50,6 @@ class MediaService : NotificationListenerService(),
     private var playtimeHolder = 0L
     private var paused = false
     private var playtime = 0L
-    private var preferences: SharedPreferences? = null
     private var toScrobble: Scrobble? = null
     private var isOnline = true
     private var finalDuration = 0L
@@ -75,6 +73,7 @@ class MediaService : NotificationListenerService(),
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && !intent.action.isNullOrBlank()) {
+            utils.log("START COMMAND ${intent.action}")
             when {
                 intent.action == Constants.START_SERVICE -> startService()
                 intent.action == Constants.STOP_SERVICE -> stopService()
@@ -86,16 +85,23 @@ class MediaService : NotificationListenerService(),
 
     private fun startService() {
         if (!startedServiceLocal) {
-            utils.setStartedService(true)
-            startedServiceLocal = true
-            createCallback()
-            tryReconnectService()
-            val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-            this.preferences = defaultSharedPreferences
-            defaultSharedPreferences.registerOnSharedPreferenceChangeListener(this)
-            observeConnection()
-            createNotification()
-            createMediaSessionManager()
+            if (utils.hasAppsToScrobble()) {
+                utils.setStartedService(true)
+                startedServiceLocal = true
+
+                notificationUtils.cancelNoPlayerNotification()
+                createSharedPreferenceListener()
+                createMediaSessionManager()
+                createCallback()
+                tryReconnectService()
+                observeConnection()
+                createDefaultServiceNotification()
+            } else {
+                notificationUtils.sendNoPlayerNotification()
+                createSharedPreferenceListener()
+                createMediaSessionManager()
+                createDefaultServiceNotification()
+            }
         }
     }
 
@@ -103,10 +109,8 @@ class MediaService : NotificationListenerService(),
         if (startedServiceLocal) {
             utils.setStartedService(false)
             startedServiceLocal = false
-            val mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
-            mediaSessionManager.removeOnActiveSessionsChangedListener(this)
-            val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-            defaultSharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
+            (getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager).removeOnActiveSessionsChangedListener(this)
+            utils.getPreferences().unregisterOnSharedPreferenceChangeListener(this)
             unregisterCallback(mediaController)
             stopForeground(true)
             stopSelf()
@@ -122,14 +126,13 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun toggleNotificationListenerService() {
-        val pm = packageManager
-        pm.setComponentEnabledSetting(ComponentName(this, MediaService::class.java),
+        packageManager.setComponentEnabledSetting(ComponentName(this, MediaService::class.java),
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
-        pm.setComponentEnabledSetting(ComponentName(this, MediaService::class.java),
+        packageManager.setComponentEnabledSetting(ComponentName(this, MediaService::class.java),
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
     }
 
-    private fun createNotification() {
+    private fun createDefaultServiceNotification() {
         val notification = notificationUtils.buildNotification(getString(R.string.app_name), getString(R.string.service_running))
         startForeground(Constants.NOTIFICATION_ID, notification)
     }
@@ -155,10 +158,17 @@ class MediaService : NotificationListenerService(),
         }
     }
 
+    private fun createSharedPreferenceListener() {
+        utils.getPreferences().unregisterOnSharedPreferenceChangeListener(this)
+        utils.getPreferences().registerOnSharedPreferenceChangeListener(this)
+    }
+
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-        utils.log("Preference changed: $key")
+        utils.logDebug("Preference changed: $key")
         if (key == "apps_to_scrobble") {
-            createMediaSessionManager()
+            if (utils.hasAppsToScrobble()) {
+                createMediaSessionManager()
+            }
         }
     }
 
@@ -172,6 +182,7 @@ class MediaService : NotificationListenerService(),
     }
 
     private fun handleMetadataChange(metadata: MediaMetadata?) {
+        utils.logDebug("METADATA changed")
         metadata?.let { mediaMetadata ->
             val artist = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
             val track = mediaMetadata.getString(MediaMetadata.METADATA_KEY_TITLE)
@@ -229,7 +240,7 @@ class MediaService : NotificationListenerService(),
                                                 val title = getString(R.string.notification_scrobbling)
                                                 val text = "${scrobbleValidationBean.artist} - ${scrobbleValidationBean.track}"
                                                 notificationUtils.updateNotification(title, text)
-                                                utils.log("Fazendo a requisição ao Picasso.")
+                                                utils.log("Fazendo a requisição ao Glide.")
                                                 imageUtils.getNotificationImageCache(artistImageUrl, title, text)
                                             }
 
@@ -273,14 +284,7 @@ class MediaService : NotificationListenerService(),
         if (controllers != null) {
             //Se não tem controles ativos envia um broadcast para o receiver sem artista, para fazer scrobble de alguma possível música pendente
             if (controllers.size == 0) {
-                metadataArtist = ""
-                metadataTrack = ""
-
-                //Para de contar o tempo da música, zera o contador e faz algum possível scrobble pendente
-                timer.onFinish()
-
-                //Atualiza a notificação para o padrão do serviço
-                createNotification()
+                stopScrobbler()
             }
             val playersMap = utils.getPlayersMap()
             val packageManager = applicationContext?.packageManager
@@ -291,6 +295,7 @@ class MediaService : NotificationListenerService(),
                     if (!playersMap.containsKey(controller.packageName)) {
                         val playerName = packageManager?.getApplicationLabel(packageManager.getApplicationInfo(controller.packageName, 0)).toString()
                         playersMap[controller.packageName] = playerName
+                        notificationUtils.cancelNoPlayerNotification()
                         notificationUtils.sendNewPlayerNotification(playerName)
                     }
                 }
@@ -299,7 +304,7 @@ class MediaService : NotificationListenerService(),
         }
 
         val activeMediaController = controllers?.firstOrNull()
-        val entries = preferences?.getStringSet("apps_to_scrobble", HashSet<String>())
+        val entries = utils.getPreferences().getStringSet("apps_to_scrobble", HashSet<String>())
         if (entries != null) {
             if (entries.size > 0) {
                 if (entries.contains(activeMediaController?.packageName)) {
@@ -313,6 +318,17 @@ class MediaService : NotificationListenerService(),
                 utils.log("Nenhum app selecionado para scrobble.")
             }
         }
+    }
+
+    private fun stopScrobbler() {
+        metadataArtist = ""
+        metadataTrack = ""
+
+        //Para de contar o tempo da música, zera o contador e faz algum possível scrobble pendente
+        timer.onFinish()
+
+        //Atualiza a notificação para o padrão do serviço
+        createDefaultServiceNotification()
     }
 
     private fun registerCallback(newMediaController: MediaController) {

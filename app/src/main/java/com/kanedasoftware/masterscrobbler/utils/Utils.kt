@@ -28,7 +28,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import androidx.core.content.ContextCompat.startActivity
 
 class Utils constructor(appContext: Context) {
 
@@ -140,8 +139,8 @@ class Utils constructor(appContext: Context) {
         return HashMap()
     }
 
-    fun hasAppsToScrobble(preferences: SharedPreferences?): Boolean {
-        val stringSet = preferences?.getStringSet("apps_to_scrobble", HashSet<String>())
+    fun hasAppsToScrobble(): Boolean {
+        val stringSet = getPreferences().getStringSet("apps_to_scrobble", HashSet<String>())
         if (stringSet != null) {
             if (stringSet.isNotEmpty()) {
                 return true
@@ -215,18 +214,20 @@ class Utils constructor(appContext: Context) {
     }
 
     fun scrobblePendingMediaService() {
-        val i = Intent(context, MediaService::class.java)
-        i.action = Constants.SCROBBLE_PENDING_SERVICE
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(i)
-        } else {
-            context.startService(i)
+        if (isStartedService()) {
+            val i = Intent(context, MediaService::class.java)
+            i.action = Constants.SCROBBLE_PENDING_SERVICE
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(i)
+            } else {
+                context.startService(i)
+            }
         }
     }
 
     fun openUrl(url: String) {
         val openInternally = PreferenceManager.getDefaultSharedPreferences(context).getBoolean("browser_option", true)
-        if(openInternally) {
+        if (openInternally) {
             val builder = CustomTabsIntent.Builder()
             val customTabsIntent = builder.build()
             customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -237,6 +238,8 @@ class Utils constructor(appContext: Context) {
             context.startActivity(browserIntent)
         }
     }
+
+    fun getPreferences(): SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 
     fun setNotFirstExecution() = PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean("first_execution", false).apply()
 
