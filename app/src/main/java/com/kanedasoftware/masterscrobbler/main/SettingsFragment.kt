@@ -7,14 +7,12 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import com.jaredrummler.cyanea.prefs.CyaneaSettingsFragment
 import com.kanedasoftware.masterscrobbler.R
-import com.kanedasoftware.masterscrobbler.utils.NotificationUtils
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import org.koin.android.ext.android.inject
 
 class SettingsFragment : CyaneaSettingsFragment() {
 
     private val utils: Utils by inject()
-    private val notificationUtils: NotificationUtils by inject()
 
     @Suppress("UNCHECKED_CAST")
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -26,15 +24,8 @@ class SettingsFragment : CyaneaSettingsFragment() {
             if(newValue is HashSet<*>){
                 val values = newValue as HashSet<String>
                 if(values.size == 0){
-                    notificationUtils.sendNoPlayerNotification()
-                    if(utils.isStartedService()) {
-                        utils.stopMediaService()
-                    }
-                } else {
-                    notificationUtils.cancelNoPlayerNotification()
-                    if(!utils.isStartedService()){
-                        utils.startMediaService()
-                    }
+                    utils.stopMediaService()
+                    utils.startMediaService()
                 }
             }
             true

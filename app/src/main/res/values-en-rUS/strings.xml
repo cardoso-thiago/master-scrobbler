@@ -51,12 +51,14 @@
     <string name="error_love_unlove_action">Could not perform this action.</string>
     <string name="fab_update">Update</string>
     <string name="fab_set_wall">Set as wallpaper</string>
+    <string name="fab_share_image">Share image</string>
     <string name="error_loading_data">Error loading data, please try again.</string>
     <string name="applied_wallpaper">"The wallpaper has been applied"</string>
     <string name="error_wallpaper">"Error applying wallpaper"</string>
     <string name="floating_action_button_description">Floating action button with actions</string>
     <string name="change_wallpaper_description">Action to change the wallpaper with the current image grid</string>
     <string name="action_update_description">Action to update the screen information</string>
+    <string name="share_description">Action to share the current image grid</string>
     <string name="about_description"><![CDATA[A simple Scrobble app with music validations using the Last.fm API itself.<br/>
     <div>Icons from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> and licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
     Last.fm and notification icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a>

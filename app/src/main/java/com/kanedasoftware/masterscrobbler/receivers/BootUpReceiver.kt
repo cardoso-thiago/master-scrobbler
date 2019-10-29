@@ -26,12 +26,7 @@ class BootUpReceiver : BroadcastReceiver(), KoinComponent {
             //Não inicia o serviço se não tiver feito o login
             if (utils.isValidSessionKey()) {
                 if (intent?.action.equals(Intent.ACTION_BOOT_COMPLETED)) {
-                    val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-                    if (!utils.hasAppsToScrobble(defaultSharedPreferences)) {
-                        notificationUtils.sendNoPlayerNotification()
-                    } else {
-                        utils.startMediaService()
-                    }
+                    utils.startMediaService()
                 }
             }
         }
