@@ -148,17 +148,8 @@ class MainActivity : CyaneaAppCompatActivity() {
         fab_wall.setOnClickListener {
             fab_menu.close(true)
             doAsync {
-                try{
-                    val destSize = Resources.getSystem().displayMetrics.widthPixels / 3
-                    val listBitmaps = mutableListOf<Bitmap>()
-                    val topAdapter = gridView.adapter as GridViewTopAdapter
-
-                    for (item in topAdapter.getList()) {
-                        val futureBitmap = imageUtils.getBitmapSync(item.url, destSize)
-                        listBitmaps.add(futureBitmap.get())
-                    }
-
-                    val finalBitmap = imageUtils.mergeMultiple(listBitmaps)
+                try {
+                    val finalBitmap = getBitmapFromGrid()
                     val wallManager = WallpaperManager.getInstance(applicationContext)
                     wallManager.setBitmap(finalBitmap)
 
@@ -167,13 +158,41 @@ class MainActivity : CyaneaAppCompatActivity() {
                     }
 
                     finalBitmap.recycle()
-                } catch (e:Exception) {
+                } catch (e: Exception) {
                     uiThread {
                         Snackbar.make(parentLayout, getString(R.string.error_wallpaper), Snackbar.LENGTH_LONG).show()
                     }
                 }
             }
         }
+
+        fab_share.setOnClickListener {
+            fab_menu.close(true)
+            doAsync {
+                val finalBitmap = getBitmapFromGrid()
+                val imageToShareUri = imageUtils.saveImageToShare(finalBitmap)
+                if (imageToShareUri != null) {
+                    uiThread {
+                        imageUtils.shareImage(imageToShareUri,
+                                "Meus ${artistsAlbumsSpinner.selectedItem} dos últimos ${periodSpinner.selectedItem}. Compartilhado através do app Master Scrobbler: http://bit.ly/2MV8YOF")
+                        finalBitmap.recycle()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getBitmapFromGrid(): Bitmap {
+        val destSize = Resources.getSystem().displayMetrics.widthPixels / 3
+        val listBitmaps = mutableListOf<Bitmap>()
+        val topAdapter = gridView.adapter as GridViewTopAdapter
+
+        for (item in topAdapter.getList()) {
+            val futureBitmap = imageUtils.getBitmapSync(item.url, destSize)
+            listBitmaps.add(futureBitmap.get())
+        }
+
+        return imageUtils.mergeMultiple(listBitmaps)
     }
 
     private fun updateData(user: String?) {
@@ -244,12 +263,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         notificationUtils.createNotificationChannel(this)
 
         if (notificationUtils.verifyNotificationAccess()) {
-            val defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-            if (utils.hasAppsToScrobble(defaultSharedPreferences)) {
-                utils.startMediaService()
-            } else {
-                notificationUtils.sendNoPlayerNotification()
-            }
+            utils.startMediaService()
         } else {
             notificationUtils.changeNotificationAccess(this)
         }
@@ -282,9 +296,7 @@ class MainActivity : CyaneaAppCompatActivity() {
             }
             R.id.action_logoff -> {
                 notificationUtils.cancelNoPlayerNotification()
-                if (utils.isStartedService()) {
-                    utils.stopMediaService()
-                }
+                utils.stopMediaService()
                 SecurePreferences.clearAllValues(applicationContext)
                 applicationContext.defaultSharedPreferences.edit().clear().apply()
                 utils.setNotFirstExecution()

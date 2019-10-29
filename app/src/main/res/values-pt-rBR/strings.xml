@@ -50,12 +50,14 @@
     <string name="error_love_unlove_action">Não foi possível realizar essa ação.</string>
     <string name="fab_update">Atualizar</string>
     <string name="fab_set_wall">Definir como papel de parede</string>
+    <string name="fab_share_image">Compartilhar imagem</string>
     <string name="error_loading_data">Erro ao carregar os dados, por favor tente novamente.</string>
     <string name="applied_wallpaper">Papel de parede aplicado</string>
     <string name="error_wallpaper">"Erro ao aplicar papel de parede"</string>
     <string name="floating_action_button_description">Botão flutuante com ações</string>
     <string name="change_wallpaper_description">Ação para alterar o papel de parede com o grid de imagens atual</string>
     <string name="action_update_description">Ação para atualizar as informações da tela</string>
+    <string name="share_description">Ação para compartilhar o grid de imagens atual</string>
     <string name="about_description"><![CDATA[Um app simples para Scrobble com validações das músicas utilizando a própria API do Last.fm.<br/>
     <div>Ícones de <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> utilizando a licença <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
     Ícone do Last.fm e notificação feitos por <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a>

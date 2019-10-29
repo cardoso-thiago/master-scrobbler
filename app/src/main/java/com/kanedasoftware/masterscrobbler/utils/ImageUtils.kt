@@ -21,6 +21,13 @@ import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import org.koin.core.KoinComponent
 import org.koin.core.inject
+import androidx.core.content.FileProvider
+import android.content.Intent
+import android.net.Uri
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+
 
 class ImageUtils constructor(appContext: Context) : KoinComponent {
 
@@ -29,11 +36,11 @@ class ImageUtils constructor(appContext: Context) : KoinComponent {
     private val context = appContext
 
     fun getImageCache(imageUrl: String, imageView: ImageView) {
-        Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_image_error).error(R.drawable.ic_image_error).fitCenter().into(imageView)
+        Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_image_error).fitCenter().into(imageView)
     }
 
     fun getAvatarImage(imageUrl: String, imageView: ImageView) {
-        Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_image_error).error(R.drawable.ic_image_error).fitCenter().apply(RequestOptions.circleCropTransform()).into(imageView)
+        Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_image_error).fitCenter().apply(RequestOptions.circleCropTransform()).into(imageView)
     }
 
     fun getNotificationImageCache(imageUrl: String, title: String, text: String) {
@@ -83,5 +90,32 @@ class ImageUtils constructor(appContext: Context) : KoinComponent {
     fun getBitmapSync(url: String, destSize: Int): FutureTarget<Bitmap> {
         return Glide.with(context).asBitmap().load(url).apply(RequestOptions()
                 .override(destSize, destSize)).submit()
+    }
+
+    fun saveImageToShare(image: Bitmap): Uri? {
+        val imagesFolder = File(context.cacheDir, "images")
+        try {
+            imagesFolder.mkdirs()
+            val file = File(imagesFolder, "shared_image.png")
+
+            val stream = FileOutputStream(file)
+            image.compress(Bitmap.CompressFormat.PNG, 90, stream)
+            stream.flush()
+            stream.close()
+            return FileProvider.getUriForFile(context, "com.kanedasoftware.masterscrobbler.fileprovider", file)
+
+        } catch (e: IOException) {
+            utils.logError("Erro ao salvar a imagem em disco")
+        }
+        return null
+    }
+
+    fun shareImage(uri: Uri, message: String) {
+        val intent = Intent(Intent.ACTION_SEND)
+        intent.putExtra(Intent.EXTRA_STREAM, uri)
+        intent.putExtra(Intent.EXTRA_TEXT, message)
+        intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
+        intent.type = "image/png"
+        context.startActivity(intent)
     }
 }
