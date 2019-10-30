@@ -71,4 +71,6 @@
     <string name="dont_show_this_message_again">Não mostrar essa mensagem novamente</string>
     <string name="open_links">Abrir Links</string>
     <string name="open_links_internally">Abrir links internamente</string>
+    <string name="share_image_text">"Meu top %1$s dos %2$s no Last.fm. Gerado por Master Scrobbler. Confira, para Android: http://bit.ly/2MV8YOF"</string>
+    <string name="share_image_all_time_text">"Meu top %1$s %2$s no Last.fm. Gerado por Master Scrobbler. Confira, para Android: http://bit.ly/2MV8YOF"</string>
 </resources>
