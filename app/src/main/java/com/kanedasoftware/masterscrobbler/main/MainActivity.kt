@@ -1,5 +1,7 @@
 package com.kanedasoftware.masterscrobbler.main
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.app.WallpaperManager
 import android.content.Context
 import android.content.Intent
@@ -12,6 +14,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.animation.Animation
+import android.view.animation.OvershootInterpolator
 import android.view.animation.RotateAnimation
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
@@ -20,6 +23,7 @@ import androidx.preference.PreferenceManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import butterknife.BindView
 import butterknife.ButterKnife
+import com.github.clans.fab.FloatingActionMenu
 import com.google.android.material.snackbar.Snackbar
 import com.jaredrummler.cyanea.Cyanea
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
@@ -42,6 +46,8 @@ import org.jetbrains.anko.defaultSharedPreferences
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import org.koin.android.ext.android.inject
+import java.util.*
+import kotlin.collections.ArrayList
 
 class MainActivity : CyaneaAppCompatActivity() {
 
@@ -149,7 +155,7 @@ class MainActivity : CyaneaAppCompatActivity() {
             fab_menu.close(true)
             doAsync {
                 try {
-                    val finalBitmap = getBitmapFromGrid()
+                    val finalBitmap = getBitmapFromGrid(false)
                     val wallManager = WallpaperManager.getInstance(applicationContext)
                     wallManager.setBitmap(finalBitmap)
 
@@ -169,12 +175,17 @@ class MainActivity : CyaneaAppCompatActivity() {
         fab_share.setOnClickListener {
             fab_menu.close(true)
             doAsync {
-                val finalBitmap = getBitmapFromGrid()
+                val finalBitmap = getBitmapFromGrid(true)
                 val imageToShareUri = imageUtils.saveImageToShare(finalBitmap)
                 if (imageToShareUri != null) {
                     uiThread {
-                        imageUtils.shareImage(imageToShareUri,
-                                "Meus ${artistsAlbumsSpinner.selectedItem} dos últimos ${periodSpinner.selectedItem}. Compartilhado através do app Master Scrobbler: http://bit.ly/2MV8YOF")
+                        var messageId = R.string.share_image_text
+                        if (periodSpinner.selectedItem == getString(R.string.period_overall)) {
+                            messageId = R.string.share_image_all_time_text
+                        }
+                        imageUtils.shareImage(imageToShareUri, getString(messageId,
+                                artistsAlbumsSpinner.selectedItem.toString().toLowerCase(Locale.getDefault()),
+                                periodSpinner.selectedItem.toString().toLowerCase(Locale.getDefault())))
                         finalBitmap.recycle()
                     }
                 }
@@ -182,7 +193,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         }
     }
 
-    private fun getBitmapFromGrid(): Bitmap {
+    private fun getBitmapFromGrid(full: Boolean): Bitmap {
         val destSize = Resources.getSystem().displayMetrics.widthPixels / 3
         val listBitmaps = mutableListOf<Bitmap>()
         val topAdapter = gridView.adapter as GridViewTopAdapter
@@ -192,7 +203,7 @@ class MainActivity : CyaneaAppCompatActivity() {
             listBitmaps.add(futureBitmap.get())
         }
 
-        return imageUtils.mergeMultiple(listBitmaps)
+        return imageUtils.mergeMultiple(listBitmaps, full, destSize)
     }
 
     private fun updateData(user: String?) {

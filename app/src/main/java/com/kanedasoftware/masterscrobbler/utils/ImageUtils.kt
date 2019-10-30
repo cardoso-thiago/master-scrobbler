@@ -71,18 +71,24 @@ class ImageUtils constructor(appContext: Context) : KoinComponent {
         Glide.with(context).load(R.drawable.ic_image_error).fitCenter().into(image)
     }
 
-    fun mergeMultiple(listBitmaps: MutableList<Bitmap>): Bitmap {
+    fun mergeMultiple(listBitmaps: MutableList<Bitmap>, full: Boolean, destSize: Int): Bitmap {
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val metrics = DisplayMetrics()
         windowManager.defaultDisplay.getRealMetrics(metrics)
 
-        val result = Bitmap.createBitmap(listBitmaps[0].width * 3, metrics.heightPixels, Bitmap.Config.ARGB_8888)
-        val space = (metrics.heightPixels - listBitmaps[0].height * 3) / 2
+        val result: Bitmap?
+        var space = 0
+        if (full) {
+            result = Bitmap.createBitmap(destSize * 3, destSize * 3, Bitmap.Config.ARGB_8888)
+        } else {
+            result = Bitmap.createBitmap(destSize * 3, metrics.heightPixels, Bitmap.Config.ARGB_8888)
+            space = (metrics.heightPixels - destSize * 3) / 2
+        }
+
         val canvas = Canvas(result)
         val paint = Paint()
         for (i in listBitmaps.indices) {
-            canvas.drawBitmap(listBitmaps[i], listBitmaps[i].width * (i % 3).toFloat(), listBitmaps[i].height * (i / 3).toFloat() + space, paint)
-            listBitmaps[i].recycle()
+            canvas.drawBitmap(listBitmaps[i], destSize * (i % 3).toFloat(), destSize * (i / 3).toFloat() + space, paint)
         }
         return result
     }
