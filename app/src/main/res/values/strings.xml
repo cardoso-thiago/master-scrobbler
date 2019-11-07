@@ -7,7 +7,7 @@
     <string name="action_about">About</string>
     <string name="album_image">Album Image</string>
     <string name="apps_to_scrobble">Scrobble Apps</string>
-    <string name="authentication_failed">" Authentication failed, verify Last.fm username and password"</string>
+    <string name="authentication_failed">"Authentication failed, verify Last.fm username and password"</string>
     <string name="button_login">Login</string>
     <string name="choose_app_theme">Select app theme</string>
     <string name="connection_error">Error logging in, please check your connection.</string>
@@ -21,7 +21,7 @@
     <string name="new_player_identified">New Player Identified</string>
     <string name="no_connection">No connection, please check the network.</string>
     <string name="no_player_identified">No Media Players Identified</string>
-    <string name="no_player_identified_text">" No media player identified. Tap to set the app to scrobble or start listening to music in one of your apps."</string>
+    <string name="no_player_identified_text">"No media player identified. Tap to set the app to scrobble or start listening to music in one of your apps."</string>
     <string name="notification_access">Notification Access</string>
     <string name="notification_scrobbling">Scrobbling</string>
     <string name="notification_scrobbling_offline">Scrobbling offline</string>
@@ -59,13 +59,14 @@
     <string name="change_wallpaper_description">Action to change the wallpaper with the current image grid</string>
     <string name="action_update_description">Action to update the screen information</string>
     <string name="share_description">Action to share the current image grid</string>
-    <string name="about_description"><![CDATA[A simple Scrobble app with music validations using the Last.fm API itself.<br/>
-    <div>Icons from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> and licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-    Last.fm and notification icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a>
-    <br>Heart icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a>
-    <br>Application icon made by <a href="https://www.flaticon.com/authors/xnimrodx" title="xnimrodx">xnimrodx</a></div><br>
-    <div>For suggestions, questions or bugs, send me an <a href="mailto:kaneda.software@gmail.com?subject=Master%20Scrobbler" target="_top">email.</a></div>
-    <div>Check our <a href="https://master-scrobbler.flycricket.io/privacy.html" title="Privacy Policy">Privacy Policy</div>
+    <string name="about_description"><![CDATA[A simple Scrobble app with music validations using the Last.fm API itself.<br><br>
+    Icons from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> and licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a><br><br>
+    Last.fm and notification icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a><br>
+    Heart icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a><br>
+    Application icon made by <a href="https://www.flaticon.com/authors/xnimrodx" title="xnimrodx">xnimrodx</a><br><br>
+    For suggestions, questions or bugs, send me an <a href="mailto:kaneda.software@gmail.com?subject=Master%20Scrobbler" target="_top">email.</a><br><br>
+    Check our <a href="https://master-scrobbler.flycricket.io/privacy.html" title="Privacy Policy">Privacy Policy</a><br><br><br><br>
+    <b>Open source libraries used</b>
     ]]></string>
     <string name="warning_title">Warning</string>
     <string name="warning_message">Last.fm does not return artist images via its API. An image search method was used which may bring the incorrect image corresponding to the artist.</string>

@@ -58,13 +58,14 @@
     <string name="change_wallpaper_description">Ação para alterar o papel de parede com o grid de imagens atual</string>
     <string name="action_update_description">Ação para atualizar as informações da tela</string>
     <string name="share_description">Ação para compartilhar o grid de imagens atual</string>
-    <string name="about_description"><![CDATA[Um app simples para Scrobble com validações das músicas utilizando a própria API do Last.fm.<br/>
-    <div>Ícones de <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> utilizando a licença <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-    Ícone do Last.fm e notificação feitos por <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a>
-    <br>Ícones de coração feitos por <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a>
-    <br>Ícones do aplicativo feito por <a href="https://www.flaticon.com/authors/xnimrodx" title="xnimrodx">xnimrodx</a></div><br>
-    <div>Para sugestões, dúvidas ou bugs, me envie um <a href="mailto:kaneda.software@gmail.com?subject=Master%20Scrobbler" target="_top">email.</a></div>
-    <div>Confira nossa <a href="https://master-scrobbler.flycricket.io/privacy.html" title="Política de Privacidade">Política de Privacidade</div>
+    <string name="about_description"><![CDATA[Um app simples para Scrobble com validações das músicas utilizando a própria API do Last.fm.<br><br>
+    Ícones de <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> utilizando a licença <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a><br><br>
+    Ícone do Last.fm e notificação feitos por <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a><br>
+    Ícones de coração feitos por <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a><br>
+    Ícones do aplicativo feito por <a href="https://www.flaticon.com/authors/xnimrodx" title="xnimrodx">xnimrodx</a><br><br>
+    Para sugestões, dúvidas ou bugs, me envie um <a href="mailto:kaneda.software@gmail.com?subject=Master%20Scrobbler" target="_top">email.</a><br><br>
+    Confira nossa <a href="https://master-scrobbler.flycricket.io/privacy.html" title="Política de Privacidade">Política de Privacidade</a><br><br><br><br>
+    <b>Bibliotecas de código aberto utilizadas</b>
     ]]></string>
     <string name="warning_title">Aviso</string>
     <string name="warning_message">O Last.fm não retorna as imagens dos artistas através da sua API. Foi utilizado um método de busca de imagens o que nem sempre pode trazer a imagem correta correspondente ao artista.</string>

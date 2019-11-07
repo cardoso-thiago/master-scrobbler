@@ -115,11 +115,10 @@ class ListViewTrackAdapter(context: Context, private val list: ArrayList<Recent>
         }
 
         rowView?.setOnClickListener{
-            icon.visibility = View.GONE
-            spin.visibility = View.VISIBLE
-
             val listItem = list[position]
             if(!listItem.scrobbling){
+                icon.visibility = View.GONE
+                spin.visibility = View.VISIBLE
                 if(listItem.loved){
                     doAsync {
                         val sessionKey = SecurePreferences.getStringValue(context, Constants.SECURE_SESSION_TAG, "")
