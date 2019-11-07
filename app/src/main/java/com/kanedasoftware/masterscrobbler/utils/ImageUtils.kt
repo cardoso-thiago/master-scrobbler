@@ -43,7 +43,7 @@ class ImageUtils constructor(appContext: Context) : KoinComponent {
         Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_placeholder).error(R.drawable.ic_image_error).fitCenter().apply(RequestOptions.circleCropTransform()).into(imageView)
     }
 
-    fun getNotificationImageCache(imageUrl: String, title: String, text: String) {
+    fun updateNotificationWithImage(imageUrl: String, title: String, text: String) {
         doAsync {
             Glide.with(context).asBitmap().load(imageUrl).listener(object : RequestListener<Bitmap> {
                 override fun onLoadFailed(@Nullable e: GlideException?, o: Any, target: Target<Bitmap>, b: Boolean): Boolean {

@@ -1,7 +1,5 @@
 package com.kanedasoftware.masterscrobbler.main
 
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
 import android.app.WallpaperManager
 import android.content.Context
 import android.content.Intent
@@ -14,7 +12,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.animation.Animation
-import android.view.animation.OvershootInterpolator
 import android.view.animation.RotateAnimation
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
@@ -23,7 +20,6 @@ import androidx.preference.PreferenceManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import butterknife.BindView
 import butterknife.ButterKnife
-import com.github.clans.fab.FloatingActionMenu
 import com.google.android.material.snackbar.Snackbar
 import com.jaredrummler.cyanea.Cyanea
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
@@ -40,6 +36,7 @@ import com.kanedasoftware.masterscrobbler.utils.NotificationUtils
 import com.kanedasoftware.masterscrobbler.utils.Utils
 import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.LibsBuilder
+import com.mikepenz.aboutlibraries.util.Colors
 import de.adorsys.android.securestoragelibrary.SecurePreferences
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.defaultSharedPreferences
@@ -250,6 +247,7 @@ class MainActivity : CyaneaAppCompatActivity() {
             val colorFilter = PorterDuffColorFilter(ContextCompat.getColor(applicationContext, R.color.white), PorterDuff.Mode.MULTIPLY)
             toolbar.overflowIcon?.let { it.colorFilter = colorFilter }
         }
+        toolbar.setBackgroundColor(Cyanea.instance.primary)
     }
 
     override fun onRestart() {
@@ -298,7 +296,10 @@ class MainActivity : CyaneaAppCompatActivity() {
                 return true
             }
             R.id.action_about -> {
-                LibsBuilder().withActivityStyle(Libs.ActivityStyle.LIGHT_DARK_TOOLBAR)
+                LibsBuilder().withAboutAppName(getString(R.string.app_name))
+                        .withSortEnabled(false)
+                        .withActivityColor(Colors(Cyanea.instance.primary, Cyanea.instance.primary))
+                        .withActivityStyle(Libs.ActivityStyle.LIGHT)
                         .withAboutIconShown(true)
                         .withAboutVersionShown(true)
                         .withAboutDescription(getString(R.string.about_description))
