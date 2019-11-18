@@ -21,9 +21,6 @@
         android:usesCleartextTraffic="true"
         tools:ignore="AllowBackup"
         tools:targetApi="m">
-        <meta-data
-            android:name="com.google.android.actions"
-            android:resource="@xml/files_path" />
 
         <activity
             android:name=".main.LoginActivity"
