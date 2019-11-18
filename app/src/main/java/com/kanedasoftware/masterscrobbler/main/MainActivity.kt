@@ -204,16 +204,16 @@ class MainActivity : CyaneaAppCompatActivity() {
     }
 
     private fun updateData(user: String?) {
-        if (!utils.isConnected()) {
-            Snackbar.make(parentLayout, getString(R.string.no_connection), Snackbar.LENGTH_LONG).show()
-        } else {
-            if (utils.isValidSessionKey()) {
-                if (user != null) {
+        if (utils.isValidSessionKey()) {
+            if (user != null) {
+                if (utils.isConnected()) {
                     utils.scrobblePendingMediaService()
-                    getUserInfo(user)
-                    initSpinners(user)
-                    getRecentTracks(user)
+                } else {
+                    Snackbar.make(parentLayout, getString(R.string.no_connection), Snackbar.LENGTH_LONG).show()
                 }
+                getUserInfo(user)
+                initSpinners(user)
+                getRecentTracks(user)
             }
         }
     }
@@ -486,7 +486,11 @@ class MainActivity : CyaneaAppCompatActivity() {
             builder.setMessage(getString(R.string.warning_message))
             builder.setView(view)
             builder.setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
-            builder.create().show()
+            val dialog = builder.create()
+            dialog.setOnShowListener {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Cyanea.instance.accent)
+            }
+            dialog.show()
             checkBox.setOnCheckedChangeListener { buttonView, _ ->
                 if (buttonView.isChecked) {
                     setShowDialog(!buttonView.isChecked)

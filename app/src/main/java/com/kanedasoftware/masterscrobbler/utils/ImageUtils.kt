@@ -28,7 +28,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 
-
 class ImageUtils constructor(appContext: Context) : KoinComponent {
 
     private val utils: Utils by inject()
