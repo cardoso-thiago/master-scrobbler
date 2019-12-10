@@ -17,13 +17,12 @@ class SettingsFragment : CyaneaSettingsFragment() {
     @Suppress("UNCHECKED_CAST")
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences, rootKey)
-
         val listPreference = findPreference("apps_to_scrobble") as MultiSelectListPreference
 
         listPreference.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
-            if(newValue is HashSet<*>){
+            if (newValue is HashSet<*>) {
                 val values = newValue as HashSet<String>
-                if(values.size == 0){
+                if (values.size == 0) {
                     utils.stopMediaService()
                     utils.startMediaService()
                 }

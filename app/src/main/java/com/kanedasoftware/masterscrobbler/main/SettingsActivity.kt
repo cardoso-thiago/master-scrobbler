@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
+import com.kanedasoftware.masterscrobbler.R
 
 class SettingsActivity : CyaneaAppCompatActivity() {
 

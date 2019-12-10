@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
     <MultiSelectListPreference
         android:dialogTitle="@string/apps_to_scrobble"
         android:key="apps_to_scrobble"
@@ -7,9 +8,8 @@
         android:title="@string/apps_to_scrobble" />
 
     <CheckBoxPreference
-        android:title="@string/open_links"
+        android:defaultValue="true"
         android:key="browser_option"
         android:summary="@string/open_links_internally"
-        android:defaultValue="true"
-        />
+        android:title="@string/open_links" />
 </PreferenceScreen>

@@ -51,7 +51,7 @@
     <string name="fab_update">Atualizar</string>
     <string name="fab_set_wall">Definir como papel de parede</string>
     <string name="fab_share_image">Compartilhar imagem</string>
-    <string name="error_loading_data">Erro ao carregar os dados, por favor tente novamente.</string>
+    <string name="error_loading_data">Erro ao atualizar os dados, por favor tente novamente.</string>
     <string name="applied_wallpaper">Papel de parede aplicado</string>
     <string name="error_wallpaper">"Erro ao aplicar papel de parede"</string>
     <string name="floating_action_button_description">Botão flutuante com ações</string>
