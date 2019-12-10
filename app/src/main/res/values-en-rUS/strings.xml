@@ -52,7 +52,7 @@
     <string name="fab_update">Update</string>
     <string name="fab_set_wall">Set as wallpaper</string>
     <string name="fab_share_image">Share image</string>
-    <string name="error_loading_data">Error loading data, please try again.</string>
+    <string name="error_loading_data">Error updating data, please try again.</string>
     <string name="applied_wallpaper">"The wallpaper has been applied"</string>
     <string name="error_wallpaper">"Error applying wallpaper"</string>
     <string name="floating_action_button_description">Floating action button with actions</string>

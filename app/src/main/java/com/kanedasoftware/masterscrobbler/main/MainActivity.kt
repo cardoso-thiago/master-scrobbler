@@ -143,8 +143,6 @@ class MainActivity : CyaneaAppCompatActivity() {
         fab_menu.setClosedOnTouchOutside(true)
 
         fab_update.setOnClickListener {
-            lastArtistsAlbumsSpinner = ""
-            lastPeriodSpinner = ""
             updateData(user)
         }
 
@@ -204,6 +202,8 @@ class MainActivity : CyaneaAppCompatActivity() {
     }
 
     private fun updateData(user: String?) {
+        lastArtistsAlbumsSpinner = ""
+        lastPeriodSpinner = ""
         if (utils.isValidSessionKey()) {
             if (user != null) {
                 if (utils.isConnected()) {
@@ -439,21 +439,21 @@ class MainActivity : CyaneaAppCompatActivity() {
             utils.log("Não houve mudança, não vai carregar de novo o grid")
         } else {
             utils.log("Carregando a grid. Spinner: $artistAlbum - Period: $period")
-            lastArtistsAlbumsSpinner = artistAlbum
-            lastPeriodSpinner = period
             if (artistAlbum == topArtists) {
-                getTopArtists(user, period)
+                getTopArtists(user, artistAlbum, period)
             } else {
-                getTopAlbums(user, period)
+                getTopAlbums(user, artistAlbum, period)
             }
         }
     }
 
-    private fun getTopArtists(user: String, period: String) {
+    private fun getTopArtists(user: String, artistAlbum: String, period: String) {
         doAsync {
             val response = lastFmService.topArtists(user,
                     utils.getPeriodParameter(period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
+                lastArtistsAlbumsSpinner = artistAlbum
+                lastPeriodSpinner = period
                 val listTopInfo = ArrayList<TopInfo>()
                 val artists = response.body()?.topartists?.artist
                 if (artists != null) {
@@ -504,11 +504,13 @@ class MainActivity : CyaneaAppCompatActivity() {
     private fun showDialog() = PreferenceManager.getDefaultSharedPreferences(applicationContext).getBoolean("show_dialog", true)
 
 
-    private fun getTopAlbums(user: String, period: String) {
+    private fun getTopAlbums(user: String, artistAlbum: String, period: String) {
         doAsync {
             val response = lastFmService.topAlbums(user,
                     utils.getPeriodParameter(period), Constants.API_KEY).execute()
             if (response.isSuccessful) {
+                lastArtistsAlbumsSpinner = artistAlbum
+                lastPeriodSpinner = period
                 val albums = response.body()?.topalbums?.album
                 val listTopInfo = ArrayList<TopInfo>()
                 if (albums != null) {
