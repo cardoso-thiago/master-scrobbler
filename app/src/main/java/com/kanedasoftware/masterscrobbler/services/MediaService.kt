@@ -29,7 +29,10 @@ import okhttp3.ResponseBody
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import org.koin.android.ext.android.inject
+import java.time.LocalDateTime
+import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.collections.HashSet
 
 class MediaService : NotificationListenerService(),
         MediaSessionManager.OnActiveSessionsChangedListener,
@@ -56,6 +59,7 @@ class MediaService : NotificationListenerService(),
     private var finalAlbum = ""
     private var totalSeconds = 600L
     private var startedServiceLocal = false
+    private var lastPlaybackStateUpdate = Calendar.getInstance()
 
     private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
         override fun onFinish() {
@@ -74,10 +78,10 @@ class MediaService : NotificationListenerService(),
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && !intent.action.isNullOrBlank()) {
             utils.log("START COMMAND ${intent.action}")
-            when {
-                intent.action == Constants.START_SERVICE -> startService()
-                intent.action == Constants.STOP_SERVICE -> stopService()
-                intent.action == Constants.SCROBBLE_PENDING_SERVICE -> validateAndScrobblePending()
+            when (intent.action) {
+                Constants.START_SERVICE -> startService()
+                Constants.STOP_SERVICE -> stopService()
+                Constants.SCROBBLE_PENDING_SERVICE -> validateAndScrobblePending()
             }
         }
         return Service.START_STICKY
@@ -140,10 +144,12 @@ class MediaService : NotificationListenerService(),
     private fun createCallback() {
         mediaControllerCallback = object : MediaController.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackState?) {
+                lastPlaybackStateUpdate = Calendar.getInstance()
                 playbackState = state?.state!!
                 utils.logDebug("Playback state: $playbackState")
                 when (state.state) {
                     PlaybackState.STATE_PAUSED -> {
+                        createMediaSessionManager()
                         pauseTimer()
                     }
                     PlaybackState.STATE_PLAYING -> {
@@ -181,6 +187,7 @@ class MediaService : NotificationListenerService(),
         onActiveSessionsChanged(mediaSessionManager.getActiveSessions(componentName))
     }
 
+    @Synchronized
     private fun handleMetadataChange(metadata: MediaMetadata?) {
         utils.logDebug("METADATA changed")
         metadata?.let { mediaMetadata ->
@@ -192,7 +199,8 @@ class MediaService : NotificationListenerService(),
             if (artist.isNullOrEmpty() || track.isNullOrEmpty()) {
                 utils.log("Não conseguiu obter o artista ou música do metadata, não irá realizar a validação.")
             } else {
-                if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2))) {
+                val differenceLastPlaybackState = Calendar.getInstance().timeInMillis-lastPlaybackStateUpdate.timeInMillis
+                if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2)) && differenceLastPlaybackState < 1000) {
                     timer.onFinish()
                     utils.log("Duração até o momento $playtimeHolder")
                     timer.start()
@@ -232,7 +240,7 @@ class MediaService : NotificationListenerService(),
                                         notificationUtils.updateNotification(getString(R.string.app_name), getString(R.string.notification_scrobbling_validation_error))
                                     }
                                 } else {
-                                    if (!scrobbleValidationBean.validationError) {
+                                    if (scrobbleValidationBean.validated) {
                                         utils.log("Sem erro de validação, vai tentar obter a imagem pra montar a notificação.")
                                         val artistImageUrl = "https://tse2.mm.bing.net/th?q=${scrobbleValidationBean.artist} Band&w=500&h=500&c=7&rs=1&p=0&dpr=3&pid=1.7&mkt=en-IN&adlt=on"
                                         uiThread {
@@ -271,7 +279,7 @@ class MediaService : NotificationListenerService(),
                             finalAlbum = utils.clearAlbum(album)
                         }
                         else ->
-                            utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata.")
+                            utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata. Última atualização do playback state: $differenceLastPlaybackState")
                     }
                 }
             }
@@ -302,19 +310,30 @@ class MediaService : NotificationListenerService(),
             utils.savePlayersMap(playersMap)
         }
 
-        val activeMediaController = controllers?.firstOrNull()
-        val entries = utils.getPreferences().getStringSet("apps_to_scrobble", HashSet<String>())
-        if (entries != null) {
-            if (entries.size > 0) {
-                if (entries.contains(activeMediaController?.packageName)) {
-                    activeMediaController?.let { mediaController ->
-                        registerCallback(mediaController)
+        var activeMediaController = controllers?.firstOrNull()
+        if (activeMediaController != null) {
+            if (controllers != null) {
+                for (controller in controllers) {
+                    if (controller.playbackState?.state == PlaybackState.STATE_PLAYING) {
+                        utils.logDebug("Controller ativo alterado para ${controller.packageName}")
+                        activeMediaController = controller
+                    }
+                }
+            }
+
+            val entries = utils.getPreferences().getStringSet("apps_to_scrobble", HashSet<String>())
+            if (entries != null) {
+                if (entries.size > 0) {
+                    if (entries.contains(activeMediaController?.packageName)) {
+                        activeMediaController?.let { mediaController ->
+                            registerCallback(mediaController)
+                        }
+                    } else {
+                        utils.log("Nenhum app ativo para scrobble. App ativo ${activeMediaController?.packageName}")
                     }
                 } else {
-                    utils.log("Nenhum app ativo para scrobble. App ativo ${activeMediaController?.packageName}")
+                    utils.log("Nenhum app selecionado para scrobble.")
                 }
-            } else {
-                utils.log("Nenhum app selecionado para scrobble.")
             }
         }
     }
@@ -394,7 +413,6 @@ class MediaService : NotificationListenerService(),
         } else {
             utils.logError("Erro na validação da música: ${responseArtist.code()}")
             scrobble.validated = false
-            scrobble.validationError = true
             return scrobble
         }
 
@@ -419,7 +437,6 @@ class MediaService : NotificationListenerService(),
                 utils.logError("Erro na validação da música: ${responseTrackArtist.code()}")
 
                 scrobble.validated = false
-                scrobble.validationError = true
                 return scrobble
             }
 
@@ -443,7 +460,6 @@ class MediaService : NotificationListenerService(),
                 } else {
                     utils.logError("Erro na validação da música: ${responseTrack.code()}")
                     scrobble.validated = false
-                    scrobble.validationError = true
                     return scrobble
                 }
             }

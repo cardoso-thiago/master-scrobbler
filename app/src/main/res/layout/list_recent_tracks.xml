@@ -13,7 +13,7 @@
         android:layout_marginEnd="16dp" />
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical">
@@ -52,33 +52,35 @@
         android:layout_height="wrap_content"
         android:layout_weight="1" />
 
-    <ImageView
-        android:id="@+id/item_list_icon"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <LinearLayout
+        android:layout_width="36dp"
+        android:layout_height="36dp"
         android:layout_gravity="center_vertical"
-        android:contentDescription="@string/album_image"
-        android:layout_marginEnd="16dp" />
+        android:gravity="center"
+        android:orientation="horizontal">
 
-    <io.gresse.hugo.vumeterlibrary.VuMeterView
-        android:id="@+id/item_list_equalizer"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_gravity="center_vertical"
-        android:layout_marginEnd="16dp"
-        vumeter:vumeter_backgroundColor="@color/light_gray"
-        vumeter:vumeter_blockNumber="3"
-        vumeter:vumeter_blockSpacing="3dp"
-        vumeter:vumeter_speed="5"
-        vumeter:vumeter_startOff="false" />
+        <ImageView
+            android:id="@+id/item_list_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/album_image" />
 
-    <com.github.ybq.android.spinkit.SpinKitView
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/list_item_spin"
-        style="@style/SpinKitView.Small.FadingCircle"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_gravity="center_vertical"
-        app:SpinKit_Color="@color/light_gray"
-        android:layout_marginEnd="16dp"/>
+        <io.gresse.hugo.vumeterlibrary.VuMeterView
+            android:id="@+id/item_list_equalizer"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            vumeter:vumeter_backgroundColor="@color/light_gray"
+            vumeter:vumeter_blockNumber="3"
+            vumeter:vumeter_blockSpacing="3dp"
+            vumeter:vumeter_speed="5"
+            vumeter:vumeter_startOff="false" />
+
+        <com.github.ybq.android.spinkit.SpinKitView xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/list_item_spin"
+            style="@style/SpinKitView.Small.FadingCircle"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            app:SpinKit_Color="@color/light_gray" />
+    </LinearLayout>
+
 </LinearLayout>
