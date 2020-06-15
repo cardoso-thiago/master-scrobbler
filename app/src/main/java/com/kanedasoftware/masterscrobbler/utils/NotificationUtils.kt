@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.media.AudioAttributes
@@ -16,12 +17,15 @@ import android.support.v4.media.session.MediaSessionCompat
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.preference.PreferenceManager
 import com.kanedasoftware.masterscrobbler.R
+import com.kanedasoftware.masterscrobbler.beans.Scrobble
 import com.kanedasoftware.masterscrobbler.main.MainActivity
 import com.kanedasoftware.masterscrobbler.main.SettingsActivity
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 import kotlin.system.exitProcess
+
 
 class NotificationUtils constructor(appContext: Context):KoinComponent{
 
@@ -176,4 +180,22 @@ class NotificationUtils constructor(appContext: Context):KoinComponent{
         notificationManager.cancel(Constants.NOTIFICATION_NO_PLAYER_ID)
     }
 
+    fun sendDebugNotification(scrobble: Scrobble, playbackState: Int, mensagem: String) {
+        val sharedPreferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val debug = sharedPreferences.getBoolean("debug", false)
+        if(debug){
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val text = "$scrobble\nPlaybackState: $playbackState\nMensagem:$mensagem"
+            val notif = NotificationCompat.Builder(context, Constants.NOTIFICATION_CHANNEL)
+                    .setContentTitle("DEBUG")
+                    .setContentText(text)
+                    .setSmallIcon(R.drawable.ic_stat_lp)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                    .build()
+
+            notificationManager.notify(scrobble.hashCode(), notif)
+        }
+    }
 }
