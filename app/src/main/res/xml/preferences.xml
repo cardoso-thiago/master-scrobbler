@@ -7,9 +7,12 @@
         android:summary="@string/select_apps_scrobble"
         android:title="@string/apps_to_scrobble" />
 
-    <CheckBoxPreference
-        android:defaultValue="true"
-        android:key="browser_option"
-        android:summary="@string/open_links_internally"
-        android:title="@string/open_links" />
+    <SwitchPreferenceCompat
+        android:key="debug"
+        android:title="Debug Scrobble"
+        android:switchTextOff="Desligado"
+        android:summaryOn="Ligado"
+        android:summaryOff="Desligado"
+        android:switchTextOn="Ligado"
+        android:defaultValue="false" />
 </PreferenceScreen>
