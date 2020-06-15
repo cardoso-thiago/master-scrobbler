@@ -17,3 +17,5 @@ gradle/wrapper/*
 app/debug
 app/release
 app/schemas
+gradlew
+gradlew.bat
