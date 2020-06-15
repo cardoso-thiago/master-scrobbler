@@ -29,7 +29,6 @@ import okhttp3.ResponseBody
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import org.koin.android.ext.android.inject
-import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.HashSet
@@ -530,6 +529,7 @@ class MediaService : NotificationListenerService(),
 
     private fun scrobble(scrobble: Scrobble) {
         if (scrobble.duration <= 30000) {
+            notificationUtils.sendDebugNotification(scrobble, playbackState, "Scrobble não realizado, duração curta!")
             utils.log("Música muito curta, não será realizado o scrobble: ".plus(scrobble.artist).plus(" - ").plus(scrobble.track))
         } else {
             utils.log("Execução - Em milisegundos: ${scrobble.playtime} - " +
@@ -545,16 +545,20 @@ class MediaService : NotificationListenerService(),
                     try {
                         val response = lastFmService.scrobble(scrobble.artist, scrobble.track, scrobble.album, Constants.API_KEY, sig, sessionKey, timestamp).execute()
                         if (response.isSuccessful) {
+                            notificationUtils.sendDebugNotification(scrobble, playbackState, "Scrobble com sucesso!")
                             utils.log("Scrobbeled: ${scrobble.artist} - ${scrobble.track}")
                         } else {
+                            notificationUtils.sendDebugNotification(scrobble, playbackState, "Erro ao bater na API do Last para fazer o scrobble, vai adicionar no cache.")
                             utils.logError("Erro ao fazer o scrobble, adiciona ao cache para tentar novamente depois: ${response.code()}")
                             cacheScrobble(scrobble)
                             verifySessionKey(response.errorBody())
                         }
                     } catch (t: Throwable) {
+                        notificationUtils.sendDebugNotification(scrobble, playbackState, "Erro ao fazer o scrobble, vai adicionar no cache: ${t.message}")
                         cacheScrobble(scrobble)
                     }
                 } else {
+                    notificationUtils.sendDebugNotification(scrobble, playbackState, "Não está online e validado, vai adicionar no cache.")
                     cacheScrobble(scrobble)
                 }
             } else {

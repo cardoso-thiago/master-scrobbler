@@ -58,7 +58,7 @@ dependencies {
     implementation 'io.gresse.hugo.vumeterlibrary:vumeterlibrary:1.0.17'
     implementation 'me.zhanghai.android.materialprogressbar:library:1.6.1'
     implementation 'de.adorsys.android:securestoragelibrary:1.1.1'
-    implementation 'androidx.browser:browser:1.0.0'
+    implementation 'androidx.browser:browser:1.2.0'
     implementation 'com.jaredrummler:cyanea:1.0.2'
     implementation 'org.koin:koin-android:2.0.1'
     implementation 'com.github.clans:fab:1.6.4'
@@ -66,6 +66,8 @@ dependencies {
     implementation 'com.crashlytics.sdk.android:crashlytics:2.10.1'
     implementation 'org.ocpsoft.prettytime:prettytime:4.0.1.Final'
     implementation "com.mikepenz:aboutlibraries:7.0.4"
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
 
     implementation 'com.github.bumptech.glide:glide:4.10.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.10.0'
