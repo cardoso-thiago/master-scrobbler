@@ -185,7 +185,7 @@ class MediaService : NotificationListenerService(),
 
     @Synchronized
     private fun handleMetadataChange(metadata: MediaMetadata?) {
-        utils.logDebug("Metadata changed")
+        utils.logDebug("Metadata changed: ${metadata?.description} ")
         metadata?.let { mediaMetadata ->
             val artist = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
             val track = mediaMetadata.getString(MediaMetadata.METADATA_KEY_TITLE)
@@ -205,10 +205,7 @@ class MediaService : NotificationListenerService(),
 
                     utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState")
 
-                    if (album != null) {
-                        finalAlbum = album
-                    }
-
+                    finalAlbum = album.ifNull("")
                     finalDuration = duration
                     metadataArtist = artist
                     metadataTrack = track
@@ -588,6 +585,8 @@ class MediaService : NotificationListenerService(),
                 val title = getString(R.string.notification_scrobbling)
                 val text = "${scrobbleBean?.artist} - ${scrobbleBean?.track}"
                 imageUtils.updateNotificationWithImage(artistImageUrl, title, text)
+            } else {
+                lastMetadataHashCode = 0
             }
             utils.logDebug("Resumed timer")
             playtimeHolder += playtime
@@ -641,5 +640,12 @@ class MediaService : NotificationListenerService(),
         } else {
             utils.log("Não vai sincronizar o cache, não está online")
         }
+    }
+
+    private fun String?.ifNull(defaultValue: String): String {
+        if (this == null) {
+            return defaultValue
+        }
+        return this
     }
 }
