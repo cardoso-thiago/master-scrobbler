@@ -149,6 +149,7 @@ class MediaService : NotificationListenerService(),
                 utils.logDebug("Playback state: $playbackState")
                 when (state.state) {
                     PlaybackState.STATE_PAUSED -> {
+                        createMediaSessionManager()
                         pauseTimer()
                     }
                 }
@@ -198,13 +199,12 @@ class MediaService : NotificationListenerService(),
                 val totalPlay = playtime + playtimeHolder
                 if (lastMetadataHashCode != metadata.hashCode() || totalPlay >= finalDuration) {
                     lastMetadataHashCode = metadata.hashCode()
-
                     timer.onFinish()
                     utils.log("Duração até o momento $playtimeHolder")
                     timer.start()
 
                     utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState")
-
+                  
                     finalAlbum = album.ifNull("")
                     finalDuration = duration
                     metadataArtist = artist
@@ -284,6 +284,7 @@ class MediaService : NotificationListenerService(),
 
     override fun onActiveSessionsChanged(controllers: MutableList<MediaController>?) {
         utils.logDebug("Active Sessions Changed")
+
         if (controllers != null && controllers.size > 0) {
             val playersMap = utils.getPlayersMap()
             val packageManager = applicationContext?.packageManager
@@ -298,7 +299,6 @@ class MediaService : NotificationListenerService(),
                         notificationUtils.sendNewPlayerNotification(playerName)
                     }
                 }
-
                 if (controller.playbackState?.state == PlaybackState.STATE_PLAYING) {
                     utils.logDebug("Controller ativo alterado para ${controller.packageName}")
                     val entries = utils.getPreferences().getStringSet("apps_to_scrobble", HashSet<String>())
