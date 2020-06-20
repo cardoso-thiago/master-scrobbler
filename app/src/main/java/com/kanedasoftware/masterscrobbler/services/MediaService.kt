@@ -318,6 +318,7 @@ class MediaService : NotificationListenerService(),
             utils.savePlayersMap(playersMap)
         } else {
             //Se não tem controles ativos envia um broadcast para o receiver sem artista, para fazer scrobble de alguma possível música pendente
+            utils.logDebug("Stop Scrobbler, vai sincronizar.")
             stopScrobbler()
         }
     }
