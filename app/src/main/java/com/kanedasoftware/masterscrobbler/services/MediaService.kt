@@ -59,6 +59,7 @@ class MediaService : NotificationListenerService(),
     private var totalSeconds = 600L
     private var startedServiceLocal = false
     private var lastPlaybackStateUpdate = Calendar.getInstance()
+    private var lastMetadataHashCode = 0
 
     private var timer: CountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1 * 1000) {
         override fun onFinish() {
@@ -151,9 +152,6 @@ class MediaService : NotificationListenerService(),
                         createMediaSessionManager()
                         pauseTimer()
                     }
-                    PlaybackState.STATE_PLAYING -> {
-                        resumeTimer()
-                    }
                 }
             }
 
@@ -188,27 +186,26 @@ class MediaService : NotificationListenerService(),
 
     @Synchronized
     private fun handleMetadataChange(metadata: MediaMetadata?) {
-        utils.logDebug("METADATA changed")
+        utils.logDebug("Metadata changed: ${metadata?.description} ")
         metadata?.let { mediaMetadata ->
             val artist = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
             val track = mediaMetadata.getString(MediaMetadata.METADATA_KEY_TITLE)
             val duration = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
-            var album = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM)
+            val album = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM)
 
             if (artist.isNullOrEmpty() || track.isNullOrEmpty()) {
                 utils.log("Não conseguiu obter o artista ou música do metadata, não irá realizar a validação.")
             } else {
-                val differenceLastPlaybackState = Calendar.getInstance().timeInMillis-lastPlaybackStateUpdate.timeInMillis
-                if ((metadataArtist != artist || metadataTrack != track) || ((playtime + playtimeHolder) > (duration / 2)) && differenceLastPlaybackState < 1000) {
+                val totalPlay = playtime + playtimeHolder
+                if (lastMetadataHashCode != metadata.hashCode() || totalPlay >= finalDuration) {
+                    lastMetadataHashCode = metadata.hashCode()
                     timer.onFinish()
                     utils.log("Duração até o momento $playtimeHolder")
                     timer.start()
 
                     utils.logDebug("Vai iniciar a validação com $artist - $track  - PlaybackState: $playbackState")
-                    if (album == null) {
-                        album = ""
-                    }
-                    finalAlbum = album
+                  
+                    finalAlbum = album.ifNull("")
                     finalDuration = duration
                     metadataArtist = artist
                     metadataTrack = track
@@ -278,7 +275,7 @@ class MediaService : NotificationListenerService(),
                             finalAlbum = utils.clearAlbum(album)
                         }
                         else ->
-                            utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata. Última atualização do playback state: $differenceLastPlaybackState")
+                            utils.logDebug("Mesma música tocando, será ignorada a mudança de metadata.")
                     }
                 }
             }
@@ -287,11 +284,8 @@ class MediaService : NotificationListenerService(),
 
     override fun onActiveSessionsChanged(controllers: MutableList<MediaController>?) {
         utils.logDebug("Active Sessions Changed")
-        if (controllers != null) {
-            //Se não tem controles ativos envia um broadcast para o receiver sem artista, para fazer scrobble de alguma possível música pendente
-            if (controllers.size == 0) {
-                stopScrobbler()
-            }
+
+        if (controllers != null && controllers.size > 0) {
             val playersMap = utils.getPlayersMap()
             val packageManager = applicationContext?.packageManager
             val packagePlayerList = utils.getPackagePlayerList(packageManager)
@@ -305,35 +299,26 @@ class MediaService : NotificationListenerService(),
                         notificationUtils.sendNewPlayerNotification(playerName)
                     }
                 }
+                if (controller.playbackState?.state == PlaybackState.STATE_PLAYING) {
+                    utils.logDebug("Controller ativo alterado para ${controller.packageName}")
+                    val entries = utils.getPreferences().getStringSet("apps_to_scrobble", HashSet<String>())
+                    if (entries != null) {
+                        if (entries.size > 0) {
+                            if (entries.contains(controller.packageName)) {
+                                registerCallback(controller)
+                            } else {
+                                utils.log("Nenhum app ativo para scrobble. App ativo ${controller.packageName}")
+                            }
+                        } else {
+                            utils.log("Nenhum app selecionado para scrobble.")
+                        }
+                    }
+                }
             }
             utils.savePlayersMap(playersMap)
-        }
-
-        var activeMediaController = controllers?.firstOrNull()
-        if (activeMediaController != null) {
-            if (controllers != null) {
-                for (controller in controllers) {
-                    if (controller.playbackState?.state == PlaybackState.STATE_PLAYING) {
-                        utils.logDebug("Controller ativo alterado para ${controller.packageName}")
-                        activeMediaController = controller
-                    }
-                }
-            }
-
-            val entries = utils.getPreferences().getStringSet("apps_to_scrobble", HashSet<String>())
-            if (entries != null) {
-                if (entries.size > 0) {
-                    if (entries.contains(activeMediaController?.packageName)) {
-                        activeMediaController?.let { mediaController ->
-                            registerCallback(mediaController)
-                        }
-                    } else {
-                        utils.log("Nenhum app ativo para scrobble. App ativo ${activeMediaController?.packageName}")
-                    }
-                } else {
-                    utils.log("Nenhum app selecionado para scrobble.")
-                }
-            }
+        } else {
+            //Se não tem controles ativos envia um broadcast para o receiver sem artista, para fazer scrobble de alguma possível música pendente
+            stopScrobbler()
         }
     }
 
@@ -359,6 +344,7 @@ class MediaService : NotificationListenerService(),
                 resumeTimer()
             }
         }
+
         handleMetadataChange(newMediaController.metadata)
 
         mediaController = newMediaController
@@ -599,6 +585,8 @@ class MediaService : NotificationListenerService(),
                 val title = getString(R.string.notification_scrobbling)
                 val text = "${scrobbleBean?.artist} - ${scrobbleBean?.track}"
                 imageUtils.updateNotificationWithImage(artistImageUrl, title, text)
+            } else {
+                lastMetadataHashCode = 0
             }
             utils.logDebug("Resumed timer")
             playtimeHolder += playtime
@@ -652,5 +640,12 @@ class MediaService : NotificationListenerService(),
         } else {
             utils.log("Não vai sincronizar o cache, não está online")
         }
+    }
+
+    private fun String?.ifNull(defaultValue: String): String {
+        if (this == null) {
+            return defaultValue
+        }
+        return this
     }
 }
